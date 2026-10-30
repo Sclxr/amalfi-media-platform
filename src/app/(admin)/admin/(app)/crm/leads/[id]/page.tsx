@@ -4,7 +4,11 @@ import { NoteForm } from "@/components/forms/record-form";
 import { StatusBadge } from "@/components/data/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { addNoteAction } from "@/app/(admin)/admin/(app)/crm/actions";
+import { createTaskAction, logActivityAction } from "@/app/(admin)/admin/(app)/crm/growth-actions";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { getActor } from "@/server/auth/guards";
 import { getLead } from "@/server/services/leads";
@@ -25,6 +29,8 @@ export default async function LeadDetailPage({
   const lead = await getLead(actor, id);
   if (!lead) notFound();
   const noteAction = addNoteAction.bind(null, lead.id);
+  const activityAction = logActivityAction.bind(null, lead.id);
+  const taskAction = createTaskAction.bind(null, lead.id);
   return (
     <div className="space-y-6">
       {query.notice === "duplicate" ? (
@@ -76,6 +82,32 @@ export default async function LeadDetailPage({
           <CardTitle>Activity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <form action={activityAction} className="grid gap-3 border-b border-border pb-4">
+            <Label htmlFor="activity-type">Log outreach</Label>
+            <select id="activity-type" name="type" className="h-10 rounded-sm border border-border bg-background px-3 text-sm">
+              <option value="CALL">Call</option>
+              <option value="EMAIL_SENT">Email</option>
+              <option value="MEETING">Meeting</option>
+              <option value="NOTE">Note</option>
+            </select>
+            <Textarea name="summary" aria-label="Activity summary" placeholder="What happened" required />
+            <Button type="submit" variant="secondary">
+              Save activity
+            </Button>
+          </form>
+          <form action={taskAction} className="grid gap-3 border-b border-border pb-4 md:grid-cols-[160px_1fr_auto]">
+            <div className="space-y-2">
+              <Label htmlFor="dueAt">Task due</Label>
+              <Input id="dueAt" name="dueAt" type="date" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="task-note">Task</Label>
+              <Input id="task-note" name="note" required placeholder="Call about the intro package" />
+            </div>
+            <Button className="self-end" type="submit" variant="secondary">
+              Add task
+            </Button>
+          </form>
           {lead.activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">No notes yet.</p>
           ) : (

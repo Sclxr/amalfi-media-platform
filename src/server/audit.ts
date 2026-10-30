@@ -9,6 +9,7 @@ function toJson(value: unknown): Prisma.InputJsonValue | undefined {
 
 export async function writeAudit(entry: {
   actorId?: string | null;
+  apiClientId?: string | null;
   action: string;
   entityType: string;
   entityId: string;
@@ -20,6 +21,7 @@ export async function writeAudit(entry: {
   await prisma.auditLog.create({
     data: {
       actorId: entry.actorId || null,
+      apiClientId: entry.apiClientId || null,
       action: entry.action,
       entityType: entry.entityType,
       entityId: entry.entityId,

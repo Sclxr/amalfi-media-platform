@@ -1,6 +1,6 @@
 # Milestones
 
-Status as of 30 October 2026. This pull request is Milestone 1. It is not deployed.
+Status as of 30 October 2026. Milestone 1 is on develop. Milestone 2 is this pull request.
 
 ## Milestone 1 — Foundation
 
@@ -25,6 +25,16 @@ Status as of 30 October 2026. This pull request is Milestone 1. It is not deploy
 - [ ] Sentry SDK (DSN is reserved; logs go to pino)
 - [ ] Husky pre-commit hook
 
+## Milestone 2 — CRM growth and outreach
+
+- [x] CSV import with column mapping, dedupe on normalized email and phone, preview, and an error report
+- [x] Activity timeline, follow-up queue, and tasks
+- [x] Campaigns with segments, templates, and admin approval
+- [x] CAN-SPAM postal address (Orlando, FL), unsubscribe link, suppression list, and one-click `List-Unsubscribe`
+- [x] Sending stays off unless `APP_ENV=production` and `EMAIL_MARKETING_ENABLED=true`
+- [x] Gmail API stub and OAuth plan (`docs/GMAIL_OAUTH.md`)
+- [x] Marketing bot API keys, draft-only
+
 ## Later
 
-Imports, campaigns, booking, orders, Stripe, galleries, and the VPS cutover are out of this milestone. The tables for them are already in the migration.
+Bookings, orders, Stripe, and galleries are the next milestones. The tables for them are already in the database.

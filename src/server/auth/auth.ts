@@ -14,6 +14,8 @@ const env = getEnv();
 
 const ADMIN_SESSION_SECONDS = 60 * 60 * 12;
 const CLIENT_SESSION_SECONDS = 60 * 60 * 24 * 7;
+/** Production and staging stay at 5. Local and CI suites sign in more than that. */
+const LOGIN_ATTEMPT_MAX = env.APP_ENV === "production" || env.APP_ENV === "staging" ? 5 : 30;
 
 function clientIp(headers: Headers | undefined): string {
   const forwarded = headers?.get("x-forwarded-for");
@@ -91,7 +93,7 @@ export const auth = betterAuth({
     max: 60,
     storage: "database",
     customRules: {
-      "/sign-in/email": { window: 15 * 60, max: 5 },
+      "/sign-in/email": { window: 15 * 60, max: LOGIN_ATTEMPT_MAX },
       "/sign-up/email": { window: 15 * 60, max: 5 },
       "/request-password-reset": { window: 60 * 60, max: 3 },
       "/reset-password": { window: 60 * 60, max: 5 },
@@ -184,7 +186,7 @@ export const auth = betterAuth({
         const email = String(ctx.body?.email ?? "").toLowerCase().trim();
         const decision = consumeRateLimit(`login:${email}:${ip}`, {
           windowMs: 15 * 60 * 1000,
-          max: 5,
+          max: LOGIN_ATTEMPT_MAX,
         });
         if (!decision.allowed) {
           await writeAudit({

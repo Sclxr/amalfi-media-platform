@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-30
+
+### Added
+
+- CSV import for realtors and brokerages, with column mapping, email and phone dedupe, a preview, and an error report.
+- Follow-up queue, outreach activity on a realtor, and tasks.
+- Campaign drafts, segments, templates, admin approval, CAN-SPAM footer (Orlando, FL), one-click unsubscribe, and a suppression list.
+- Gmail API client stub. No live Google calls. OAuth plan is in `docs/GMAIL_OAUTH.md`.
+- Marketing bot API keys from Settings. Keys can create realtors, notes, and draft campaigns, and cannot send.
+
 ## 0.1.0 — 2026-10-30
 
 ### Added
