@@ -6,8 +6,10 @@ Nothing in this milestone is deployed. These are the steps to stand up an isolat
 
 1. Create a Neon project named `amalfi-staging`. Do not reuse a project you will later use for production.
 2. Create a database named `amalfi_staging` (or use a Neon branch named `staging` whose connection string is stored only on the staging host).
-3. Copy the **pooled** connection string. It looks like `postgresql://USER:PASSWORD@ep-....aws.neon.tech/amalfi_staging?sslmode=require`.
-4. Confirm the URL does not contain `amalfi_prod` or `/prod`.
+3. Copy two connection strings:
+   - **Pooled** (`-pooler` host) into `DATABASE_URL`. The running app uses this.
+   - **Direct** (host without `-pooler`) into `DIRECT_URL`. `prisma migrate deploy` uses this. Prisma cannot run migrations through Neon's transaction pooler.
+4. Confirm neither URL contains `amalfi_prod` or `/prod`. Locally, set `DIRECT_URL` to the same value as `DATABASE_URL`.
 
 ## 2. Cloudflare R2
 
@@ -33,11 +35,7 @@ pnpm install --frozen-lockfile && pnpm build
 pnpm start
 ```
 
-`pnpm start` runs `next start`. The build also sets `output: "standalone"` for a future VPS. Next prints a warning about that. Locally, `next start` still served HTML and CSS; that is what the Playwright run used. If Render refuses to boot because of the warning, start with the standalone server instead:
-
-```bash
-cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && node .next/standalone/server.js
-```
+`pnpm build` runs `next build` with `output: "standalone"`, then `scripts/prepare-standalone.mjs` copies `.next/static` into the standalone folder. `pnpm start` runs `node .next/standalone/server.js` with `HOSTNAME=0.0.0.0`. It does not call `next start`. A blueprint for this service is `render.yaml`.
 
 6. Health check path: `/portal/api/health`. This path is exempt from the staging basic-auth gate so Render can probe it. It returns 200 only when Postgres answers.
 7. Instance count: 1 for now. The per-account login limiter is in memory on each instance. The Better Auth limiter is in Postgres.
@@ -50,7 +48,8 @@ Set these on the Render service before the first build. The auth module reads th
 | --- | --- |
 | `APP_ENV` | `staging` |
 | `APP_URL` | `https://<service>.onrender.com` first, then `https://staging.amalfimedia.xyz` after DNS |
-| `DATABASE_URL` | Neon pooled URL from step 1 |
+| `DATABASE_URL` | Neon pooled URL (`-pooler` host) |
+| `DIRECT_URL` | Neon direct URL (no `-pooler`). Required for migrations |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `ENCRYPTION_KEY` | a different `openssl rand -base64 32` |
 | `EMAIL_MARKETING_ENABLED` | `false` |

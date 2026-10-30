@@ -12,6 +12,7 @@ import { normalizePhoneE164 } from "@/lib/phone";
 import { leadFormSchema } from "@/schemas/lead";
 import { brokerageNameKey } from "@/schemas/brokerage";
 import { stagingGate } from "@/lib/staging-gate";
+import { LOCAL_DEMO_PASSWORD, resolveSeedPassword } from "@/lib/seed-password";
 
 const baseEnv = {
   APP_URL: "http://localhost:3000",
@@ -147,6 +148,26 @@ describe("rate limit", () => {
       expect(consumeRateLimitWith(store, "login:a@b.c:1.1.1.1", rule, 1_000).allowed).toBe(true);
     }
     expect(consumeRateLimitWith(store, "login:a@b.c:1.1.1.1", rule, 1_000).allowed).toBe(false);
+  });
+});
+
+describe("seed password", () => {
+  it("refuses the local demo password outside development", () => {
+    expect(resolveSeedPassword({ appEnv: "development" })).toBe(LOCAL_DEMO_PASSWORD);
+    expect(resolveSeedPassword({ appEnv: "development", seedAdminPassword: "Custom-Dev-Password-1" })).toBe(
+      "Custom-Dev-Password-1",
+    );
+    expect(() => resolveSeedPassword({ appEnv: "test" })).toThrow(/only used when APP_ENV=development/);
+    expect(() => resolveSeedPassword({ appEnv: "staging" })).toThrow(/only used when APP_ENV=development/);
+    expect(() =>
+      resolveSeedPassword({ appEnv: "staging", seedAdminPassword: LOCAL_DEMO_PASSWORD }),
+    ).toThrow(/refused outside development/);
+    expect(() =>
+      resolveSeedPassword({ appEnv: "production", seedAdminPassword: LOCAL_DEMO_PASSWORD }),
+    ).toThrow(/refused outside development/);
+    expect(resolveSeedPassword({ appEnv: "staging", seedAdminPassword: "Staging-Only-Password-1" })).toBe(
+      "Staging-Only-Password-1",
+    );
   });
 });
 

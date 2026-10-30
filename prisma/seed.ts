@@ -1,19 +1,15 @@
 import { PrismaClient, type LeadStatus, type PropertyType } from "@prisma/client";
 import { hashPassword } from "../src/lib/password-hash";
 import { PERMISSIONS, ROLE_PERMISSIONS, type Role } from "../src/lib/permissions";
+import { resolveSeedPassword } from "../src/lib/seed-password";
 
 const prisma = new PrismaClient();
 
-const LOCAL_DEMO_PASSWORD = "Amalfi-Demo-2026!";
-
 function demoPassword() {
-  const fromEnv = process.env.SEED_ADMIN_PASSWORD?.trim();
-  if (fromEnv) return fromEnv;
-  const appEnv = process.env.APP_ENV ?? "development";
-  if (appEnv === "staging" || appEnv === "production") {
-    throw new Error("Set SEED_ADMIN_PASSWORD before seeding staging or production.");
-  }
-  return LOCAL_DEMO_PASSWORD;
+  return resolveSeedPassword({
+    appEnv: process.env.APP_ENV,
+    seedAdminPassword: process.env.SEED_ADMIN_PASSWORD,
+  });
 }
 
 async function upsertUser(input: { email: string; name: string; role: Role; password: string }) {

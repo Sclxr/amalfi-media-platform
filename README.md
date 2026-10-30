@@ -19,6 +19,7 @@ Put a local database URL and two random secrets (32+ characters) in `.env`:
 APP_ENV=development
 APP_URL=http://localhost:3000
 DATABASE_URL=postgresql://amalfi:amalfi@127.0.0.1:5432/amalfi_dev
+DIRECT_URL=postgresql://amalfi:amalfi@127.0.0.1:5432/amalfi_dev
 AUTH_SECRET=...
 ENCRYPTION_KEY=...
 EMAIL_MARKETING_ENABLED=false
@@ -38,7 +39,7 @@ Open http://localhost:3000.
 
 ## Demo sign-in
 
-Local seed only, when `SEED_ADMIN_PASSWORD` is unset and `APP_ENV` is development or test:
+Local seed only. The demo password is used only when `APP_ENV=development` and `SEED_ADMIN_PASSWORD` is unset. Staging, test, and production refuse that password, including when it is pasted into `SEED_ADMIN_PASSWORD`.
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -46,7 +47,7 @@ Local seed only, when `SEED_ADMIN_PASSWORD` is unset and `APP_ENV` is developmen
 | Staff | staff.demo@amalfimedia.xyz | `Amalfi-Demo-2026!` |
 | Client | client.demo@amalfimedia.xyz | `Amalfi-Demo-2026!` |
 
-Staging and production refuse to seed until `SEED_ADMIN_PASSWORD` is set. Do not reuse the local demo password on a public URL. Re-running the seed resets those three demo passwords and upserts the demo records. It does not delete realtors you add afterward.
+Any environment other than development refuses to seed until `SEED_ADMIN_PASSWORD` is set to something other than the demo password. Do not reuse the local demo password on a public URL. Re-running the seed resets those three demo passwords and upserts the demo records. It does not delete realtors you add afterward.
 
 ## Checks
 

@@ -6,7 +6,8 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | --- | --- | --- |
 | `APP_ENV` | yes | `development`, `test`, `staging`, or `production` |
 | `APP_URL` | yes | Public origin of this app, including scheme |
-| `DATABASE_URL` | yes | Postgres. Staging and production must differ |
+| `DATABASE_URL` | yes | Postgres URL the app uses. On Neon, the pooled URL |
+| `DIRECT_URL` | yes for Prisma | Non-pooled URL for `prisma migrate`. Locally, copy `DATABASE_URL` |
 | `AUTH_SECRET` | yes | 32+ characters. Session signing |
 | `ENCRYPTION_KEY` | yes | 32+ characters. Reserved for TOTP and token encryption |
 | `EMAIL_MARKETING_ENABLED` | no | Default `false`. Boot fails if `true` outside production |
