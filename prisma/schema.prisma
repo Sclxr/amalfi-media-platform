@@ -821,7 +821,9 @@ model Gallery {
   title       String
   status      GalleryStatus @default(DRAFT)
   /// Full-resolution and ZIP downloads require a paid invoice unless the client has allowUnpaidDownloads.
-  requirePaid Boolean       @default(true)
+  requirePaid       Boolean       @default(true)
+  /// Previews are the original file with no watermark burned in.
+  previewWatermark  Boolean       @default(false)
   publishedAt DateTime?
   zipKey      String?
   zipBuiltAt  DateTime?
