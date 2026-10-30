@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-10-30
+
+### Added
+
+- Stripe Checkout for invoices when keys are set. The app still boots when they are absent and shows billing as not configured. Live keys stay refused outside production.
+- Webhook verification, idempotent event storage, invoice pages, and receipt links. Card numbers are not stored.
+- Galleries with signed uploads, watermark-free previews, pay-before-download, a trusted-client override, zip download, and an audit row on download.
+
 ## 0.3.0 — 2026-10-30
 
 ### Added

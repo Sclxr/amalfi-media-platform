@@ -25,6 +25,7 @@ export default defineConfig({
       ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? "local-dev-encryption-key-32-chars",
       EMAIL_MARKETING_ENABLED: "false",
       EMAIL_DEV_PREVIEW: "true",
+      MEDIA_ROOT: process.env.MEDIA_ROOT ?? "/tmp/amalfi-e2e-media",
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

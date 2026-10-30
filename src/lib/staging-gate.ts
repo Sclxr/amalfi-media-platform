@@ -28,7 +28,8 @@ export function stagingGate(input: {
   if (
     input.pathname === HEALTH_PATH ||
     input.pathname === "/unsubscribe" ||
-    input.pathname === "/api/unsubscribe"
+    input.pathname === "/api/unsubscribe" ||
+    input.pathname === "/api/stripe/webhook"
   ) {
     return { action: "allow" };
   }
