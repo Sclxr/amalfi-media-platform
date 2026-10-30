@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: amalfi
+      POSTGRES_PASSWORD: amalfi
+      POSTGRES_DB: amalfi_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - amalfi_pg:/var/lib/postgresql/data
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: amalfi
+      MINIO_ROOT_PASSWORD: amalfi-local-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+volumes:
+  amalfi_pg:
