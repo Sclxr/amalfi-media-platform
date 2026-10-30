@@ -31,9 +31,17 @@ export default async function LeadsPage({
           <h1 className="text-3xl font-semibold tracking-tight">Realtors</h1>
           <p className="mt-2 text-muted-foreground">Leads, follow-ups, and brokerage relationships.</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/crm/leads/new">Add realtor</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="secondary">
+            <Link href="/admin/crm/import">Import CSV</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/admin/crm/follow-ups">Follow-ups</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/crm/leads/new">Add realtor</Link>
+          </Button>
+        </div>
       </div>
       <form className="grid gap-3 md:grid-cols-[1fr_180px_220px_auto]" method="get">
         <Input name="q" defaultValue={params.q ?? ""} placeholder="Search name, email, phone, city" aria-label="Search realtors" />

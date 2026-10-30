@@ -13,6 +13,7 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `EMAIL_MARKETING_ENABLED` | no | Default `false`. Boot fails if `true` outside production |
 | `EMAIL_TRANSACTIONAL_ENABLED` | no | Default `false`. No sender is wired yet |
 | `EMAIL_DEV_PREVIEW` | no | Local only. Stores the last password-reset URL in `AppSetting` |
+| `GMAIL_API_ENABLED` | no | Default off. The Gmail client is a stub and does not call Google. See `docs/GMAIL_OAUTH.md` |
 | `STAGING_BASIC_AUTH` | staging | `username:password`. Required when `APP_ENV=staging` |
 | `STRIPE_SECRET_KEY` | no | Staging must be `sk_test_`. Production must not be a test key |
 | `STRIPE_WEBHOOK_SECRET` | no | Later milestone |

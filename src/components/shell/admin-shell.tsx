@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Contact,
   Images,
+  KeyRound,
   LayoutDashboard,
   Megaphone,
   Menu,
@@ -35,6 +36,7 @@ const NAV = [
   { href: "/admin/billing", label: "Billing", icon: Receipt },
   { href: "/admin/media", label: "Media", icon: Images },
   { href: "/admin/settings/catalog", label: "Catalog", icon: Package, permission: "settings.manage" },
+  { href: "/admin/settings/api-keys", label: "API keys", icon: KeyRound, permission: "settings.manage" },
 ] as const;
 
 function isActive(pathname: string, href: string, exact?: boolean) {

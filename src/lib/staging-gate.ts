@@ -25,7 +25,13 @@ export function stagingGate(input: {
   pathname: string;
 }): StagingGateResult {
   if (input.appEnv !== "staging") return { action: "allow" };
-  if (input.pathname === HEALTH_PATH) return { action: "allow" };
+  if (
+    input.pathname === HEALTH_PATH ||
+    input.pathname === "/unsubscribe" ||
+    input.pathname === "/api/unsubscribe"
+  ) {
+    return { action: "allow" };
+  }
   if (!input.basicAuth || !input.basicAuth.includes(":")) return { action: "misconfigured" };
   const header = input.authorizationHeader;
   if (!header?.startsWith("Basic ")) return { action: "challenge" };
