@@ -1,0 +1,75 @@
+name: amalfi-staging
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amalfi_staging
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: amalfi_staging
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - staging_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amalfi_staging -d amalfi_staging"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [internal]
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  app:
+    image: amalfi-media-platform:staging
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: staging.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3101:3000"
+    volumes:
+      - ${STAGING_MEDIA_DIR}:/var/lib/amalfi/staging/media
+    networks: [internal]
+    logging: *logs
+
+  worker:
+    image: amalfi-media-platform:staging
+    restart: unless-stopped
+    command: ["node", "src/worker.mjs"]
+    env_file: staging.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_started
+    volumes:
+      - ${STAGING_MEDIA_DIR}:/var/lib/amalfi/staging/media
+    networks: [internal]
+    logging: *logs
+
+  nginx:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ../infra/nginx/docker-staging.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${STAGING_MEDIA_DIR}:/var/lib/amalfi/staging/media:ro
+    networks: [internal]
+    logging: *logs
+
+networks:
+  internal:
+
+volumes:
+  staging_pg:

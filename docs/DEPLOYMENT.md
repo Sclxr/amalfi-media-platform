@@ -1,6 +1,6 @@
 # Deployment
 
-Nothing in this milestone is deployed. These are the steps to stand up an isolated staging app on Neon and Render. Do not point it at a production database, bucket, or Stripe live key. Do not change the public site at `amalfimedia.xyz`.
+The current hosting plan is the OVH VPS. Read [SELF_HOSTING.md](SELF_HOSTING.md). The Render and Neon notes below are kept only so an old draft is not mistaken for the path we are taking. Do not create a Render service.
 
 ## 1. Neon database
 
