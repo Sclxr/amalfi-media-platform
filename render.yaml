@@ -1,5 +1,5 @@
-# Render blueprint for isolated staging. Secrets are sync:false so Render asks for them.
-# Do not point DATABASE_URL or S3_BUCKET at production.
+# Not the hosting plan. Staging and production run on the OVH VPS.
+# See docs/SELF_HOSTING.md. Do not apply this file.
 services:
   - type: web
     name: amalfi-media-staging

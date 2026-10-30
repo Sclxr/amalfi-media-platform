@@ -1,0 +1,61 @@
+name: amalfi-production
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amalfi_prod
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: amalfi_prod
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - production_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amalfi_prod -d amalfi_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [internal]
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  app:
+    image: ${APP_IMAGE:-amalfi-media-platform:production}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: production.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3100:3000"
+    volumes:
+      - ${PRODUCTION_MEDIA_DIR}:/var/lib/amalfi/production/media
+    networks: [internal]
+    logging: *logs
+
+  worker:
+    image: ${APP_IMAGE:-amalfi-media-platform:production}
+    restart: unless-stopped
+    command: ["node", "src/worker.mjs"]
+    env_file: production.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ${PRODUCTION_MEDIA_DIR}:/var/lib/amalfi/production/media
+    networks: [internal]
+    logging: *logs
+
+networks:
+  internal:
+
+volumes:
+  production_pg:

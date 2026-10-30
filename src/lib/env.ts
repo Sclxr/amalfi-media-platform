@@ -22,6 +22,7 @@ export const envSchema = z
     S3_BUCKET: z.string().optional(),
     S3_ACCESS_KEY_ID: z.string().optional(),
     S3_SECRET_ACCESS_KEY: z.string().optional(),
+    MEDIA_ROOT: z.string().optional(),
     SENTRY_DSN: z.string().optional(),
     LOG_LEVEL: z.string().default("info"),
     SEED_ADMIN_PASSWORD: z.string().optional(),
@@ -60,18 +61,26 @@ export const envSchema = z
           message: "Staging Stripe publishable key must be a test key (pk_test_).",
         });
       }
+      if (!value.MEDIA_ROOT || !pathHasSegment(value.MEDIA_ROOT, "staging")) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["MEDIA_ROOT"],
+          message: "Staging MEDIA_ROOT must be a directory path that contains a staging segment.",
+        });
+      }
       if (value.S3_BUCKET && !value.S3_BUCKET.includes("staging")) {
         ctx.addIssue({
           code: "custom",
           path: ["S3_BUCKET"],
-          message: "Staging bucket name must include staging so it cannot point at production.",
+          message: "If an S3 bucket is set on staging, its name must include staging.",
         });
       }
-      if (/amalfi_prod|\/prod\b/i.test(value.DATABASE_URL)) {
+      const stagingDb = databaseName(value.DATABASE_URL);
+      if (!stagingDb.toLowerCase().includes("staging") || /amalfi_prod|production/i.test(stagingDb)) {
         ctx.addIssue({
           code: "custom",
           path: ["DATABASE_URL"],
-          message: "Staging DATABASE_URL must not point at a production database.",
+          message: "Staging DATABASE_URL must use a database whose name includes staging and is not production.",
         });
       }
     }
@@ -83,11 +92,25 @@ export const envSchema = z
           message: "Production cannot use a Stripe test secret.",
         });
       }
+      if (!value.MEDIA_ROOT || pathHasSegment(value.MEDIA_ROOT, "staging")) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["MEDIA_ROOT"],
+          message: "Production MEDIA_ROOT must be set and must not use the staging directory.",
+        });
+      }
       if (value.S3_BUCKET?.includes("staging")) {
         ctx.addIssue({
           code: "custom",
           path: ["S3_BUCKET"],
-          message: "Production bucket must not be the staging bucket.",
+          message: "Production must not use a staging bucket.",
+        });
+      }
+      if (databaseName(value.DATABASE_URL).toLowerCase().includes("staging")) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["DATABASE_URL"],
+          message: "Production DATABASE_URL must not use the staging database.",
         });
       }
     }
@@ -98,6 +121,22 @@ export type ParsedEnv = z.infer<typeof envSchema> & {
   emailTransactionalEnabled: boolean;
   emailDevPreview: boolean;
 };
+
+function pathHasSegment(value: string, segment: string) {
+  return value
+    .split(/[/\\]/)
+    .filter(Boolean)
+    .some((part) => part.toLowerCase() === segment);
+}
+
+function databaseName(url: string) {
+  try {
+    const parsed = new URL(url);
+    return decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+  } catch {
+    return url;
+  }
+}
 
 function blankToUndefined(source: Record<string, string | undefined>) {
   const entries = Object.entries(source).map(([key, value]) => [key, value === "" ? undefined : value]);

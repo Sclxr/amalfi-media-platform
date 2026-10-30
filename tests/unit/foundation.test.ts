@@ -14,6 +14,7 @@ import { brokerageNameKey } from "@/schemas/brokerage";
 import { stagingGate } from "@/lib/staging-gate";
 import { LOCAL_DEMO_PASSWORD, resolveSeedPassword } from "@/lib/seed-password";
 import { shouldRunStartupSeed } from "@/lib/seed-marker.mjs";
+import { isSafeMediaKey, signMediaToken, verifyMediaToken } from "@/lib/media-sign";
 
 const baseEnv = {
   APP_URL: "http://localhost:3000",
@@ -103,6 +104,8 @@ describe("marketing email kill switch", () => {
         EMAIL_MARKETING_ENABLED: "true",
         STAGING_BASIC_AUTH: "preview:secret",
         S3_BUCKET: "amalfi-staging",
+        MEDIA_ROOT: "/var/lib/amalfi/staging/media",
+        DATABASE_URL: "postgresql://amalfi_staging:secret@127.0.0.1:5432/amalfi_staging",
       }),
     ).toThrow(/EMAIL_MARKETING_ENABLED/);
 
@@ -114,6 +117,8 @@ describe("marketing email kill switch", () => {
         STAGING_BASIC_AUTH: "preview:secret",
         STRIPE_SECRET_KEY: "sk_live_not_allowed",
         S3_BUCKET: "amalfi-staging",
+        MEDIA_ROOT: "/var/lib/amalfi/staging/media",
+        DATABASE_URL: "postgresql://amalfi_staging:secret@127.0.0.1:5432/amalfi_staging",
       }),
     ).toThrow(/sk_test_/);
 
@@ -125,8 +130,20 @@ describe("marketing email kill switch", () => {
       STRIPE_SECRET_KEY: "sk_test_123",
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_123",
       S3_BUCKET: "amalfi-staging",
+      MEDIA_ROOT: "/var/lib/amalfi/staging/media",
+      DATABASE_URL: "postgresql://amalfi_staging:secret@127.0.0.1:5432/amalfi_staging",
     });
     expect(staging.emailMarketingEnabled).toBe(false);
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        APP_ENV: "staging",
+        APP_URL: "https://staging.amalfimedia.xyz",
+        STAGING_BASIC_AUTH: "preview:secret",
+        MEDIA_ROOT: "/var/lib/amalfi/production/media",
+        DATABASE_URL: "postgresql://amalfi_staging:secret@127.0.0.1:5432/amalfi_staging",
+      }),
+    ).toThrow(/MEDIA_ROOT/);
   });
 });
 
@@ -149,6 +166,24 @@ describe("rate limit", () => {
       expect(consumeRateLimitWith(store, "login:a@b.c:1.1.1.1", rule, 1_000).allowed).toBe(true);
     }
     expect(consumeRateLimitWith(store, "login:a@b.c:1.1.1.1", rule, 1_000).allowed).toBe(false);
+  });
+});
+
+describe("media signed urls", () => {
+  it("accepts a matching token and rejects path escape and expiry", () => {
+    const secret = "test-only-encryption-key-32chars!";
+    const token = signMediaToken(
+      { purpose: "download", key: "uploads/abc/photo.jpg", expiresAt: 5_000 },
+      secret,
+    );
+    expect(verifyMediaToken(token, secret, 4_000)?.key).toBe("uploads/abc/photo.jpg");
+    expect(verifyMediaToken(token, secret, 5_001)).toBeNull();
+    expect(verifyMediaToken(token, "other-secret-other-secret-other", 4_000)).toBeNull();
+    expect(isSafeMediaKey("../etc/passwd")).toBe(false);
+    expect(isSafeMediaKey("/etc/passwd")).toBe(false);
+    expect(() =>
+      signMediaToken({ purpose: "upload", key: "../secret", expiresAt: 5_000 }, secret),
+    ).toThrow(/Unsafe/);
   });
 });
 

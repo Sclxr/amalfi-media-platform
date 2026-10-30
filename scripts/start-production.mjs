@@ -21,12 +21,7 @@ function runNode(script, args) {
   });
 }
 
-const appEnv = process.env.APP_ENV ?? "development";
 if (!process.env.DIRECT_URL) {
-  if (appEnv === "staging" || appEnv === "production") {
-    console.error("DIRECT_URL is required so prisma migrate deploy does not use the Neon pooler.");
-    process.exit(1);
-  }
   process.env.DIRECT_URL = process.env.DATABASE_URL;
 }
 
@@ -55,7 +50,10 @@ if (runSeed) {
 }
 
 console.log(`Database ready in ${Date.now() - started}ms. Starting server.`);
-const server = spawn(process.execPath, [path.resolve(".next/standalone/server.js")], {
+const serverEntry = process.env.SERVER_ENTRY
+  ? path.resolve(process.env.SERVER_ENTRY)
+  : path.resolve(".next/standalone/server.js");
+const server = spawn(process.execPath, [serverEntry], {
   stdio: "inherit",
   env: process.env,
 });
