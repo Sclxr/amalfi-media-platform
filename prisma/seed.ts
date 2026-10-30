@@ -2,6 +2,7 @@ import { PrismaClient, type LeadStatus, type PropertyType } from "@prisma/client
 import { hashPassword } from "../src/lib/password-hash";
 import { PERMISSIONS, ROLE_PERMISSIONS, type Role } from "../src/lib/permissions";
 import { resolveSeedPassword } from "../src/lib/seed-password";
+import { SEED_MARKER_KEY } from "../src/lib/seed-marker.mjs";
 
 const prisma = new PrismaClient();
 
@@ -463,6 +464,17 @@ async function main() {
       },
     });
   }
+
+  await prisma.appSetting.upsert({
+    where: { key: SEED_MARKER_KEY },
+    create: {
+      key: SEED_MARKER_KEY,
+      value: { at: new Date().toISOString() },
+    },
+    update: {
+      value: { at: new Date().toISOString() },
+    },
+  });
 
   console.log("Seeded Amalfi Media demo data.");
   console.log(`Admin ${admin.email}`);

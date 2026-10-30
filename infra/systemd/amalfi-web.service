@@ -7,8 +7,7 @@ After=network.target
 User=amalfi
 WorkingDirectory=/opt/amalfi
 EnvironmentFile=/etc/amalfi/app.env
-Environment=HOSTNAME=0.0.0.0
-ExecStart=/usr/bin/node .next/standalone/server.js
+ExecStart=/usr/bin/node scripts/start-production.mjs
 Restart=on-failure
 NoNewPrivileges=true
 

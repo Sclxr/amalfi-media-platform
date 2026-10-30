@@ -60,7 +60,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-`pnpm test` is Vitest (unit plus Postgres isolation). `pnpm test:e2e` is Playwright against `pnpm start`, so build first. Point `DATABASE_URL` at the seeded dev database for e2e. Vitest uses `amalfi_test` locally and `DATABASE_URL` in CI.
+`pnpm test` is Vitest (unit plus Postgres isolation). `pnpm test:e2e` is Playwright against `pnpm start`, so build first. `pnpm start` migrates, seeds only when `seed.completed` is missing, then serves the standalone server. Point `DATABASE_URL` at the dev database for e2e. Vitest uses `amalfi_test` locally and `DATABASE_URL` in CI.
 
 ## Docs
 
