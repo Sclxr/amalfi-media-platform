@@ -8,6 +8,10 @@
 - Webhook verification, idempotent event storage, invoice pages, and receipt links. Card numbers are not stored.
 - Galleries with signed uploads, watermark-free previews, pay-before-download, a trusted-client override, zip download, and an audit row on download.
 
+### Fixed
+
+- A Stripe webhook records the event id in the same transaction as the invoice and payment. A failed update does not consume the event, so Stripe's retry can mark the invoice paid.
+
 ## 0.3.0 — 2026-10-30
 
 ### Added

@@ -1,7 +1,10 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
+import { PrismaClient } from "@prisma/client";
+import { prismaCheckoutWriter } from "@/server/billing/checkout-writer";
 import { galleryDownloadDecision } from "@/lib/gallery-access";
-import { readCheckoutEvent, stripeBilling, verifyStripeSignature } from "@/lib/stripe-billing";
+import { readCheckoutEvent, stripeBilling, verifyStripeSignature, type CheckoutEvent } from "@/lib/stripe-billing";
+import { applyCheckoutEvent, type CheckoutWriter } from "@/lib/stripe-webhook";
 import { stagingGate } from "@/lib/staging-gate";
 import { storedZip } from "@/lib/zip-store";
 
@@ -49,6 +52,118 @@ describe("stripe billing", () => {
     vi.stubGlobal("fetch", vi.fn());
     expect(fetch).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("leaves a failed delivery retryable and marks the invoice paid on the next attempt", async () => {
+    const events = new Set<string>();
+    const invoice = { id: "inv_retry", status: "OPEN", payments: 0 };
+    let failuresLeft = 1;
+    const writer: CheckoutWriter = {
+      hasEvent: async (id) => events.has(id),
+      rememberIgnored: async (id) => {
+        events.add(id);
+      },
+      commitPaid: async (delivered) => {
+        if (events.has(delivered.id)) return "duplicate";
+        if (failuresLeft > 0) {
+          failuresLeft -= 1;
+          throw new Error("invoice update failed");
+        }
+        invoice.status = "PAID";
+        invoice.payments += 1;
+        events.add(delivered.id);
+        return "paid";
+      },
+    };
+    const event: CheckoutEvent = {
+      id: "evt_retry",
+      type: "checkout.session.completed",
+      invoiceId: invoice.id,
+      amountCents: 12000,
+      paymentIntentId: "pi_retry",
+      receiptUrl: "https://pay.stripe.com/receipts/retry",
+      checkoutSessionId: "cs_retry",
+    };
+
+    await expect(applyCheckoutEvent(event, writer)).rejects.toThrow(/invoice update failed/);
+    expect(events.has(event.id)).toBe(false);
+    expect(invoice.status).toBe("OPEN");
+    expect(invoice.payments).toBe(0);
+
+    await expect(applyCheckoutEvent(event, writer)).resolves.toEqual({ ok: true, paid: true });
+    expect(events.has(event.id)).toBe(true);
+    expect(invoice.status).toBe("PAID");
+    expect(invoice.payments).toBe(1);
+
+    await expect(applyCheckoutEvent(event, writer)).resolves.toEqual({ ok: true, duplicate: true });
+    expect(invoice.payments).toBe(1);
+  });
+
+  it("rolls the event back when the payment write fails, then pays on retry", async () => {
+    const prisma = new PrismaClient();
+    const stamp = `wh-${Date.now()}`;
+    const client = await prisma.client.create({
+      data: { firstName: "Webhook", lastName: "Retry", email: `${stamp}@example.com` },
+    });
+    const takenInvoice = await prisma.invoice.create({
+      data: {
+        number: `${stamp}-taken`,
+        clientId: client.id,
+        subtotalCents: 100,
+        totalCents: 100,
+        status: "PAID",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        invoiceId: takenInvoice.id,
+        status: "SUCCEEDED",
+        amountCents: 100,
+        stripePaymentIntentId: `${stamp}-taken`,
+        method: "card",
+      },
+    });
+    const invoice = await prisma.invoice.create({
+      data: {
+        number: `${stamp}-open`,
+        clientId: client.id,
+        subtotalCents: 12000,
+        totalCents: 12000,
+        status: "OPEN",
+      },
+    });
+    const event: CheckoutEvent = {
+      id: `${stamp}-evt`,
+      type: "checkout.session.completed",
+      invoiceId: invoice.id,
+      amountCents: 12000,
+      paymentIntentId: `${stamp}-taken`,
+      receiptUrl: "https://pay.stripe.com/receipts/retry",
+      checkoutSessionId: `${stamp}-cs`,
+    };
+    try {
+      await expect(prismaCheckoutWriter.commitPaid(event)).rejects.toThrow();
+      expect(await prisma.stripeEvent.findUnique({ where: { id: event.id } })).toBeNull();
+      expect((await prisma.invoice.findUnique({ where: { id: invoice.id } }))?.status).toBe("OPEN");
+
+      const retry = { ...event, paymentIntentId: `${stamp}-ok` };
+      await expect(prismaCheckoutWriter.commitPaid(retry)).resolves.toBe("paid");
+      const paid = await prisma.invoice.findUnique({ where: { id: invoice.id }, include: { payments: true } });
+      expect(paid?.status).toBe("PAID");
+      expect(paid?.amountPaidCents).toBe(12000);
+      expect(paid?.payments).toHaveLength(1);
+      expect(await prisma.stripeEvent.findUnique({ where: { id: event.id } })).not.toBeNull();
+
+      await expect(applyCheckoutEvent(retry, prismaCheckoutWriter)).resolves.toEqual({ ok: true, duplicate: true });
+      expect(await prisma.payment.count({ where: { invoiceId: invoice.id } })).toBe(1);
+    } finally {
+      await prisma.payment.deleteMany({ where: { invoiceId: { in: [invoice.id, takenInvoice.id] } } });
+      await prisma.auditLog.deleteMany({ where: { entityId: invoice.id } });
+      await prisma.stripeEvent.deleteMany({ where: { id: event.id } });
+      await prisma.invoice.deleteMany({ where: { id: { in: [invoice.id, takenInvoice.id] } } });
+      await prisma.client.delete({ where: { id: client.id } });
+      await prisma.$disconnect();
+    }
   });
 
   it("lets Stripe reach the webhook without the staging password", () => {
