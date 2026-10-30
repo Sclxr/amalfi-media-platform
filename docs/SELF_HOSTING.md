@@ -45,7 +45,17 @@ Keep delivered files for **24 months**, then archive or delete. Keep originals f
 
 ## What gets installed
 
-Two Compose projects:
+Two Compose projects. Run them from the repo's `deploy/` directory. Every command needs the project name and the env file. The first staging install failed when `up` was run without `--env-file`: Compose left `POSTGRES_PASSWORD` empty and Postgres exited. `env_file:` inside the YAML only fills the container. It does not substitute `${POSTGRES_PASSWORD}` or `${STAGING_MEDIA_DIR}` in the file itself.
+
+`STAGING_MEDIA_DIR` and `PRODUCTION_MEDIA_DIR` are already in the env examples. Keep them in the real env file so `--env-file` supplies them. Exporting the same variables in the shell also works, but the env file is the one that has to be passed either way.
+
+```bash
+cd deploy
+docker compose -p amalfi-staging --env-file staging.env -f docker-compose.staging.yml up -d --build
+docker compose -p amalfi-production --env-file production.env -f docker-compose.production.yml up -d --build
+```
+
+`--build` is required until GitHub Actions pushes an image to GHCR. The VPS compiles the Dockerfile. After a registry push exists, `pull` can replace `--build`.
 
 - `deploy/docker-compose.staging.yml` publishes `127.0.0.1:3101` (app) and `127.0.0.1:5433` (Postgres).
 - `deploy/docker-compose.production.yml` publishes `127.0.0.1:3100` and `127.0.0.1:5434`.
@@ -61,22 +71,40 @@ Startup runs `prisma migrate deploy`, then seeds only when `seed.completed` is m
 
 ## Host Nginx and certificates
 
-Copy these new files. Do not open the existing `amalfimedia.xyz` site file.
+Copy these new files. Do not open the existing `amalfimedia.xyz` site file. Ubuntu 24.04 ships Nginx 1.24, which rejects the `http2 on;` directive. The configs use `listen 443 ssl http2;` instead.
 
 - `infra/nginx/app.amalfimedia.xyz.conf`
 - `infra/nginx/staging.amalfimedia.xyz.conf`
 - `infra/nginx/amalfi-proxy.conf` as `/etc/nginx/snippets/amalfi-proxy.conf`
 
-The media locations are `internal`. A request from the internet to `/internal-media/` is not served. Only `X-Accel-Redirect` from the app can use them. The host Nginx must mount, or rather alias, the same directories the containers write.
+The media locations are `internal`. A request from the internet to `/internal-media/` is not served. Only `X-Accel-Redirect` from the app can use them. The host Nginx aliases the same directories the containers write.
 
-Certificates, one name at a time, after DNS points at the VPS and before the 443 server block is enabled:
+Port 80 answers `/.well-known/acme-challenge/` from its own webroot, then redirects every other path to HTTPS. Staging uses `/var/www/letsencrypt-staging`. The app host uses `/var/www/letsencrypt-app`. Neither is the public site's webroot. Renewals keep working after the redirect is in place because the challenge location is matched first.
+
+The full file cannot be enabled first: it names certificate files that do not exist yet, and `nginx -t` fails. Bootstrap with a temporary port-80-only block.
 
 ```bash
-sudo certbot certonly --webroot -w /var/www/html -d app.amalfimedia.xyz
-sudo certbot certonly --webroot -w /var/www/html -d staging.amalfimedia.xyz
+sudo mkdir -p /var/www/letsencrypt-staging
+sudo tee /etc/nginx/sites-available/staging.amalfimedia.xyz >/dev/null <<'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name staging.amalfimedia.xyz;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt-staging;
+        default_type text/plain;
+    }
+    location / {
+        return 404;
+    }
+}
+EOF
+sudo ln -s /etc/nginx/sites-available/staging.amalfimedia.xyz /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot certonly --webroot -w /var/www/letsencrypt-staging -d staging.amalfimedia.xyz
 ```
 
-Use the webroot that already serves ACME challenges for the public site only if that webroot is the existing one and the new names are extra `-d` certificates. Do not replace the certificate that covers `amalfimedia.xyz`. `certbot renew` should already be on a timer. Confirm with `systemctl list-timers | grep certbot`.
+Then replace that temporary file with `infra/nginx/staging.amalfimedia.xyz.conf`, run `sudo nginx -t`, and reload. Repeat for `app.amalfimedia.xyz` with webroot `/var/www/letsencrypt-app`. Do not replace the certificate that covers `amalfimedia.xyz`. Confirm `systemctl list-timers | grep certbot` so renewals are scheduled. A renewal writes into the same webroot the port-80 block already serves.
 
 ## Firewall, SSH, and updates
 
@@ -94,7 +122,7 @@ Do not allow 5432, 5433, 5434, 3100, or 3101 from the internet.
 
 SSH: key login only, `PasswordAuthentication no`, `PermitRootLogin no`. A deploy user in the `docker` group, not root. `fail2ban` jail for sshd. `unattended-upgrades` for security updates. Reboot when the kernel needs it, during a window Eathen picks.
 
-Secrets live in `/etc/amalfi/staging.env` and `/etc/amalfi/production.env`, mode `600`, owner root or the deploy user. They are not in git. The examples are `deploy/staging.env.example` and `deploy/production.env.example`.
+Secrets live next to the Compose files, at `deploy/staging.env` and `deploy/production.env`, mode `600`. Those paths are gitignored. The examples are `deploy/staging.env.example` and `deploy/production.env.example`. Copy the example, fill it in, and pass that same file as `--env-file`. Do not put a second copy under `/etc/amalfi`.
 
 ## Postgres
 
@@ -154,20 +182,29 @@ Containers log JSON to disk, 10 MB times 5 files, set in the Compose files. Host
 
 Uptime: an outside check on `https://app.amalfimedia.xyz/portal/api/health` and the same path on staging. Health only runs `SELECT 1`. It does not require the basic-auth gate.
 
-**Deploy.** GitHub Actions builds the image and pushes it to GHCR. The VPS does not compile Next.js.
+**Deploy.** There is no GHCR push yet. Build on the VPS with `--build`. From `deploy/`:
 
 ```bash
-docker pull ghcr.io/sclxr/amalfi-media-platform:<sha>
-APP_IMAGE=ghcr.io/sclxr/amalfi-media-platform:<sha> \
-  docker compose --env-file /etc/amalfi/production.env \
-  -f deploy/docker-compose.production.yml up -d
+docker compose -p amalfi-staging --env-file staging.env -f docker-compose.staging.yml up -d --build
 ```
 
-Do staging first. Watch `docker compose logs app` for the migration line and for `Seed marker present` on every boot after the first. Then production, only after a written yes.
+Production, after a written yes:
 
-**Rollback.** `docker compose up -d` with the previous image tag. Migrations in this project must stay backward compatible: add columns, do not rename or drop in the same release the old image still runs. If a migration was wrong, restore the database from the backup taken before the deploy. Take that backup as part of the deploy, before `up -d`.
+```bash
+docker compose -p amalfi-production --env-file production.env -f docker-compose.production.yml up -d --build
+```
 
-This is close to zero downtime: pull the image, backup, `up -d` the app container, wait until health returns 200, reload Nginx only if the port changed. There is a short window of errors if the new process is not up yet. Two app containers and a socket switch can come later. It is not worth the extra moving parts on day one.
+Do staging first. Watch logs with the same flags:
+
+```bash
+docker compose -p amalfi-staging --env-file staging.env -f docker-compose.staging.yml logs app
+```
+
+Look for the migration line and for `Seed marker present` on every boot after the first. When a workflow pushes `ghcr.io/sclxr/amalfi-media-platform:<sha>`, set `APP_IMAGE` to that tag and drop `--build`.
+
+**Rollback.** From `deploy/`, run the production compose command above with the previous image tag and without `--build`. Migrations in this project must stay backward compatible: add columns, do not rename or drop in the same release the old image still runs. If a migration was wrong, restore the database from the backup taken before the deploy. Take that backup as part of the deploy, before compose starts the new container.
+
+This is close to zero downtime: build or pull the image, backup, start the app container with the same `-p` and `--env-file` flags, wait until health returns 200, reload Nginx only if the port changed. There is a short window of errors if the new process is not up yet. Two app containers and a socket switch can come later. It is not worth the extra moving parts on day one.
 
 ## Pre-flight audit
 
@@ -204,7 +241,7 @@ Send the output. Do not paste passwords. Stop if the public site's Nginx test fa
 1. **Approve the audit.** Disk, RAM, Nginx test, and SSH settings look acceptable.
 2. **Approve DNS.** Add `A` or `CNAME` records for `app` and `staging` only. Do not change `@` or `www`.
 3. **Approve certificates** after `certbot certonly` for those two names. Confirm `amalfimedia.xyz` still loads.
-4. **Approve staging env file** on the server, mode 600. Start only the staging Compose project. Sign in. Upload one photo. Download it with the signed URL.
+4. **Approve `deploy/staging.env`**, mode 600, and start staging with `-p amalfi-staging --env-file staging.env -f docker-compose.staging.yml up -d --build` from `deploy/`. Sign in. Upload one photo. Download it with the signed URL.
 5. **Approve the first backup and a restore drill** into a throwaway database.
 6. **Approve production.** Separate env file, separate database, separate media directory. Seed once. Sign in. Do not point the public site at it.
 7. **Approve the old Neon project can be deleted**, only after the dump has been restored and checked, or after confirming it was never used.

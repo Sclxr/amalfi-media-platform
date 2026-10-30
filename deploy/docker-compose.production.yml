@@ -1,3 +1,5 @@
+# From deploy/:
+# docker compose -p amalfi-production --env-file production.env -f docker-compose.production.yml up -d --build
 name: amalfi-production
 
 services:
