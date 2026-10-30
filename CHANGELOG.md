@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 — 2026-10-30
+
+### Added
+
+- Availability rules, blackout dates, and a day, week, and month bookings calendar.
+- Portal booking requests with the $120 introductory package, quote-only drone and video add-ons, and a travel fee from the service area.
+- Order lifecycle from requested through quoted, scheduled, shot, editing, and delivered, with history and a quote builder.
+- Transactional email templates that preview only outside production.
+- `.ics` download for a booking.
+
 ## 0.2.0 — 2026-10-30
 
 ### Added

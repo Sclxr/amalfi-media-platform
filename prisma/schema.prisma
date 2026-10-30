@@ -126,6 +126,7 @@ enum BookingStatus {
 
 enum OrderStatus {
   REQUESTED
+  QUOTED
   CONFIRMED
   SCHEDULED
   SHOOT_COMPLETE

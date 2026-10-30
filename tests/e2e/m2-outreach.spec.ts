@@ -5,6 +5,7 @@ const password = process.env.SEED_ADMIN_PASSWORD ?? "Amalfi-Demo-2026!";
 test("admin imports a csv, sees the follow-up queue, and drafts a campaign", async ({ page }) => {
   const stamp = Date.now();
   const email = `riley.${stamp}@example.com`;
+  const phone = `407${String(stamp).slice(-7)}`;
   await page.goto("/admin/login");
   await page.getByLabel("Email").fill("eathen@amalfimedia.xyz");
   await page.getByLabel("Password").fill(password);
@@ -13,7 +14,7 @@ test("admin imports a csv, sees the follow-up queue, and drafts a campaign", asy
 
   await page.goto("/admin/crm/import");
   await page.getByLabel("CSV").fill(
-    ["First name,Last name,Email,Phone,Brokerage,City", `Riley,Stone,${email},321-555-0101,Lakeside Realty,Orlando`, "Bad,Row,not-an-email,,,"].join("\n"),
+    ["First name,Last name,Email,Phone,Brokerage,City", `Riley,Stone,${email},${phone},Lakeside Realty,Orlando`, "Bad,Row,not-an-email,,,"].join("\n"),
   );
   await page.getByRole("button", { name: "Preview import" }).click();
   await expect(page.getByTestId("import-preview")).toContainText("1 to create");

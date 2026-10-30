@@ -17,7 +17,7 @@ const TONE: Record<string, "neutral" | "primary" | "success" | "warning" | "dang
 const LABEL: Record<string, string> = {
   DO_NOT_CONTACT: "Do not contact",
   READY_FOR_DELIVERY: "Ready",
-  SHOOT_COMPLETE: "Shoot complete",
+  SHOOT_COMPLETE: "Shot",
   PARTIALLY_PAID: "Partially paid",
   PARTIALLY_REFUNDED: "Partially refunded",
 };
