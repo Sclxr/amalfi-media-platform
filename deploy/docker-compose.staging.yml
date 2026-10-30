@@ -1,3 +1,5 @@
+# From deploy/, always pass the env file. Without it POSTGRES_PASSWORD is empty and Postgres exits.
+# docker compose -p amalfi-staging --env-file staging.env -f docker-compose.staging.yml up -d --build
 name: amalfi-staging
 
 services:
