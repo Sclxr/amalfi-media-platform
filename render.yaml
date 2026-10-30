@@ -4,11 +4,10 @@ services:
   - type: web
     name: amalfi-media-staging
     runtime: node
-    plan: starter
+    plan: free
     branch: develop
     buildCommand: pnpm install --frozen-lockfile && pnpm build
     startCommand: pnpm start
-    preDeployCommand: pnpm exec prisma migrate deploy && pnpm db:seed
     healthCheckPath: /portal/api/health
     envVars:
       - key: NODE_VERSION
@@ -46,7 +45,7 @@ services:
       - key: S3_REGION
         value: auto
       - key: S3_BUCKET
-        sync: false
+        value: amalfi-staging
       - key: S3_ACCESS_KEY_ID
         sync: false
       - key: S3_SECRET_ACCESS_KEY

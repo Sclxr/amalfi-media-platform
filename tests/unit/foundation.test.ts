@@ -13,6 +13,7 @@ import { leadFormSchema } from "@/schemas/lead";
 import { brokerageNameKey } from "@/schemas/brokerage";
 import { stagingGate } from "@/lib/staging-gate";
 import { LOCAL_DEMO_PASSWORD, resolveSeedPassword } from "@/lib/seed-password";
+import { shouldRunStartupSeed } from "@/lib/seed-marker.mjs";
 
 const baseEnv = {
   APP_URL: "http://localhost:3000",
@@ -148,6 +149,14 @@ describe("rate limit", () => {
       expect(consumeRateLimitWith(store, "login:a@b.c:1.1.1.1", rule, 1_000).allowed).toBe(true);
     }
     expect(consumeRateLimitWith(store, "login:a@b.c:1.1.1.1", rule, 1_000).allowed).toBe(false);
+  });
+});
+
+describe("startup seed", () => {
+  it("skips seeding when the marker is already stored", () => {
+    expect(shouldRunStartupSeed(null)).toBe(true);
+    expect(shouldRunStartupSeed(undefined)).toBe(true);
+    expect(shouldRunStartupSeed({ key: "seed.completed" })).toBe(false);
   });
 });
 

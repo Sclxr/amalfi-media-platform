@@ -20,8 +20,8 @@ Nothing in this milestone is deployed. These are the steps to stand up an isolat
 
 ## 3. Render web service
 
-1. New **Web Service**, connect the GitHub repo `amalfi-media-platform`.
-2. Branch: `develop` after this PR is merged. Until then you can point a temporary service at the feature branch.
+1. New **Web Service** on the **Free** plan, or apply `render.yaml` (it sets `plan: free`). Connect the GitHub repo `amalfi-media-platform`.
+2. Branch: `develop`.
 3. Runtime: Node. Set Node to 22 (`NODE_VERSION=22`).
 4. Build command:
 
@@ -35,10 +35,10 @@ pnpm install --frozen-lockfile && pnpm build
 pnpm start
 ```
 
-`pnpm build` runs `next build` with `output: "standalone"`, then `scripts/prepare-standalone.mjs` copies `.next/static` into the standalone folder. `pnpm start` runs `node .next/standalone/server.js` with `HOSTNAME=0.0.0.0`. It does not call `next start`. A blueprint for this service is `render.yaml`.
+`pnpm build` runs `next build` with `output: "standalone"`, then copies `.next/static` into the standalone folder. `pnpm start` runs `scripts/start-production.mjs`. That applies `prisma migrate deploy`, seeds only when the `seed.completed` setting is missing, then listens with `node .next/standalone/server.js` on `0.0.0.0`. The free plan cannot use a pre-deploy command, so this work happens in the start command. A later boot, including a wake from sleep, sees the marker and does not seed again, so it does not reset passwords or catalog prices. The health check waits only for that fast path plus the server bind.
 
-6. Health check path: `/portal/api/health`. This path is exempt from the staging basic-auth gate so Render can probe it. It returns 200 only when Postgres answers.
-7. Instance count: 1 for now. The per-account login limiter is in memory on each instance. The Better Auth limiter is in Postgres.
+6. Health check path: `/portal/api/health`. This path is exempt from the staging basic-auth gate so Render can probe it. It returns 200 when Postgres answers `SELECT 1`.
+7. Free instances sleep after about 15 minutes with no traffic. The next request wakes the service, which runs the start script again. The first request after sleep can take a few seconds. The free plan is one instance. The per-account login limiter is in memory and resets on sleep. The Better Auth limiter stays in Postgres.
 
 ### Environment variables
 
@@ -73,15 +73,13 @@ If any of these are wrong, the process exits during env parsing: marketing flag 
 
 ## 4. Migrate and seed
 
-Render pre-deploy command:
+Do not add a Render pre-deploy command. Free web services do not support one. Startup runs the migration, then seeds only if `AppSetting` has no `seed.completed` row.
 
-```bash
-pnpm exec prisma migrate deploy && pnpm exec prisma db seed
-```
+`prisma` and `tsx` are runtime dependencies, so this works after `pnpm install` without devDependencies. The first seed inserts demo brokerages, the $120 introductory package, quote-priced add-ons, travel zones at `$0` until you edit them, and three users. It does not delete CRM rows that lack a `seed:` external ref. After that marker is written, startup will not run the seed again.
 
-`prisma` and `tsx` are runtime dependencies so this works after `pnpm install`. The seed upserts demo brokerages, the $120 introductory package, quote-priced add-ons, travel zones at `$0` until you edit them, and three users. It does not delete CRM rows that lack a `seed:` external ref.
+`pnpm db:seed` is still the manual command. It upserts the demo rows and refreshes the marker. Use it only when you intend to refresh demo accounts. Startup will not do that on its own.
 
-Sign in at `/admin/login` with `eathen@amalfimedia.xyz` and `SEED_ADMIN_PASSWORD`. The browser will first ask for the `STAGING_BASIC_AUTH` user and password.
+Sign in at `/admin/login` with `eathen@amalfimedia.xyz` and `SEED_ADMIN_PASSWORD`. The browser will first ask for the `STAGING_BASIC_AUTH` user and password. The blueprint sets `S3_BUCKET` to `amalfi-staging` and keeps `EMAIL_MARKETING_ENABLED=false`. Staging still refuses a live Stripe key, a production-looking database URL, and marketing email.
 
 ## 5. DNS
 
