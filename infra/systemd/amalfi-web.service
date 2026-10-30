@@ -1,0 +1,16 @@
+# Future VPS only. Not installed by this milestone.
+[Unit]
+Description=Amalfi Media platform
+After=network.target
+
+[Service]
+User=amalfi
+WorkingDirectory=/opt/amalfi
+EnvironmentFile=/etc/amalfi/app.env
+Environment=HOSTNAME=0.0.0.0
+ExecStart=/usr/bin/node .next/standalone/server.js
+Restart=on-failure
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

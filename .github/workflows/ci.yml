@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: amalfi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      APP_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/amalfi_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/amalfi_test
+      AUTH_SECRET: ci-only-auth-secret-not-for-production
+      ENCRYPTION_KEY: ci-only-encryption-key-32-characters
+      EMAIL_MARKETING_ENABLED: "false"
+      EMAIL_TRANSACTIONAL_ENABLED: "false"
+      EMAIL_DEV_PREVIEW: "true"
+      SEED_ADMIN_PASSWORD: Ci-Only-Amalfi-Password-2026!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma validate
+      - run: pnpm exec prisma generate
+      - run: pnpm exec next typegen
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm exec prisma db seed
+      - run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm exec prisma db seed
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report

@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f1115;
+  --surface: #f7f7f8;
+  --card: #ffffff;
+  --border: #e6e7ea;
+  --muted: #f7f7f8;
+  --muted-foreground: #5b616e;
+  --primary: #1f4e79;
+  --primary-foreground: #ffffff;
+  --accent: #f4efe9;
+  --accent-foreground: #1f4e79;
+  --terracotta: #c8702a;
+  --destructive: #b91c1c;
+  --success: #15803d;
+  --warning: #b45309;
+  --ring: #1f4e79;
+  --sidebar: #f7f7f8;
+  --radius: 0.625rem;
+  --shadow: 0 12px 40px rgba(15, 17, 21, 0.08);
+}
+
+.dark {
+  --background: #0b0d10;
+  --foreground: #f2f3f5;
+  --surface: #121418;
+  --card: #121418;
+  --border: #23262d;
+  --muted: #121418;
+  --muted-foreground: #9aa1ae;
+  --primary: #6fa8dc;
+  --primary-foreground: #0b0d10;
+  --accent: #1c2430;
+  --accent-foreground: #e39a5c;
+  --terracotta: #e39a5c;
+  --destructive: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --ring: #6fa8dc;
+  --sidebar: #121418;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-terracotta: var(--terracotta);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
