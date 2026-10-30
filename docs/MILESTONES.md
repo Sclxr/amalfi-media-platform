@@ -1,6 +1,6 @@
 # Milestones
 
-Status as of 30 October 2026. Milestone 1 is on develop. Milestone 2 is this pull request.
+Status as of 30 October 2026. Milestones 1 and 2 are in review. Milestone 3 is this pull request.
 
 ## Milestone 1 — Foundation
 
@@ -35,6 +35,16 @@ Status as of 30 October 2026. Milestone 1 is on develop. Milestone 2 is this pul
 - [x] Gmail API stub and OAuth plan (`docs/GMAIL_OAUTH.md`)
 - [x] Marketing bot API keys, draft-only
 
+## Milestone 3 — Bookings and orders
+
+- [x] Availability rules and blackout dates
+- [x] Admin calendar in day, week, and month views
+- [x] Portal booking request: property, $120 intro package, quote-only drone and video add-ons, travel fee by service area
+- [x] Order lifecycle requested → quoted → scheduled → shot → editing → delivered → cancelled, with history
+- [x] Quote builder for quote-priced items
+- [x] Transactional email templates, preview only outside production
+- [x] `.ics` export
+
 ## Later
 
-Bookings, orders, Stripe, and galleries are the next milestones. The tables for them are already in the database.
+Stripe billing and galleries are the next milestone. The tables for them are already in the database.
