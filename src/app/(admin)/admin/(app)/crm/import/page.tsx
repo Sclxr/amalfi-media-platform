@@ -51,6 +51,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
               canArchive
               canPermanent={can(actor, "records.delete")}
               deletable
+              label="Import actions"
               returnTo={returnTo}
             />
           </div>

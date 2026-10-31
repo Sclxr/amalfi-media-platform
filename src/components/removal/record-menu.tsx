@@ -15,6 +15,7 @@ export function RecordMenu({
   canPermanent,
   deletable,
   returnTo,
+  label,
 }: {
   kind: string;
   id: string;
@@ -24,6 +25,7 @@ export function RecordMenu({
   canPermanent: boolean;
   deletable: boolean;
   returnTo: string;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -47,7 +49,7 @@ export function RecordMenu({
   if (!canArchive && !canPermanent) return null;
   return (
     <div className="relative">
-      <Button type="button" variant="secondary" size="sm" aria-haspopup="menu" aria-expanded={open} aria-label={`Actions for ${name}`} onClick={() => setOpen((value) => !value)}>
+      <Button type="button" variant="secondary" size="sm" aria-haspopup="menu" aria-expanded={open} aria-label={label ?? `Actions for ${name}`} onClick={() => setOpen((value) => !value)}>
         Actions
       </Button>
       {open ? (

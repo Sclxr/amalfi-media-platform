@@ -86,6 +86,7 @@ test("an unpaid listing and its photo file can be deleted", async ({ page }) => 
   await page.getByLabel("Address").fill(address);
   await page.getByLabel("ZIP").fill("32810");
   await page.getByRole("button", { name: "Create listing" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: address })).toBeVisible();
   const listingUrl = page.url();
   await page.getByRole("tab", { name: "Gallery" }).click();
   await page.getByRole("button", { name: "Create an order for these photos" }).click();
@@ -95,6 +96,7 @@ test("an unpaid listing and its photo file can be deleted", async ({ page }) => 
   await expect(page.getByRole("button", { name: "gone.png", exact: true })).toBeVisible({ timeout: 20_000 });
   const created = walk(mediaRoot).filter((file) => !before.has(file));
   expect(created.length).toBeGreaterThan(0);
+  await page.goto("/admin/listings");
   await page.getByRole("button", { name: `Actions for ${address}` }).click();
   await page.getByRole("menuitem", { name: "Delete permanently" }).click();
   await page.getByLabel("Type the name to confirm").fill(address);
