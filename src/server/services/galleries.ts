@@ -8,6 +8,7 @@ import { deleteMediaFile, readMediaFile, resolveMediaPath, writeMediaFile } from
 import { writeAudit } from "@/server/audit";
 import { streamStoredZip, uniqueZipKey } from "@/lib/zip-store";
 import { galleryInviteMessage } from "@/lib/email-messages";
+import { previewServable } from "@/lib/preview-access";
 import { previewObjectKey, watermarkedPreview } from "@/lib/preview-image";
 import { sendTransactional } from "@/server/email/send";
 import { logger } from "@/server/logger";
@@ -23,6 +24,26 @@ async function storeWatermarkedPreview(originalKey: string) {
   if (key === originalKey) throw new Error("Preview key matched the original.");
   await writeMediaFile(env.MEDIA_ROOT, key, preview);
   return key;
+}
+
+/** Writes a watermarked preview when one is missing. Never returns the original key. */
+export async function ensureWatermarkedPreview(asset: {
+  id: string;
+  storageKey: string;
+  previewKey: string | null;
+  mimeType: string;
+}) {
+  if (previewServable(asset)) return asset.previewKey;
+  if (!asset.mimeType.startsWith("image/")) return null;
+  try {
+    const key = await storeWatermarkedPreview(asset.storageKey);
+    if (!key || key === asset.storageKey) return null;
+    await prisma.mediaAsset.update({ where: { id: asset.id }, data: { previewKey: key } });
+    return key;
+  } catch (error) {
+    logger.error({ err: error, assetId: asset.id }, "preview generation failed");
+    return null;
+  }
 }
 
 function bestInvoiceStatus(invoices: { status: string; createdAt: Date; amountRefundedCents: number }[]): InvoiceStatus | null {

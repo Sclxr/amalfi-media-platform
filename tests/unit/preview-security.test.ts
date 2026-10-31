@@ -1,9 +1,10 @@
+import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { clientMayPreview, listingAccessMove, needsPreviewBackfill, previewServable } from "@/lib/preview-access";
+import { clientMayPreview, listingAccessMove, needsPreviewBackfill, previewServable, shouldWritePreview } from "@/lib/preview-access";
 import { previewObjectKey, watermarkedPreview } from "@/lib/preview-image";
 import { streamStoredZip, uniqueZipKey } from "@/lib/zip-store";
 
@@ -35,6 +36,10 @@ describe("client preview access", () => {
       needsPreviewBackfill({ kind: "PHOTO", mimeType: "image/png", previewKey: "previews/a.jpg", storageKey: "uploads/a.png" }),
     ).toBe(false);
     expect(needsPreviewBackfill({ kind: "VIDEO", mimeType: "video/mp4", previewKey: null, storageKey: "clip.mp4" })).toBe(false);
+    const ready = { kind: "PHOTO", mimeType: "image/jpeg", previewKey: "previews/a.jpg", storageKey: "uploads/a.jpg" };
+    expect(shouldWritePreview(ready, false)).toBe(false);
+    expect(shouldWritePreview(ready, true)).toBe(true);
+    expect(shouldWritePreview({ ...ready, previewKey: "uploads/a.jpg" }, false)).toBe(true);
   });
 
   it("moves every gallery and invoice id with the listing", () => {
@@ -59,11 +64,37 @@ describe("watermarked previews", () => {
     expect(preview.equals(original)).toBe(false);
     expect(preview[0]).toBe(0xff);
     expect(preview[1]).toBe(0xd8);
+    const white = await sharp({
+      create: { width: 900, height: 600, channels: 3, background: { r: 250, g: 250, b: 248 } },
+    })
+      .png()
+      .toBuffer();
+    const marked = await watermarkedPreview(white);
+    const plain = await sharp(white).resize(900, 600).jpeg({ quality: 72 }).toBuffer();
+    const markedMean = (await sharp(marked).stats()).channels[0]?.mean ?? 255;
+    const plainMean = (await sharp(plain).stats()).channels[0]?.mean ?? 255;
+    expect(plainMean - markedMean).toBeGreaterThan(8);
     const meta = await sharp(preview).metadata();
     expect(meta.width).toBeLessThanOrEqual(1600);
     expect(meta.height).toBeLessThanOrEqual(1600);
     expect(previewObjectKey()).toMatch(/^previews\/.+\.jpg$/);
     expect(previewObjectKey()).not.toBe(previewObjectKey());
+  });
+});
+
+describe("preview backfill script", () => {
+  it("loads under tsx in the production container's module format", () => {
+    try {
+      execFileSync("pnpm", ["exec", "tsx", "scripts/backfill-previews.ts"], {
+        env: { ...process.env, MEDIA_ROOT: "" },
+        encoding: "utf8",
+      });
+      throw new Error("The backfill should stop when MEDIA_ROOT is missing.");
+    } catch (error) {
+      const failed = error as { status?: number; stdout?: string; stderr?: string };
+      expect(failed.status).toBe(1);
+      expect(`${failed.stdout ?? ""}${failed.stderr ?? ""}`).toContain("Set MEDIA_ROOT");
+    }
   });
 });
 

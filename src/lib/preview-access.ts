@@ -9,6 +9,15 @@ export function needsPreviewBackfill(asset: { kind: string; mimeType: string; pr
   return !previewServable(asset);
 }
 
+/** `--force` rewrites every photo preview, including ones already watermarked. */
+export function shouldWritePreview(
+  asset: { kind: string; mimeType: string; previewKey: string | null; storageKey: string },
+  force: boolean,
+) {
+  if (asset.kind !== "PHOTO" || !asset.mimeType.startsWith("image/")) return false;
+  return force || needsPreviewBackfill(asset);
+}
+
 export function clientMayPreview(input: {
   actorClientId: string | null;
   galleryClientId: string;
