@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listingStatus, pickCover, pickListingOrder, pickShootDate, type ListingGallery, type ListingOrder } from "@/lib/listing";
+import { listingStatus, pickCover, pickListingOrder, pickShootDate, pickUploadGallery, pickUploadOrder, type ListingGallery, type ListingOrder } from "@/lib/listing";
 
 const order = (patch: Partial<ListingOrder> & Pick<ListingOrder, "id" | "status" | "updatedAt">): ListingOrder => ({
   preferredDate: null,
@@ -56,6 +56,24 @@ describe("listing snapshot", () => {
     expect(
       pickShootDate(order({ id: "pref", status: "REQUESTED", updatedAt: now, preferredDate: new Date("2026-12-01T00:00:00Z") }), now)?.toISOString(),
     ).toBe("2026-12-01T00:00:00.000Z");
+  });
+
+  it("chooses the latest non-cancelled order and its newest gallery", () => {
+    const orders = [
+      { id: "old", status: "DELIVERED" as const, updatedAt: new Date("2026-10-01T00:00:00Z") },
+      { id: "new", status: "REQUESTED" as const, updatedAt: new Date("2026-10-20T00:00:00Z") },
+      { id: "cancelled", status: "CANCELLED" as const, updatedAt: new Date("2026-10-30T00:00:00Z") },
+    ];
+    const order = pickUploadOrder(orders);
+    expect(order?.id).toBe("new");
+    expect(pickUploadOrder(orders.filter((item) => item.status === "CANCELLED"))).toBeNull();
+    const galleries = [
+      { id: "older-gallery", orderId: "new", createdAt: new Date("2026-10-21T00:00:00Z") },
+      { id: "newer-gallery", orderId: "new", createdAt: new Date("2026-10-22T00:00:00Z") },
+      { id: "other-order", orderId: "old", createdAt: new Date("2026-10-29T00:00:00Z") },
+    ];
+    expect(pickUploadGallery(order?.id ?? null, galleries)).toBe("newer-gallery");
+    expect(pickUploadGallery(null, galleries)).toBeNull();
   });
 
   it("picks the first ready photo on the newest published gallery", () => {

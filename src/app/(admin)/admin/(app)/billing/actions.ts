@@ -2,6 +2,7 @@
 
 import { redirect, unstable_rethrow } from "next/navigation";
 import { getActor } from "@/server/auth/guards";
+import { prisma } from "@/server/db/prisma";
 import { createInvoiceForOrder, startCheckout } from "@/server/services/billing";
 import { createGallery, publishGallery, registerUpload, setTrustedDownloads } from "@/server/services/galleries";
 
@@ -37,8 +38,11 @@ export async function createGalleryAction(formData: FormData) {
     orderId: String(formData.get("orderId") ?? ""),
     title: String(formData.get("title") ?? ""),
   });
-  if ("error" in result && result.error) redirect(`/admin/media?notice=${encodeURIComponent(result.error)}`);
-  if ("id" in result) redirect(`/admin/media/${result.id}`);
+  if ("error" in result && result.error) redirect(`/admin/listings?notice=${encodeURIComponent(result.error)}`);
+  if ("id" in result) {
+    const gallery = await prisma.gallery.findUnique({ where: { id: result.id }, select: { propertyId: true } });
+    redirect(gallery ? `/admin/listings/${gallery.propertyId}?photos=${Date.now()}#photos` : "/admin/listings");
+  }
 }
 
 export async function registerUploadAction(galleryId: string, formData: FormData) {
@@ -49,14 +53,16 @@ export async function registerUploadAction(galleryId: string, formData: FormData
     mimeType: String(formData.get("mimeType") ?? "application/octet-stream"),
     sizeBytes: Number(formData.get("size") ?? 0),
   });
-  redirect(`/admin/media/${galleryId}`);
+  const gallery = await prisma.gallery.findUnique({ where: { id: galleryId }, select: { propertyId: true } });
+  redirect(gallery ? `/admin/listings/${gallery.propertyId}?photos=${Date.now()}#photos` : "/admin/listings");
 }
 
 export async function publishGalleryAction(formData: FormData) {
   const actor = await actorOr("/admin/login");
   const id = String(formData.get("id") ?? "");
   await publishGallery(actor, id);
-  redirect(`/admin/media/${id}`);
+  const gallery = await prisma.gallery.findUnique({ where: { id }, select: { propertyId: true } });
+  redirect(gallery ? `/admin/listings/${gallery.propertyId}?photos=${Date.now()}#photos` : "/admin/listings");
 }
 
 export async function trustedAction(formData: FormData) {

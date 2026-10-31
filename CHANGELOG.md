@@ -5,6 +5,7 @@
 ### Added
 
 - Admin listings use the existing property records and the CRM realtor. Status, shoot date, and cover photo come from the related order, booking, and gallery.
+- A listing page is where staff upload, reorder, delete, and publish photos. The Media menu item now sends people to listings.
 
 ## 0.4.0 — 2026-10-30
 

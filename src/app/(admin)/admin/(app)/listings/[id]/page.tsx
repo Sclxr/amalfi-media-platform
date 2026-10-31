@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { updateListingAction } from "@/app/(admin)/admin/(app)/listings/actions";
+import { ListingPhotos } from "@/components/forms/listing-photos";
 import { StatusBadge } from "@/components/data/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,15 @@ export default async function ListingDetailPage({
   if (!listing) notFound();
   const { property, card } = listing;
   const update = updateListingAction.bind(null, property.id);
+  const photos = property.galleries
+    .flatMap((gallery) => gallery.assets)
+    .filter((asset) => asset.kind === "PHOTO" && asset.status === "READY")
+    .sort((left, right) => left.sortOrder - right.sortOrder || left.createdAt.getTime() - right.createdAt.getTime())
+    .map((asset) => ({
+      id: asset.id,
+      fileName: asset.fileName,
+      src: `/admin/listings/${property.id}/photos/${asset.id}`,
+    }));
   return (
     <div className="space-y-6">
       <Link className="text-sm text-primary" href="/admin/listings">
@@ -87,18 +97,12 @@ export default async function ListingDetailPage({
               </p>
             ))}
           </div>
-          <div className="space-y-2">
-            <h2 className="font-semibold">Galleries</h2>
-            {property.galleries.length === 0 ? <p className="text-muted-foreground">No gallery yet.</p> : null}
-            {property.galleries.map((gallery) => (
-              <p key={gallery.id}>
-                <Link className="text-primary" href={`/admin/media/${gallery.id}`}>
-                  {gallery.title}
-                </Link>{" "}
-                · {gallery.status}
-              </p>
-            ))}
-          </div>
+          <ListingPhotos
+            propertyId={property.id}
+            photos={photos}
+            galleries={property.galleries.map((gallery) => ({ id: gallery.id, title: gallery.title, status: gallery.status }))}
+            canWrite={can(actor, "media.write")}
+          />
           <div className="space-y-2">
             <h2 className="font-semibold">Invoices</h2>
             {property.orders.every((order) => order.invoices.length === 0) ? (

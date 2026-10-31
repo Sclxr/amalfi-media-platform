@@ -66,6 +66,25 @@ export function pickShootDate(order: ListingOrder | null, now = new Date()): Dat
   return order.preferredDate;
 }
 
+/** Latest non-cancelled order. Photos attach here. A cancelled-only property has no upload order. */
+export function pickUploadOrder<T extends { id: string; status: OrderStatus; updatedAt: Date }>(orders: readonly T[]): T | null {
+  const active = orders.filter((order) => order.status !== "CANCELLED");
+  if (active.length === 0) return null;
+  return [...active].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime() || right.id.localeCompare(left.id))[0] ?? null;
+}
+
+/** Newest gallery on the upload order. Null when that order has no gallery yet. */
+export function pickUploadGallery(
+  orderId: string | null,
+  galleries: readonly { id: string; orderId: string; createdAt: Date }[],
+): string | null {
+  if (!orderId) return null;
+  const matches = galleries
+    .filter((gallery) => gallery.orderId === orderId)
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime() || right.id.localeCompare(left.id));
+  return matches[0]?.id ?? null;
+}
+
 export type ListingCover = { galleryId: string; assetId: string; key: string };
 
 /** Published galleries win. Then the newest gallery. First ready photo by sort order. */
