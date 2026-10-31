@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/data/empty-state";
+import { ArchiveView } from "@/components/removal/archive-view";
+import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
 import { StatusBadge } from "@/components/data/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/dates";
+import { can } from "@/lib/permissions";
+import { hasFinancialHistory, leadRemoval } from "@/lib/removal";
 import { LEAD_STATUSES } from "@/schemas/lead";
 import { getActor } from "@/server/auth/guards";
 import { listBrokerages } from "@/server/services/brokerages";
@@ -15,11 +19,12 @@ export const metadata = { title: "Realtors" };
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; brokerageId?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; brokerageId?: string; view?: string; notice?: string }>;
 }) {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
   const params = await searchParams;
+  const returnTo = params.view === "archived" ? "/admin/crm/leads?view=archived" : "/admin/crm/leads";
   const [leads, brokerages] = await Promise.all([
     listLeads(actor, params),
     listBrokerages(actor),
@@ -43,6 +48,11 @@ export default async function LeadsPage({
           </Button>
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <ArchiveView href="/admin/crm/leads" view={params.view} />
+        {can(actor, "crm.write") ? <BulkBar kind="lead" returnTo={returnTo} canArchive /> : null}
+      </div>
+      {params.notice ? <p className="text-sm">{params.notice}</p> : null}
       <form className="grid gap-3 md:grid-cols-[1fr_180px_220px_auto]" method="get">
         <Input name="q" defaultValue={params.q ?? ""} placeholder="Search name, email, phone, city" aria-label="Search realtors" />
         <select name="status" defaultValue={params.status ?? ""} className="h-10 rounded-sm border border-border bg-background px-3 text-sm" aria-label="Status">
@@ -77,6 +87,7 @@ export default async function LeadsPage({
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">City</th>
                 <th className="px-4 py-3 font-medium">Follow-up</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -94,6 +105,27 @@ export default async function LeadsPage({
                   </td>
                   <td className="px-4 py-3">{lead.city ?? "—"}</td>
                   <td className="px-4 py-3 tabular-nums">{formatDate(lead.nextFollowUpAt)}</td>
+                  <td className="px-4 py-3">
+                    <label className="mr-2 text-xs">
+                      <input type="checkbox" data-bulk="lead" value={lead.id} aria-label={`Select ${lead.firstName} ${lead.lastName}`} />
+                    </label>
+                    <RecordMenu
+                      kind="lead"
+                      id={lead.id}
+                      name={`${lead.firstName ?? ""} ${lead.lastName ?? ""}`.trim() || "Realtor"}
+                      archived={Boolean(lead.deletedAt)}
+                      canArchive={can(actor, "crm.write")}
+                      canPermanent={can(actor, "records.delete")}
+                      deletable={
+                        leadRemoval({
+                          listings: lead._count.properties,
+                          sentEmails: lead.emails.length,
+                          financial: hasFinancialHistory(lead.client?.invoices ?? []),
+                        }).canDelete
+                      }
+                      returnTo={returnTo}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

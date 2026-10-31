@@ -9,17 +9,20 @@ function emptyToNull(value: string | undefined) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export async function listBrokerages(actor: Actor, q?: string) {
+export async function listBrokerages(actor: Actor, q?: string, view?: string) {
   if (!can(actor, "crm.read")) throw new Error("Forbidden");
   return prisma.brokerage.findMany({
-    where: q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { city: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      archivedAt: view === "archived" ? { not: null } : null,
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { city: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     include: { _count: { select: { leads: true, clients: true } } },
     orderBy: { name: "asc" },
   });
@@ -31,6 +34,7 @@ export async function getBrokerage(actor: Actor, id: string) {
     where: { id },
     include: {
       leads: { where: { deletedAt: null }, orderBy: { updatedAt: "desc" } },
+      _count: { select: { leads: true, clients: true } },
     },
   });
 }

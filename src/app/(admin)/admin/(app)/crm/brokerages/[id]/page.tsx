@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { StatusBadge } from "@/components/data/status-badge";
+import { ArchivedBanner } from "@/components/removal/archive-view";
+import { RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { can } from "@/lib/permissions";
+import { brokerageRemoval } from "@/lib/removal";
 import { getActor } from "@/server/auth/guards";
 import { getBrokerage } from "@/server/services/brokerages";
 
@@ -28,6 +32,17 @@ export default async function BrokeragePage({
           A brokerage with that name already exists. Showing the existing record.
         </p>
       ) : null}
+      {brokerage.archivedAt ? <ArchivedBanner>This brokerage is archived. Restore it to put it back on the active list.</ArchivedBanner> : null}
+      <RecordMenu
+        kind="brokerage"
+        id={brokerage.id}
+        name={brokerage.name}
+        archived={Boolean(brokerage.archivedAt)}
+        canArchive={can(actor, "crm.write")}
+        canPermanent={can(actor, "records.delete")}
+        deletable={brokerageRemoval(brokerage._count).canDelete}
+        returnTo={`/admin/crm/brokerages/${brokerage.id}`}
+      />
       <div className="flex items-start justify-between gap-4">
         <div>
           <Link className="text-sm text-primary" href="/admin/crm/brokerages">

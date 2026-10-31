@@ -19,11 +19,12 @@ const PROPERTY_TYPES = [
   "OTHER",
 ] as const;
 
-export async function listOrders(actor: Actor) {
+export async function listOrders(actor: Actor, view?: string) {
   if (!can(actor, "orders.read")) throw new Error("Forbidden");
   return prisma.order.findMany({
+    where: { archivedAt: view === "archived" ? { not: null } : null },
     orderBy: { updatedAt: "desc" },
-    include: { client: true, property: true, items: true },
+    include: { client: true, property: true, items: true, invoices: { include: { payments: true } } },
   });
 }
 
@@ -37,6 +38,7 @@ export async function getOrder(actor: Actor, id: string) {
       items: { include: { service: true, package: true } },
       history: { orderBy: { createdAt: "asc" }, include: { actor: true } },
       bookings: true,
+      invoices: { include: { payments: true } },
     },
   });
 }

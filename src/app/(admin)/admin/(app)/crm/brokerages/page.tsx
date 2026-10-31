@@ -1,18 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/data/empty-state";
+import { ArchiveView } from "@/components/removal/archive-view";
+import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { can } from "@/lib/permissions";
+import { brokerageRemoval } from "@/lib/removal";
 import { getActor } from "@/server/auth/guards";
 import { listBrokerages } from "@/server/services/brokerages";
 
 export const metadata = { title: "Brokerages" };
 
-export default async function BrokeragesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function BrokeragesPage({ searchParams }: { searchParams: Promise<{ q?: string; view?: string; notice?: string }> }) {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
-  const { q } = await searchParams;
-  const brokerages = await listBrokerages(actor, q);
+  const { q, view, notice } = await searchParams;
+  const brokerages = await listBrokerages(actor, q, view);
+  const returnTo = view === "archived" ? "/admin/crm/brokerages?view=archived" : "/admin/crm/brokerages";
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -20,10 +25,15 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
           <h1 className="text-3xl font-semibold tracking-tight">Brokerages</h1>
           <p className="mt-2 text-muted-foreground">Offices tied to realtors and clients.</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/crm/brokerages/new">Add brokerage</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <ArchiveView href="/admin/crm/brokerages" view={view} />
+          {can(actor, "crm.write") ? <BulkBar kind="brokerage" returnTo={returnTo} canArchive /> : null}
+          <Button asChild>
+            <Link href="/admin/crm/brokerages/new">Add brokerage</Link>
+          </Button>
+        </div>
       </div>
+      {notice ? <p className="text-sm">{notice}</p> : null}
       <form method="get" className="flex gap-3">
         <Input name="q" defaultValue={q ?? ""} placeholder="Search name or city" aria-label="Search brokerages" />
         <Button type="submit" variant="secondary">
@@ -41,6 +51,7 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
                 <th className="px-4 py-3 font-medium">City</th>
                 <th className="px-4 py-3 font-medium">Realtors</th>
                 <th className="px-4 py-3 font-medium">Clients</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -54,6 +65,21 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
                   <td className="px-4 py-3">{brokerage.city ?? "—"}</td>
                   <td className="px-4 py-3 tabular-nums">{brokerage._count.leads}</td>
                   <td className="px-4 py-3 tabular-nums">{brokerage._count.clients}</td>
+                  <td className="px-4 py-3">
+                    <label className="mr-2 text-xs">
+                      <input type="checkbox" data-bulk="brokerage" value={brokerage.id} aria-label={`Select ${brokerage.name}`} />
+                    </label>
+                    <RecordMenu
+                      kind="brokerage"
+                      id={brokerage.id}
+                      name={brokerage.name}
+                      archived={Boolean(brokerage.archivedAt)}
+                      canArchive={can(actor, "crm.write")}
+                      canPermanent={can(actor, "records.delete")}
+                      deletable={brokerageRemoval(brokerage._count).canDelete}
+                      returnTo={returnTo}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

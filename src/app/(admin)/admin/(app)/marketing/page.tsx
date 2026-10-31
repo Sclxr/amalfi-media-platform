@@ -7,10 +7,14 @@ import { getActor } from "@/server/auth/guards";
 import { redirect } from "next/navigation";
 import { listCampaigns } from "@/server/services/campaigns";
 import { StatusBadge } from "@/components/data/status-badge";
+import { ArchiveView } from "@/components/removal/archive-view";
+import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { can } from "@/lib/permissions";
+import { campaignRemoval } from "@/lib/removal";
 
 export const metadata = { title: "Marketing" };
 
-export default async function MarketingPage() {
+export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ view?: string; notice?: string }> }) {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
   const env = getEnv();
@@ -18,7 +22,9 @@ export default async function MarketingPage() {
     appEnv: env.APP_ENV,
     emailMarketingEnabled: env.emailMarketingEnabled,
   });
-  const campaigns = await listCampaigns(actor);
+  const params = await searchParams;
+  const campaigns = await listCampaigns(actor, params.view);
+  const returnTo = params.view === "archived" ? "/admin/marketing?view=archived" : "/admin/marketing";
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -55,6 +61,11 @@ export default async function MarketingPage() {
           <p className="text-muted-foreground">Gmail is stubbed. No message leaves this server.</p>
         </CardContent>
       </Card>
+      <div className="flex flex-wrap items-center gap-3">
+        <ArchiveView href="/admin/marketing" view={params.view} />
+        {can(actor, "marketing.draft") ? <BulkBar kind="campaign" returnTo={returnTo} canArchive /> : null}
+      </div>
+      {params.notice ? <p className="text-sm">{params.notice}</p> : null}
       <Card>
         <CardHeader>
           <CardTitle>Campaigns</CardTitle>
@@ -63,10 +74,25 @@ export default async function MarketingPage() {
           {campaigns.length === 0 ? <p className="text-sm text-muted-foreground">No campaigns yet.</p> : null}
           {campaigns.map((campaign) => (
             <div key={campaign.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <label className="text-xs">
+                <input type="checkbox" data-bulk="campaign" value={campaign.id} aria-label={`Select ${campaign.name}`} />
+              </label>
               <Link className="font-medium text-primary" href={`/admin/marketing/campaigns/${campaign.id}`}>
                 {campaign.name}
               </Link>
-              <StatusBadge status={campaign.status} />
+              <div className="flex items-center gap-2">
+                <StatusBadge status={campaign.status} />
+                <RecordMenu
+                  kind="campaign"
+                  id={campaign.id}
+                  name={campaign.name}
+                  archived={Boolean(campaign.archivedAt)}
+                  canArchive={can(actor, "marketing.draft")}
+                  canPermanent={can(actor, "records.delete")}
+                  deletable={campaignRemoval({ status: campaign.status, sentMessages: campaign.messages.length }).canDelete}
+                  returnTo={returnTo}
+                />
+              </div>
             </div>
           ))}
         </CardContent>

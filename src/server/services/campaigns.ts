@@ -10,9 +10,13 @@ import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
 import { writeAudit } from "@/server/audit";
 
-export async function listCampaigns(actor: Actor) {
+export async function listCampaigns(actor: Actor, view?: string) {
   if (!can(actor, "marketing.draft") && !can(actor, "marketing.send")) throw new Error("Forbidden");
-  return prisma.campaign.findMany({ orderBy: { updatedAt: "desc" }, include: { createdBy: true } });
+  return prisma.campaign.findMany({
+    where: { archivedAt: view === "archived" ? { not: null } : null },
+    orderBy: { updatedAt: "desc" },
+    include: { createdBy: true, messages: { where: { sentAt: { not: null } }, select: { id: true } } },
+  });
 }
 
 export async function getCampaign(actor: Actor, id: string) {

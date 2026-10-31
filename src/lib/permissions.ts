@@ -18,6 +18,7 @@ export const PERMISSIONS = [
   { key: "settings.manage", description: "Change business settings, packages, and travel fees" },
   { key: "users.manage", description: "Manage staff accounts and permissions" },
   { key: "audit.read", description: "Read the audit log" },
+  { key: "records.delete", description: "Permanently delete records that have no financial history" },
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number]["key"];

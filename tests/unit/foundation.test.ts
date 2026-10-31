@@ -40,6 +40,8 @@ describe("permissions", () => {
     expect(can({ permissions: staff }, "billing.refund")).toBe(false);
     expect(can({ permissions: staff }, "settings.manage")).toBe(false);
     expect(can({ permissions: staff }, "marketing.send")).toBe(false);
+    expect(can({ permissions: staff }, "records.delete")).toBe(false);
+    expect(can({ permissions: applyOverrides(ROLE_PERMISSIONS.ADMIN, []) }, "records.delete")).toBe(true);
   });
 
   it("applies a per-user deny", () => {

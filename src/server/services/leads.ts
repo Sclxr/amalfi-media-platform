@@ -38,12 +38,12 @@ function isLeadStatus(value: string | undefined): value is LeadStatus {
   return !!value && (LEAD_STATUSES as readonly string[]).includes(value);
 }
 
-export async function listLeads(actor: Actor, query: { q?: string; status?: string; brokerageId?: string }) {
+export async function listLeads(actor: Actor, query: { q?: string; status?: string; brokerageId?: string; view?: string }) {
   if (!can(actor, "crm.read")) throw new Error("Forbidden");
   const q = query.q?.trim();
   return prisma.lead.findMany({
     where: {
-      deletedAt: null,
+      deletedAt: query.view === "archived" ? { not: null } : null,
       status: isLeadStatus(query.status) ? query.status : undefined,
       brokerageId: query.brokerageId || undefined,
       OR: q
@@ -56,7 +56,14 @@ export async function listLeads(actor: Actor, query: { q?: string; status?: stri
           ]
         : undefined,
     },
-    include: { brokerage: true, source: true, owner: true },
+    include: {
+      brokerage: true,
+      source: true,
+      owner: true,
+      _count: { select: { properties: true } },
+      emails: { where: { sentAt: { not: null } }, select: { id: true }, take: 1 },
+      client: { include: { invoices: { include: { payments: { select: { status: true } } } } } },
+    },
     orderBy: [{ updatedAt: "desc" }],
   });
 }
