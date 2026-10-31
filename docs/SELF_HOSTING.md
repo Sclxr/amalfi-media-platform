@@ -77,6 +77,14 @@ Copy these new files. Do not open the existing `amalfimedia.xyz` site file. Ubun
 - `infra/nginx/staging.amalfimedia.xyz.conf`
 - `infra/nginx/amalfi-proxy.conf` as `/etc/nginx/snippets/amalfi-proxy.conf`
 
+Existing photos that were stored before watermarked previews need a one-time backfill. From the app directory, with `MEDIA_ROOT` set:
+
+```bash
+pnpm previews:backfill
+```
+
+That writes a smaller watermarked JPEG next to each original and points the preview at it. It does not replace the original. Run it once after this release, then again only if a photo still has no separate preview.
+
 Photo uploads are a signed PUT to the app. The file is not posted as a Server Action. The app accepts up to 50 MB per file unless `MEDIA_MAX_UPLOAD_BYTES` is set (ceiling 512 MB). Next.js clones that PUT for the proxy and would otherwise keep only the first 10 MB, so the app sets the clone limit to 512 MB and then enforces the per-file cap itself. Host Nginx must allow at least that. The staging and app server blocks, the proxy snippet, and the Compose Nginx file set `client_max_body_size 512m`. Nginx's own default is 1 MB, so a copied snippet that omits the line will reject photos before they reach the app.
 
 Check the live staging block. Do not open the public site file.

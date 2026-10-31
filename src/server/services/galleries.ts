@@ -4,11 +4,22 @@ import { galleryDownloadDecision, type InvoiceStatus } from "@/lib/gallery-acces
 import { can } from "@/lib/permissions";
 import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
-import { deleteMediaFile, readMediaFile, writeMediaFile } from "@/server/storage/filesystem";
+import { deleteMediaFile, readMediaFile, resolveMediaPath, writeMediaFile } from "@/server/storage/filesystem";
 import { writeAudit } from "@/server/audit";
-import { storedZip } from "@/lib/zip-store";
+import { streamStoredZip, uniqueZipKey } from "@/lib/zip-store";
+import { previewObjectKey, watermarkedPreview } from "@/lib/preview-image";
 import { deliveryGalleryId, pickUploadGallery, pickUploadOrder } from "@/lib/listing";
-import { signMediaToken } from "@/lib/media-sign";
+
+async function storeWatermarkedPreview(originalKey: string) {
+  const env = getEnv();
+  if (!env.MEDIA_ROOT) throw new Error("MEDIA_ROOT is not configured.");
+  const original = await readMediaFile(env.MEDIA_ROOT, originalKey);
+  const preview = await watermarkedPreview(Buffer.from(original));
+  const key = previewObjectKey();
+  if (key === originalKey) throw new Error("Preview key matched the original.");
+  await writeMediaFile(env.MEDIA_ROOT, key, preview);
+  return key;
+}
 
 function bestInvoiceStatus(statuses: string[]): InvoiceStatus | null {
   const paid = statuses.find((status) => status === "PAID" || status === "PARTIALLY_REFUNDED");
@@ -63,14 +74,25 @@ export async function registerUpload(
   if (!can(actor, "media.write")) throw new Error("Forbidden");
   const gallery = await prisma.gallery.findUnique({ where: { id: galleryId } });
   if (!gallery) return { error: "That gallery was not found." as const };
+  const isPhoto = !input.mimeType.startsWith("video/");
+  let previewKey: string | null = null;
+  if (isPhoto) {
+    try {
+      previewKey = await storeWatermarkedPreview(input.key);
+    } catch {
+      const env = getEnv();
+      if (env.MEDIA_ROOT) await deleteMediaFile(env.MEDIA_ROOT, input.key);
+      return { error: "This photo could not be prepared for preview." as const };
+    }
+  }
   const last = await prisma.mediaAsset.aggregate({ where: { galleryId }, _max: { sortOrder: true } });
   const asset = await prisma.mediaAsset.create({
     data: {
       galleryId,
-      kind: input.mimeType.startsWith("video/") ? "VIDEO" : "PHOTO",
+      kind: isPhoto ? "PHOTO" : "VIDEO",
       status: "READY",
       storageKey: input.key,
-      previewKey: input.key,
+      previewKey,
       fileName: input.fileName,
       mimeType: input.mimeType || "application/octet-stream",
       sizeBytes: BigInt(input.sizeBytes),
@@ -196,11 +218,23 @@ export async function replaceGalleryPhoto(
   const asset = await prisma.mediaAsset.findFirst({ where: { id: assetId, gallery: { propertyId } } });
   if (!asset) return { error: "That photo was not found." as const };
   const previousKey = asset.storageKey;
+  const previousPreview = asset.previewKey;
+  const isPhoto = !input.mimeType.startsWith("video/");
+  let previewKey: string | null = null;
+  if (isPhoto) {
+    try {
+      previewKey = await storeWatermarkedPreview(input.key);
+    } catch {
+      const env = getEnv();
+      if (env.MEDIA_ROOT && input.key !== previousKey) await deleteMediaFile(env.MEDIA_ROOT, input.key);
+      return { error: "This photo could not be prepared for preview." as const };
+    }
+  }
   await prisma.mediaAsset.update({
     where: { id: asset.id },
     data: {
       storageKey: input.key,
-      previewKey: input.key,
+      previewKey,
       fileName: input.fileName,
       mimeType: input.mimeType || "application/octet-stream",
       sizeBytes: BigInt(input.sizeBytes),
@@ -210,6 +244,9 @@ export async function replaceGalleryPhoto(
   });
   const env = getEnv();
   if (env.MEDIA_ROOT && previousKey !== input.key) await deleteMediaFile(env.MEDIA_ROOT, previousKey);
+  if (env.MEDIA_ROOT && previousPreview && previousPreview !== previousKey && previousPreview !== previewKey) {
+    await deleteMediaFile(env.MEDIA_ROOT, previousPreview);
+  }
   await writeAudit({
     actorId: actor.id,
     action: "gallery.photo.replace",
@@ -326,18 +363,19 @@ export async function readGalleryFile(key: string) {
   return { root: env.MEDIA_ROOT, bytes: await readMediaFile(env.MEDIA_ROOT, key) };
 }
 
-export async function buildGalleryZip(galleryId: string, files: { name: string; key: string }[]) {
+export async function buildGalleryZip(files: { name: string; key: string }[]) {
   const env = getEnv();
   if (!env.MEDIA_ROOT) throw new Error("MEDIA_ROOT is not configured.");
-  const packed = [];
-  for (const file of files) {
-    packed.push({ name: file.name, data: new Uint8Array(await readMediaFile(env.MEDIA_ROOT, file.key)) });
-  }
-  const zip = storedZip(packed);
-  const key = `galleries/${galleryId}/bundle.zip`;
-  await writeMediaFile(env.MEDIA_ROOT, key, zip);
-  const token = signMediaToken({ purpose: "download", key, expiresAt: Date.now() + 10 * 60 * 1000 }, env.ENCRYPTION_KEY);
-  return { key, token, bytes: zip };
+  const key = uniqueZipKey();
+  const seen = new Map<string, number>();
+  const entries = files.map((file) => {
+    const count = (seen.get(file.name) ?? 0) + 1;
+    seen.set(file.name, count);
+    const name = count === 1 ? file.name : `${count}-${file.name}`;
+    return { name, sourcePath: resolveMediaPath(env.MEDIA_ROOT!, file.key) };
+  });
+  await streamStoredZip(resolveMediaPath(env.MEDIA_ROOT, key), entries);
+  return { key };
 }
 
 export async function setTrustedDownloads(actor: Actor, clientId: string, allow: boolean) {

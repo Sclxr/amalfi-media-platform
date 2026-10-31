@@ -93,7 +93,7 @@ export function ListingHeader({
       <div className="flex flex-wrap items-center gap-2">
         {menu}
         {canEdit ? (
-          <Modal title="Edit listing" description="Portal access stays with the current client." trigger={<Button type="button" variant="secondary">Edit listing</Button>}>
+          <Modal title="Edit listing" description="Moving the realtor also moves gallery access to that realtor." trigger={<Button type="button" variant="secondary">Edit listing</Button>}>
             <form action={save} className="grid gap-3">
               <label className="space-y-2 text-sm">
                 <span>Realtor</span>

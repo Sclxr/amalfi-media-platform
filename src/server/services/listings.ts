@@ -13,6 +13,7 @@ import {
   type ListingStatus,
 } from "@/lib/listing";
 import { hasFinancialHistory } from "@/lib/removal";
+import { listingAccessMove } from "@/lib/preview-access";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/server/db/prisma";
 import { writeAudit } from "@/server/audit";
@@ -289,7 +290,49 @@ export async function updateListing(
     bathsHalf: bathsHalf.value,
     accessNotes: input.accessNotes.trim() || null,
   };
-  await prisma.property.update({ where: { id }, data });
+  const saved = await prisma.$transaction(async (tx) => {
+    let clientId = current.clientId;
+    if (lead.clientId !== current.clientId || lead.id !== current.leadId) {
+      let nextClientId = lead.clientId;
+      if (!nextClientId) {
+        const email = normalizeEmail(lead.email);
+        if (!email) return { error: "Add an email for this realtor before moving the listing." as const };
+        const client = await tx.client.create({
+          data: {
+            firstName: lead.firstName?.trim() || "Realtor",
+            lastName: lead.lastName?.trim() || "Contact",
+            email,
+            phone: lead.phone,
+            brokerageId: lead.brokerageId,
+          },
+        });
+        await tx.lead.update({
+          where: { id: lead.id },
+          data: { clientId: client.id, email: lead.email ?? email, emailNormalized: lead.emailNormalized ?? email, convertedAt: lead.convertedAt ?? new Date() },
+        });
+        nextClientId = client.id;
+      }
+      clientId = nextClientId;
+    }
+    if (clientId !== current.clientId) {
+      const [orders, galleries, invoices] = await Promise.all([
+        tx.order.findMany({ where: { propertyId: id }, select: { id: true } }),
+        tx.gallery.findMany({ where: { propertyId: id }, select: { id: true } }),
+        tx.invoice.findMany({ where: { order: { propertyId: id } }, select: { id: true } }),
+      ]);
+      const move = listingAccessMove({
+        orderIds: orders.map((order) => order.id),
+        galleryIds: galleries.map((gallery) => gallery.id),
+        invoiceIds: invoices.map((invoice) => invoice.id),
+      });
+      if (move.orders.length) await tx.order.updateMany({ where: { id: { in: move.orders } }, data: { clientId } });
+      if (move.galleries.length) await tx.gallery.updateMany({ where: { id: { in: move.galleries } }, data: { clientId } });
+      if (move.invoices.length) await tx.invoice.updateMany({ where: { id: { in: move.invoices } }, data: { clientId } });
+    }
+    await tx.property.update({ where: { id }, data: { ...data, clientId } });
+    return { clientId };
+  });
+  if ("error" in saved) return saved;
   await writeAudit({
     actorId: actor.id,
     action: "listing.update",
@@ -307,8 +350,9 @@ export async function updateListing(
       beds: current.beds,
       bathsHalf: current.bathsHalf,
       accessNotes: current.accessNotes,
+      clientId: current.clientId,
     },
-    after: data,
+    after: { ...data, clientId: saved.clientId },
   });
   return { id };
 }

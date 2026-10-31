@@ -12,7 +12,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   });
   if (!asset) return new Response("Not found.", { status: 404 });
   try {
-    const file = await readGalleryFile(asset.previewKey || asset.storageKey);
+    const file = await readGalleryFile(asset.storageKey);
     return new Response(new Uint8Array(file.bytes), {
       headers: {
         "Content-Type": asset.mimeType,
