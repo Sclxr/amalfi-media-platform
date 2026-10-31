@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createListingOrderAction,
@@ -59,13 +59,13 @@ export function GalleryManager({
   const [selected, setSelected] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [orders, setOrders] = useState<Record<string, string[]>>(() =>
-    Object.fromEntries(galleries.map((gallery) => [gallery.id, gallery.photos.map((photo) => photo.id)])),
-  );
   const incoming = galleries.map((gallery) => gallery.photos.map((photo) => photo.id).join(",")).join("|");
-  useEffect(() => {
-    setOrders(Object.fromEntries(galleries.map((gallery) => [gallery.id, gallery.photos.map((photo) => photo.id)])));
-  }, [incoming, galleries]);
+  const [orders, setOrders] = useState<Record<string, string[]>>(() => photoOrder(galleries));
+  const [tracked, setTracked] = useState(incoming);
+  if (tracked !== incoming) {
+    setTracked(incoming);
+    setOrders(photoOrder(galleries));
+  }
 
   const photos = galleries.flatMap((gallery) => gallery.photos.map((photo) => ({ ...photo, galleryId: gallery.id })));
   const open = photos.find((photo) => photo.id === openId) ?? null;
@@ -419,6 +419,10 @@ export function GalleryManager({
       ) : null}
     </div>
   );
+}
+
+function photoOrder(galleries: ManagedGallery[]) {
+  return Object.fromEntries(galleries.map((gallery) => [gallery.id, gallery.photos.map((photo) => photo.id)]));
 }
 
 function stepId(photos: ManagedPhoto[], id: string, delta: number) {
