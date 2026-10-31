@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0 — 2026-10-31
+
+### Added
+
+- Transactional email uses Resend or SMTP when production is configured, and only logs a preview otherwise. Marketing email stays disabled. Publishing a gallery emails a single-use invite. Verification, password reset, and payment receipts use the same sender.
+- The gallery has a Buy button and an invoice link. Checkout returns to that gallery with a paid confirmation.
+
 ## 0.11.0 — 2026-10-31
 
 ### Added

@@ -9,7 +9,7 @@ import { getEnv } from "@/server/env";
 import { writeAudit } from "@/server/audit";
 
 export async function createListingInvite(actor: Actor, propertyId: string) {
-  if (!can(actor, "orders.write")) throw new Error("Forbidden");
+  if (!can(actor, "orders.write") && !can(actor, "media.write")) throw new Error("Forbidden");
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
     include: { client: true },

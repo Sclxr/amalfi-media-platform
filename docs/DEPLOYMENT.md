@@ -53,8 +53,15 @@ Set these on the Render service before the first build. The auth module reads th
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `ENCRYPTION_KEY` | a different `openssl rand -base64 32` |
 | `EMAIL_MARKETING_ENABLED` | `false` |
-| `EMAIL_TRANSACTIONAL_ENABLED` | `false` |
+| `EMAIL_TRANSACTIONAL_ENABLED` | `false` until you want mail. Production sends only with a provider. Staging logs a preview and does not send |
 | `EMAIL_DEV_PREVIEW` | `false` |
+| `EMAIL_PROVIDER` | blank, or `resend` / `smtp` in production |
+| `EMAIL_FROM` | blank until sending, then `Amalfi Media <hello@amalfimedia.xyz>` |
+| `RESEND_API_KEY` | blank, or the Resend key when `EMAIL_PROVIDER=resend` |
+| `SMTP_HOST` | blank, or the SMTP host when `EMAIL_PROVIDER=smtp` |
+| `SMTP_PORT` | blank, or the SMTP port |
+| `SMTP_USER` | blank unless the SMTP server requires auth |
+| `SMTP_PASSWORD` | blank unless the SMTP server requires auth |
 | `STAGING_BASIC_AUTH` | `preview:<long-random-password>` |
 | `STRIPE_SECRET_KEY` | blank, or `sk_test_...` only |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | blank, or `pk_test_...` only |

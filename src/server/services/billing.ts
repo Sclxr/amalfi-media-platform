@@ -79,7 +79,28 @@ export async function voidUnpaidInvoice(actor: Actor, invoiceId: string) {
   return { ok: true as const };
 }
 
-export async function startCheckout(actor: Actor, invoiceId: string) {
+async function returnGallery(invoice: { clientId: string; orderId: string | null }, galleryId?: string) {
+  if (galleryId) {
+    const match = await prisma.gallery.findFirst({
+      where: { id: galleryId, clientId: invoice.clientId, ...(invoice.orderId ? { orderId: invoice.orderId } : {}) },
+      select: { id: true },
+    });
+    if (match) return match;
+  }
+  if (!invoice.orderId) return null;
+  return prisma.gallery.findFirst({
+    where: { orderId: invoice.orderId, clientId: invoice.clientId, status: "PUBLISHED" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+}
+
+function stripeApi(path: string) {
+  const base = (getEnv().STRIPE_API_BASE ?? "https://api.stripe.com").replace(/\/$/, "");
+  return `${base}${path}`;
+}
+
+export async function startCheckout(actor: Actor, invoiceId: string, galleryId?: string) {
   const status = billingStatus();
   if (!status.configured) return { error: status.reason, configured: false as const };
   const invoice = await prisma.invoice.findFirst({
@@ -95,10 +116,12 @@ export async function startCheckout(actor: Actor, invoiceId: string) {
   }
   const env = getEnv();
   const origin = env.APP_URL.replace(/\/$/, "");
+  const gallery = await returnGallery(invoice, galleryId);
+  const returnPath = gallery ? `/portal/galleries/${gallery.id}` : `/portal/invoices/${invoice.id}`;
   const body = new URLSearchParams();
   body.set("mode", "payment");
-  body.set("success_url", `${origin}/portal/invoices/${invoice.id}?paid=1`);
-  body.set("cancel_url", `${origin}/portal/invoices/${invoice.id}?cancelled=1`);
+  body.set("success_url", `${origin}${returnPath}?paid=1`);
+  body.set("cancel_url", `${origin}${returnPath}?cancelled=1`);
   body.set("client_reference_id", invoice.id);
   body.set("metadata[invoiceId]", invoice.id);
   body.set("payment_intent_data[metadata][invoiceId]", invoice.id);
@@ -106,7 +129,7 @@ export async function startCheckout(actor: Actor, invoiceId: string) {
   body.set("line_items[0][price_data][currency]", invoice.currency.toLowerCase());
   body.set("line_items[0][price_data][unit_amount]", String(invoice.totalCents));
   body.set("line_items[0][price_data][product_data][name]", `Amalfi Media ${invoice.number}`);
-  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+  const response = await fetch(stripeApi("/v1/checkout/sessions"), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${status.secretKey}`,
@@ -173,7 +196,7 @@ async function createWithUniqueNumber(
 }
 
 async function readCheckoutSession(secret: string, sessionId: string) {
-  const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, {
+  const response = await fetch(stripeApi(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}`), {
     headers: { Authorization: `Bearer ${secret}` },
   });
   if (!response.ok) return null;

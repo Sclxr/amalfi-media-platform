@@ -1,7 +1,11 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { acceptCheckoutPayment, refundKind, type CheckoutWriter, type DisputeCommit, type FailureCommit, type PaidCommit, type RefundCommit } from "@/lib/stripe-webhook";
+import { receiptMessage } from "@/lib/email-messages";
 import type { CheckoutEvent } from "@/lib/stripe-billing";
+import { sendTransactional } from "@/server/email/send";
+import { getEnv } from "@/server/env";
+import { logger } from "@/server/logger";
 import { prisma } from "@/server/db/prisma";
 
 function isUnique(error: unknown) {
@@ -29,7 +33,7 @@ export const prismaCheckoutWriter: CheckoutWriter = {
   },
 
   async commitPaid(event): Promise<PaidCommit> {
-    return settle(event, async (tx, invoice) => {
+    const result = await settle(event, async (tx, invoice) => {
       const acceptance = acceptCheckoutPayment({
         type: event.type,
         paymentStatus: event.paymentStatus ?? null,
@@ -79,6 +83,8 @@ export const prismaCheckoutWriter: CheckoutWriter = {
       });
       return "paid";
     });
+    if (result === "paid") await sendPaymentReceipt(event);
+    return result;
   },
 
   async applyRefund(event): Promise<RefundCommit> {
@@ -164,5 +170,32 @@ async function settle<T extends string>(
       if (saved) return "duplicate";
     }
     throw error;
+  }
+}
+
+async function sendPaymentReceipt(event: CheckoutEvent) {
+  try {
+    if (!event.invoiceId) return;
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: event.invoiceId },
+      include: {
+        client: true,
+        order: { include: { galleries: { where: { status: "PUBLISHED" }, orderBy: { createdAt: "desc" }, take: 1 } } },
+      },
+    });
+    if (!invoice?.client.email) return;
+    const origin = getEnv().APP_URL.replace(/\/$/, "");
+    const gallery = invoice.order?.galleries[0];
+    await sendTransactional(
+      receiptMessage({
+        to: invoice.client.email,
+        number: invoice.number,
+        totalCents: invoice.totalCents,
+        receiptUrl: event.receiptUrl,
+        galleryUrl: gallery ? `${origin}/portal/galleries/${gallery.id}` : null,
+      }),
+    );
+  } catch (error) {
+    logger.error({ err: error, invoiceId: event.invoiceId }, "receipt email failed");
   }
 }

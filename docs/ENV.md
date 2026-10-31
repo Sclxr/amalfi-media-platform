@@ -11,8 +11,16 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `AUTH_SECRET` | yes | 32+ characters. Session signing |
 | `ENCRYPTION_KEY` | yes | 32+ characters. Reserved for TOTP and token encryption |
 | `EMAIL_MARKETING_ENABLED` | no | Default `false`. Boot fails if `true` outside production |
-| `EMAIL_TRANSACTIONAL_ENABLED` | no | Default `false`. No sender is wired yet |
-| `EMAIL_DEV_PREVIEW` | no | Local only. Stores the last password-reset URL and email-verification URL in `AppSetting`. Invite links are copied from the listing and do not use this |
+| `EMAIL_TRANSACTIONAL_ENABLED` | no | Default `false`. Production sends only when this is `true` and a provider is configured. Staging and development never send; they log a preview |
+| `EMAIL_DEV_PREVIEW` | no | Local and test only. Stores the last password-reset, verification, invite, and receipt message in `AppSetting`. Leave `false` on staging and production |
+| `EMAIL_PROVIDER` | no | `resend` or `smtp`. Required to send, together with `EMAIL_FROM` |
+| `EMAIL_FROM` | no | From address, such as `Amalfi Media <hello@amalfimedia.xyz>` |
+| `RESEND_API_KEY` | no | Required when `EMAIL_PROVIDER=resend` |
+| `SMTP_HOST` | no | Required when `EMAIL_PROVIDER=smtp` |
+| `SMTP_PORT` | no | Required when `EMAIL_PROVIDER=smtp`. `465` uses TLS |
+| `SMTP_USER` | no | SMTP username, when the server requires auth |
+| `SMTP_PASSWORD` | no | SMTP password |
+| `STRIPE_API_BASE` | no | Defaults to `https://api.stripe.com`. Production refuses any other host |
 | `GMAIL_API_ENABLED` | no | Default off. The Gmail client is a stub and does not call Google. See `docs/GMAIL_OAUTH.md` |
 | `STAGING_BASIC_AUTH` | staging | `username:password`. Required when `APP_ENV=staging` |
 | `STRIPE_SECRET_KEY` | no | Staging must be `sk_test_`. Production must not be a test key |

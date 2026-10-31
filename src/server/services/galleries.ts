@@ -7,7 +7,11 @@ import { getEnv } from "@/server/env";
 import { deleteMediaFile, readMediaFile, resolveMediaPath, writeMediaFile } from "@/server/storage/filesystem";
 import { writeAudit } from "@/server/audit";
 import { streamStoredZip, uniqueZipKey } from "@/lib/zip-store";
+import { galleryInviteMessage } from "@/lib/email-messages";
 import { previewObjectKey, watermarkedPreview } from "@/lib/preview-image";
+import { sendTransactional } from "@/server/email/send";
+import { logger } from "@/server/logger";
+import { createListingInvite } from "@/server/services/invites";
 import { deliveryGalleryId, pickUploadGallery, pickUploadOrder } from "@/lib/listing";
 
 async function storeWatermarkedPreview(originalKey: string) {
@@ -161,7 +165,32 @@ export async function publishGallery(actor: Actor, id: string) {
   if (!can(actor, "media.write")) throw new Error("Forbidden");
   await prisma.gallery.update({ where: { id }, data: { status: "PUBLISHED", publishedAt: new Date() } });
   await writeAudit({ actorId: actor.id, action: "gallery.publish", entityType: "Gallery", entityId: id, after: { status: "PUBLISHED" } });
-  return { ok: true as const };
+  const mail = await emailGalleryInvite(actor, id);
+  return { ok: true as const, emailed: mail.emailed, previewed: mail.previewed };
+}
+
+async function emailGalleryInvite(actor: Actor, galleryId: string) {
+  try {
+    const gallery = await prisma.gallery.findUnique({
+      where: { id: galleryId },
+      include: { property: true, client: true },
+    });
+    if (!gallery?.client.email) return { emailed: false as const, previewed: false as const };
+    const invite = await createListingInvite(actor, gallery.propertyId);
+    if (!("url" in invite) || !invite.url) return { emailed: false as const, previewed: false as const };
+    const result = await sendTransactional(
+      galleryInviteMessage({
+        to: gallery.client.email,
+        name: `${gallery.client.firstName} ${gallery.client.lastName}`.trim(),
+        address: gallery.property.addressLine1,
+        url: invite.url,
+      }),
+    );
+    return { emailed: result.delivered, previewed: result.mode === "preview" };
+  } catch (error) {
+    logger.error({ err: error, galleryId }, "gallery invite email failed");
+    return { emailed: false as const, previewed: false as const };
+  }
 }
 
 export async function archiveGallery(actor: Actor, id: string) {
@@ -326,16 +355,16 @@ export async function deliverListingGallery(actor: Actor, propertyId: string, ga
   if (!deliveryGalleryId(gallery.id, [{ id: gallery.id, orderId: gallery.orderId }], gallery.orderId)) {
     return { error: "Choose a gallery from this shoot." as const };
   }
-  await publishGallery(actor, gallery.id);
-  if (!markDelivered) return { ok: true as const, emailed: false as const };
+  const published = await publishGallery(actor, gallery.id);
+  if (!markDelivered) return { ok: true as const, emailed: published.emailed };
   const { changeOrderStatus } = await import("@/server/services/orders");
   const { canMarkOrderDelivered } = await import("@/lib/listing");
   if (!canMarkOrderDelivered(gallery.order.status)) {
-    return { error: "The gallery is published. This order cannot be marked delivered yet." as const, emailed: false as const };
+    return { error: "The gallery is published. This order cannot be marked delivered yet." as const, emailed: published.emailed };
   }
   const changed = await changeOrderStatus(actor, gallery.orderId, "DELIVERED", "Gallery delivered from the listing.");
-  if ("error" in changed && changed.error) return { error: changed.error, emailed: false as const };
-  return { ok: true as const, emailed: false as const };
+  if ("error" in changed && changed.error) return { error: changed.error, emailed: published.emailed };
+  return { ok: true as const, emailed: published.emailed };
 }
 
 export async function clientGallery(clientId: string, id: string) {

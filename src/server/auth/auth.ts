@@ -9,6 +9,8 @@ import { getEnv } from "@/server/env";
 import { logger } from "@/server/logger";
 import { assertPasswordAcceptable } from "@/lib/passwords";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { passwordResetMessage, verificationMessage } from "@/lib/email-messages";
+import { sendTransactional } from "@/server/email/send";
 import { ensureClientProfile } from "@/server/services/client-link";
 
 const env = getEnv();
@@ -43,6 +45,7 @@ export const auth = betterAuth({
     resetPasswordTokenExpiresIn: 60 * 30,
     sendResetPassword: async ({ user, url }) => {
       logger.info({ email: user.email }, "password reset requested");
+      await sendTransactional(passwordResetMessage({ to: user.email, url }));
       if (env.emailDevPreview) {
         await prisma.appSetting.upsert({
           where: { key: "dev.lastPasswordReset" },
@@ -66,6 +69,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
       logger.info({ email: user.email }, "email verification requested");
+      await sendTransactional(verificationMessage({ to: user.email, url }));
       if (env.emailDevPreview) {
         await prisma.appSetting.upsert({
           where: { key: "dev.lastEmailVerification" },
