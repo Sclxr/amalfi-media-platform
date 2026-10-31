@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/password-hash";
 import { ROLE_PERMISSIONS } from "@/lib/permissions";
 import { claimDecision, galleryDestination, hashInviteToken, newInviteToken, portalNext } from "@/lib/invite";
 import { ensureClientProfile } from "@/server/services/client-link";
-import { claimListingInvite, createListingInvite } from "@/server/services/invites";
+import { claimListingInvite, createListingInvite, prepareInviteSignIn } from "@/server/services/invites";
 
 const openInvite = {
   expiresAt: Date.now() + 60_000,
@@ -87,6 +87,30 @@ describe("invite claim", () => {
       expect(await prisma.client.count({ where: { email: user.email } })).toBe(1);
       const again = await claimListingInvite({ token, user: { id: user.id, email: user.email, clientId: client.id } });
       expect(again).toMatchObject({ error: "This invite link was already used." });
+
+      const unclaimed = await prisma.client.create({
+        data: { firstName: "Avery", lastName: "Cole", email: `${stamp}-otp@example.com` },
+      });
+      const otpProperty = await prisma.property.create({
+        data: { clientId: unclaimed.id, addressLine1: `${stamp} Code Lane`, city: "Orlando", zip: "32801", propertyType: "SINGLE_FAMILY" },
+      });
+      const otpInvite = await createListingInvite(actor, otpProperty.id);
+      if (!("url" in otpInvite) || !otpInvite.url) throw new Error("otp invite was not created");
+      const otpToken = new URL(otpInvite.url).searchParams.get("token") ?? "";
+      expect(await prepareInviteSignIn(otpToken, "other@example.com")).toMatchObject({
+        error: "Use the email this listing was created for.",
+      });
+      expect(await prepareInviteSignIn(otpToken, `${stamp}-otp@example.com`)).toEqual({ ok: true });
+      expect(await prepareInviteSignIn(otpToken, `${stamp}-otp@example.com`)).toEqual({ ok: true });
+      expect(await prisma.user.count({ where: { email: `${stamp}-otp@example.com` } })).toBe(1);
+      expect((await prisma.client.findUnique({ where: { id: unclaimed.id } }))?.userId).toBeNull();
+      expect(await prisma.client.count({ where: { email: `${stamp}-otp@example.com` } })).toBe(1);
+      const otpUser = await prisma.user.findUnique({ where: { email: `${stamp}-otp@example.com` } });
+      expect(otpUser?.emailVerified).toBe(false);
+      await prisma.listingInvite.deleteMany({ where: { propertyId: otpProperty.id } });
+      await prisma.property.delete({ where: { id: otpProperty.id } });
+      await prisma.client.delete({ where: { id: unclaimed.id } });
+      if (otpUser) await prisma.user.delete({ where: { id: otpUser.id } });
 
       const fresh = await prisma.user.create({ data: { name: "New Person", email: `${stamp}-new@example.com`, role: "CLIENT", emailVerified: false } });
       await ensureClientProfile({ id: fresh.id, email: fresh.email, name: fresh.name, emailVerified: false });

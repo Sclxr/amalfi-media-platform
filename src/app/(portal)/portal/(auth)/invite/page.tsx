@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PortalOtpForm } from "@/components/forms/portal-otp-form";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readInvite } from "@/server/services/invites";
 
@@ -12,7 +14,10 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
   const next = invite?.next ?? "/portal/galleries";
   const query = new URLSearchParams({ next, invite: token });
   return (
-    <main className="grid min-h-screen place-items-center bg-surface px-4 py-12">
+    <main className="relative grid min-h-screen place-items-center bg-surface px-4 py-12">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
           <p className="text-sm font-medium text-primary">Amalfi Media</p>
@@ -24,15 +29,11 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               <p>
                 {invite.clientName} can open <span className="font-medium">{invite.address}</span>.
               </p>
-              <p className="text-muted-foreground">Create an account or sign in with the email on this listing. The link works once.</p>
-              <div className="flex flex-col gap-2">
-                <Link className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground" href={`/portal/register?${query}`}>
-                  Create an account
-                </Link>
-                <Link className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-medium" href={`/portal/login?${query}`}>
-                  Sign in
-                </Link>
-              </div>
+              <p className="text-muted-foreground">Enter the email on this listing. The code signs you in and uses this link once.</p>
+              <PortalOtpForm next={next} invite={token} email={invite.clientEmail} note={null} />
+              <Link className="block text-primary" href={`/portal/register?${query}`}>
+                Create an account
+              </Link>
             </>
           ) : (
             <p>This invite link is invalid or expired. Ask Amalfi Media for a new one.</p>

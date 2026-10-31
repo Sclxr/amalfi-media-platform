@@ -37,6 +37,7 @@ test("a gallery preview is watermarked and download stays locked until payment",
   await expect(page.getByText("Published for the client.").first()).toBeVisible();
 
   await page.goto("/portal/login");
+  await page.getByRole("button", { name: "Use password instead" }).click();
   await page.getByLabel("Email").fill("client.demo@amalfimedia.xyz");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

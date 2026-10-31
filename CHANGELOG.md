@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 — 2026-10-31
+
+### Added
+
+- Realtors can sign in on the portal and on a gallery invite with a 6-digit email code. The code expires in 10 minutes. A successful code marks the email verified. An invite code attaches the existing client and does not create a second one. Password sign-in still works. Admin sign-in stays password-based.
+- Staging basic auth no longer covers `/portal` or `/api/auth`. `/admin` still requires it.
+
 ## 0.15.0 — 2026-10-31
 
 ### Added

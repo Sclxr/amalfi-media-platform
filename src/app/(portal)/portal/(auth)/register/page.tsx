@@ -1,4 +1,5 @@
 import { RegisterForm } from "@/components/forms/auth-forms";
+import { InviteRegister } from "@/components/forms/invite-register";
 import { portalNext } from "@/lib/invite";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +17,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
           <p className="text-sm text-muted-foreground">New accounts are clients. Staff accounts are issued by Amalfi.</p>
         </CardHeader>
         <CardContent>
-          <RegisterForm next={next} invite={invite} />
+          {invite ? <InviteRegister next={next} invite={invite} /> : <RegisterForm next={next} />}
         </CardContent>
       </Card>
     </main>
