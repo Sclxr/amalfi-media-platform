@@ -4,6 +4,7 @@ import { can } from "@/lib/permissions";
 import { stripeBilling } from "@/lib/stripe-billing";
 import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
+import { canVoidInvoice } from "@/lib/invoice-void";
 import { writeAudit } from "@/server/audit";
 
 export function billingStatus() {
@@ -69,6 +70,23 @@ export async function createInvoiceForOrder(actor: Actor, orderId: string) {
     after: { number: invoice.number, totalCents: invoice.totalCents },
   });
   return { id: invoice.id };
+}
+
+export async function voidUnpaidInvoice(actor: Actor, invoiceId: string) {
+  if (!can(actor, "orders.write")) throw new Error("Forbidden");
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId }, include: { payments: true } });
+  if (!invoice) return { error: "That invoice was not found." as const };
+  if (!canVoidInvoice(invoice)) return { error: "Only an unpaid invoice can be voided." as const };
+  await prisma.invoice.update({ where: { id: invoice.id }, data: { status: "VOID" } });
+  await writeAudit({
+    actorId: actor.id,
+    action: "invoice.void",
+    entityType: "Invoice",
+    entityId: invoice.id,
+    before: { status: invoice.status },
+    after: { status: "VOID" },
+  });
+  return { ok: true as const };
 }
 
 export async function startCheckout(actor: Actor, invoiceId: string) {

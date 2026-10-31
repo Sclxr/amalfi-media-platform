@@ -61,3 +61,7 @@ export async function readMediaFile(root: string, key: string) {
   return readFile(resolveMediaPath(root, key));
 }
 
+export async function deleteMediaFile(root: string, key: string) {
+  await rm(resolveMediaPath(root, key), { force: true });
+}
+

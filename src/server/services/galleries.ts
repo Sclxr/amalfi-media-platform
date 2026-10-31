@@ -4,10 +4,10 @@ import { galleryDownloadDecision, type InvoiceStatus } from "@/lib/gallery-acces
 import { can } from "@/lib/permissions";
 import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
-import { readMediaFile, writeMediaFile } from "@/server/storage/filesystem";
+import { deleteMediaFile, readMediaFile, writeMediaFile } from "@/server/storage/filesystem";
 import { writeAudit } from "@/server/audit";
 import { storedZip } from "@/lib/zip-store";
-import { pickUploadGallery, pickUploadOrder } from "@/lib/listing";
+import { deliveryGalleryId, pickUploadGallery, pickUploadOrder } from "@/lib/listing";
 import { signMediaToken } from "@/lib/media-sign";
 
 function bestInvoiceStatus(statuses: string[]): InvoiceStatus | null {
@@ -27,7 +27,12 @@ export async function getGalleryForStaff(actor: Actor, id: string) {
   if (!can(actor, "media.read")) throw new Error("Forbidden");
   return prisma.gallery.findUnique({
     where: { id },
-    include: { client: true, property: true, assets: { orderBy: { sortOrder: "asc" } }, order: true },
+    include: {
+      client: true,
+      property: true,
+      assets: { orderBy: { sortOrder: "asc" as const } },
+      order: { include: { invoices: { orderBy: { createdAt: "desc" as const } } } },
+    },
   });
 }
 
@@ -58,6 +63,7 @@ export async function registerUpload(
   if (!can(actor, "media.write")) throw new Error("Forbidden");
   const gallery = await prisma.gallery.findUnique({ where: { id: galleryId } });
   if (!gallery) return { error: "That gallery was not found." as const };
+  const last = await prisma.mediaAsset.aggregate({ where: { galleryId }, _max: { sortOrder: true } });
   const asset = await prisma.mediaAsset.create({
     data: {
       galleryId,
@@ -68,6 +74,7 @@ export async function registerUpload(
       fileName: input.fileName,
       mimeType: input.mimeType || "application/octet-stream",
       sizeBytes: BigInt(input.sizeBytes),
+      sortOrder: (last._max.sortOrder ?? -1) + 1,
       uploadedById: actor.id,
     },
   });
@@ -77,6 +84,7 @@ export async function registerUpload(
 export async function unpublishGallery(actor: Actor, id: string) {
   if (!can(actor, "media.write")) throw new Error("Forbidden");
   await prisma.gallery.update({ where: { id }, data: { status: "DRAFT", publishedAt: null } });
+  await writeAudit({ actorId: actor.id, action: "gallery.unpublish", entityType: "Gallery", entityId: id, after: { status: "DRAFT" } });
   return { ok: true as const };
 }
 
@@ -117,38 +125,175 @@ export async function moveGalleryPhoto(actor: Actor, propertyId: string, assetId
   return { ok: true as const };
 }
 
-/** Latest non-cancelled order, then its newest gallery. Creates the order and gallery when they are missing. */
+/** Latest non-cancelled order and its newest gallery. Does not create an order. */
 export async function ensureListingUploadGallery(actor: Actor, propertyId: string) {
+  return prepareListingGallery(actor, propertyId, {});
+}
+
+export async function publishGallery(actor: Actor, id: string) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  await prisma.gallery.update({ where: { id }, data: { status: "PUBLISHED", publishedAt: new Date() } });
+  await writeAudit({ actorId: actor.id, action: "gallery.publish", entityType: "Gallery", entityId: id, after: { status: "PUBLISHED" } });
+  return { ok: true as const };
+}
+
+export async function archiveGallery(actor: Actor, id: string) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  await prisma.gallery.update({ where: { id }, data: { status: "ARCHIVED" } });
+  await writeAudit({ actorId: actor.id, action: "gallery.archive", entityType: "Gallery", entityId: id, after: { status: "ARCHIVED" } });
+  return { ok: true as const };
+}
+
+export async function updateGalleryDetails(actor: Actor, id: string, input: { title: string; requirePaid: boolean }) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  const current = await prisma.gallery.findUnique({ where: { id } });
+  if (!current) return { error: "That gallery was not found." as const };
+  const title = input.title.trim() || current.title;
+  await prisma.gallery.update({ where: { id }, data: { title, requirePaid: input.requirePaid } });
+  await writeAudit({
+    actorId: actor.id,
+    action: "gallery.update",
+    entityType: "Gallery",
+    entityId: id,
+    before: { title: current.title, requirePaid: current.requirePaid },
+    after: { title, requirePaid: input.requirePaid },
+  });
+  return { ok: true as const };
+}
+
+export async function reorderGalleryPhotos(actor: Actor, propertyId: string, galleryId: string, orderedIds: string[]) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  const gallery = await prisma.gallery.findFirst({ where: { id: galleryId, propertyId } });
+  if (!gallery) return { error: "That gallery was not found." as const };
+  const siblings = await prisma.mediaAsset.findMany({
+    where: { galleryId, kind: "PHOTO", status: "READY" },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+  const known = new Set(siblings.map((item) => item.id));
+  if (orderedIds.length !== siblings.length || orderedIds.some((id) => !known.has(id))) {
+    return { error: "The photo order is out of date. Refresh and try again." as const };
+  }
+  await prisma.$transaction(
+    orderedIds.map((id, index) => prisma.mediaAsset.update({ where: { id }, data: { sortOrder: index } })),
+  );
+  await writeAudit({
+    actorId: actor.id,
+    action: "gallery.reorder",
+    entityType: "Gallery",
+    entityId: galleryId,
+    after: { orderedIds },
+  });
+  return { ok: true as const };
+}
+
+export async function replaceGalleryPhoto(
+  actor: Actor,
+  propertyId: string,
+  assetId: string,
+  input: { key: string; fileName: string; mimeType: string; sizeBytes: number },
+) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  const asset = await prisma.mediaAsset.findFirst({ where: { id: assetId, gallery: { propertyId } } });
+  if (!asset) return { error: "That photo was not found." as const };
+  const previousKey = asset.storageKey;
+  await prisma.mediaAsset.update({
+    where: { id: asset.id },
+    data: {
+      storageKey: input.key,
+      previewKey: input.key,
+      fileName: input.fileName,
+      mimeType: input.mimeType || "application/octet-stream",
+      sizeBytes: BigInt(input.sizeBytes),
+      kind: input.mimeType.startsWith("video/") ? "VIDEO" : "PHOTO",
+      status: "READY",
+    },
+  });
+  const env = getEnv();
+  if (env.MEDIA_ROOT && previousKey !== input.key) await deleteMediaFile(env.MEDIA_ROOT, previousKey);
+  await writeAudit({
+    actorId: actor.id,
+    action: "gallery.photo.replace",
+    entityType: "MediaAsset",
+    entityId: asset.id,
+    before: { fileName: asset.fileName },
+    after: { fileName: input.fileName },
+  });
+  return { id: asset.id };
+}
+
+export async function movePhotosToGallery(actor: Actor, propertyId: string, assetIds: string[], targetGalleryId: string) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  const assets = await prisma.mediaAsset.findMany({
+    where: { id: { in: assetIds }, gallery: { propertyId } },
+    include: { gallery: true },
+  });
+  if (assets.length !== assetIds.length) return { error: "Choose photos from this listing." as const };
+  const sourceOrderIds = new Set(assets.map((asset) => asset.gallery.orderId));
+  if (sourceOrderIds.size !== 1) return { error: "Move photos within one shoot." as const };
+  const target = await prisma.gallery.findFirst({ where: { id: targetGalleryId, propertyId } });
+  if (!target || target.orderId !== assets[0]?.gallery.orderId) {
+    return { error: "Move photos within the same shoot." as const };
+  }
+  const last = await prisma.mediaAsset.aggregate({ where: { galleryId: target.id }, _max: { sortOrder: true } });
+  let sortOrder = (last._max.sortOrder ?? -1) + 1;
+  await prisma.$transaction(
+    assets.map((asset) => prisma.mediaAsset.update({ where: { id: asset.id }, data: { galleryId: target.id, sortOrder: sortOrder++ } })),
+  );
+  await writeAudit({
+    actorId: actor.id,
+    action: "gallery.photo.move",
+    entityType: "Gallery",
+    entityId: target.id,
+    after: { assetIds },
+  });
+  return { ok: true as const };
+}
+
+/** Creates a gallery on an existing order. Creates the order only when createOrder is set. */
+export async function prepareListingGallery(actor: Actor, propertyId: string, input: { orderId?: string; createOrder?: boolean }) {
   if (!can(actor, "media.write")) throw new Error("Forbidden");
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
     include: { orders: { include: { galleries: true } } },
   });
   if (!property) return { error: "That listing was not found." as const };
-  let order = pickUploadOrder(property.orders);
-  if (!order) {
-    order = await prisma.order.create({
+  if (input.createOrder) {
+    const order = await prisma.order.create({
       data: {
         clientId: property.clientId,
         propertyId: property.id,
         status: "REQUESTED",
         internalNotes: "listing-photos",
-        history: {
-          create: { toStatus: "REQUESTED", actorId: actor.id, note: "Created so listing photos have an order." },
-        },
+        history: { create: { toStatus: "REQUESTED", actorId: actor.id, note: "Created so listing photos have an order." } },
       },
-      include: { galleries: true },
     });
+    return createGallery(actor, { orderId: order.id, title: property.addressLine1 });
   }
-  const galleryId = pickUploadGallery(order.id, order.galleries);
-  if (galleryId) return { id: galleryId, propertyId: property.id };
+  const order = input.orderId ? property.orders.find((item) => item.id === input.orderId) ?? null : pickUploadOrder(property.orders);
+  if (!order) return { error: "This listing has no order." as const, needsOrder: true as const };
+  if (order.status === "CANCELLED") return { error: "This shoot was cancelled." as const };
+  const existing = pickUploadGallery(order.id, order.galleries);
+  if (existing) return { id: existing, propertyId: property.id };
   return createGallery(actor, { orderId: order.id, title: property.addressLine1 });
 }
 
-export async function publishGallery(actor: Actor, id: string) {
+export async function deliverListingGallery(actor: Actor, propertyId: string, galleryId: string, markDelivered: boolean) {
   if (!can(actor, "media.write")) throw new Error("Forbidden");
-  await prisma.gallery.update({ where: { id }, data: { status: "PUBLISHED", publishedAt: new Date() } });
-  return { ok: true as const };
+  const gallery = await prisma.gallery.findFirst({ where: { id: galleryId, propertyId }, include: { order: true } });
+  if (!gallery) return { error: "That gallery was not found." as const };
+  if (!deliveryGalleryId(gallery.id, [{ id: gallery.id, orderId: gallery.orderId }], gallery.orderId)) {
+    return { error: "Choose a gallery from this shoot." as const };
+  }
+  await publishGallery(actor, gallery.id);
+  if (!markDelivered) return { ok: true as const, emailed: false as const };
+  const { changeOrderStatus } = await import("@/server/services/orders");
+  const { canMarkOrderDelivered } = await import("@/lib/listing");
+  if (!canMarkOrderDelivered(gallery.order.status)) {
+    return { error: "The gallery is published. This order cannot be marked delivered yet." as const, emailed: false as const };
+  }
+  const changed = await changeOrderStatus(actor, gallery.orderId, "DELIVERED", "Gallery delivered from the listing.");
+  if ("error" in changed && changed.error) return { error: changed.error, emailed: false as const };
+  return { ok: true as const, emailed: false as const };
 }
 
 export async function clientGallery(clientId: string, id: string) {

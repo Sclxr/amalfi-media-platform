@@ -140,9 +140,13 @@ export async function setQuotePrices(actor: Actor, orderId: string, prices: Reco
   if (!can(actor, "orders.write")) throw new Error("Forbidden");
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: { include: { service: true, package: true } } },
+    include: { items: { include: { service: true, package: true } }, invoices: { include: { payments: true } } },
   });
   if (!order) return { error: "That order was not found." as const };
+  const paid = order.invoices.some(
+    (invoice) => invoice.amountPaidCents > 0 || invoice.payments.some((payment) => payment.status === "SUCCEEDED"),
+  );
+  if (paid) return { error: "This order already has a recorded payment." as const };
   const packageCents = order.items
     .filter((item) => item.packageId)
     .reduce((sum, item) => sum + (item.unitPriceCents ?? 0) * item.quantity, 0);
@@ -235,6 +239,38 @@ export async function changeOrderStatus(actor: Actor, orderId: string, toStatus:
     entityId: orderId,
     before: { status: order.status },
     after: { status: toStatus },
+  });
+  return { ok: true as const };
+}
+
+export async function rescheduleBooking(actor: Actor, bookingId: string, startLocal: string) {
+  if (!can(actor, "orders.write")) throw new Error("Forbidden");
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { order: true } });
+  if (!booking) return { error: "That appointment was not found." as const };
+  const startAt = zonedDateTime(startLocal);
+  if (!startAt) return { error: "Choose a start time in Orlando local time." as const };
+  const [rules, blackouts] = await Promise.all([prisma.availabilityRule.findMany(), prisma.blackoutDate.findMany()]);
+  const decision = slotDecision({
+    start: startAt,
+    durationMin: booking.durationMin,
+    rules,
+    blackouts: blackouts.map((blackout) => ({ date: blackout.date.toISOString().slice(0, 10) })),
+  });
+  if (!decision.ok) return { error: decision.reason };
+  const endAt = new Date(startAt.getTime() + booking.durationMin * 60 * 1000);
+  await prisma.$transaction(async (tx) => {
+    await tx.booking.update({ where: { id: booking.id }, data: { startAt, endAt, status: "SCHEDULED" } });
+    await tx.orderStatusHistory.create({
+      data: { orderId: booking.orderId, fromStatus: booking.order.status, toStatus: booking.order.status, actorId: actor.id, note: "Shoot time changed." },
+    });
+  });
+  await writeAudit({
+    actorId: actor.id,
+    action: "booking.reschedule",
+    entityType: "Booking",
+    entityId: booking.id,
+    before: { startAt: booking.startAt?.toISOString() ?? null },
+    after: { startAt: startAt.toISOString() },
   });
   return { ok: true as const };
 }

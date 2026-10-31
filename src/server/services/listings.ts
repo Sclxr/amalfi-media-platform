@@ -28,10 +28,15 @@ const PROPERTY_TYPES = [
 ] as const;
 
 const listingInclude = {
-  lead: true,
+  lead: { include: { brokerage: true } },
   client: true,
   orders: {
-    include: { bookings: true, invoices: true },
+    include: {
+      bookings: { include: { photographer: true } },
+      invoices: { include: { payments: true, lineItems: { orderBy: { sortOrder: "asc" as const } } } },
+      items: { include: { service: true } },
+      history: { orderBy: { createdAt: "desc" as const } },
+    },
     orderBy: { updatedAt: "desc" as const },
   },
   galleries: {
@@ -103,7 +108,7 @@ function toCard(property: ListingRecord, now = new Date()): ListingCard {
     })),
   }));
   const order = pickListingOrder(orders);
-  const cover = pickCover(galleries);
+  const cover = pickCover(galleries, property.coverAssetId);
   const invoice = order ? property.orders.find((item) => item.id === order.id)?.invoices[0] : undefined;
   const galleryForOrder = order
     ? property.galleries.find((gallery) => gallery.orderId === order.id) ?? property.galleries[0]
@@ -222,26 +227,126 @@ export async function createListing(
   return created;
 }
 
-export async function updateListingAddress(
+function optionalCount(value: string, label: string): { error: string } | { value: number | null } {
+  const trimmed = value.trim();
+  if (!trimmed) return { value: null };
+  if (!/^\d+$/.test(trimmed)) return { error: `${label} must be a whole number.` };
+  return { value: Number(trimmed) };
+}
+
+export async function updateListing(
   actor: Actor,
   id: string,
-  input: { addressLine1: string; city: string; zip: string },
+  input: {
+    leadId: string;
+    addressLine1: string;
+    addressLine2: string;
+    city: string;
+    state: string;
+    zip: string;
+    propertyType: string;
+    sqft: string;
+    beds: string;
+    bathsHalf: string;
+    accessNotes: string;
+  },
 ) {
   if (!can(actor, "orders.write")) throw new Error("Forbidden");
   const addressLine1 = input.addressLine1.trim();
   const city = input.city.trim();
   const zip = input.zip.trim();
+  const state = input.state.trim().toUpperCase();
   if (!addressLine1 || !city || !zip) return { error: "Address, city, and ZIP are required." as const };
+  if (!/^[A-Z]{2}$/.test(state)) return { error: "State is a two-letter abbreviation." as const };
+  const propertyType = (PROPERTY_TYPES as readonly string[]).includes(input.propertyType) ? (input.propertyType as PropertyType) : null;
+  if (!propertyType) return { error: "Choose a property type." as const };
+  const sqft = optionalCount(input.sqft, "Square feet");
+  const beds = optionalCount(input.beds, "Beds");
+  const bathsHalf = optionalCount(input.bathsHalf, "Half baths");
+  if ("error" in sqft) return { error: sqft.error };
+  if ("error" in beds) return { error: beds.error };
+  if ("error" in bathsHalf) return { error: bathsHalf.error };
   const current = await prisma.property.findUnique({ where: { id } });
   if (!current) return { error: "That listing was not found." as const };
-  await prisma.property.update({ where: { id }, data: { addressLine1, city, zip } });
+  const lead = await prisma.lead.findFirst({ where: { id: input.leadId, deletedAt: null } });
+  if (!lead) return { error: "Choose a realtor from the CRM." as const };
+  const data = {
+    leadId: lead.id,
+    addressLine1,
+    addressLine2: input.addressLine2.trim() || null,
+    city,
+    state,
+    zip,
+    propertyType,
+    sqft: sqft.value,
+    beds: beds.value,
+    bathsHalf: bathsHalf.value,
+    accessNotes: input.accessNotes.trim() || null,
+  };
+  await prisma.property.update({ where: { id }, data });
   await writeAudit({
     actorId: actor.id,
     action: "listing.update",
     entityType: "Property",
     entityId: id,
-    before: { addressLine1: current.addressLine1, city: current.city, zip: current.zip },
-    after: { addressLine1, city, zip },
+    before: {
+      leadId: current.leadId,
+      addressLine1: current.addressLine1,
+      addressLine2: current.addressLine2,
+      city: current.city,
+      state: current.state,
+      zip: current.zip,
+      propertyType: current.propertyType,
+      sqft: current.sqft,
+      beds: current.beds,
+      bathsHalf: current.bathsHalf,
+      accessNotes: current.accessNotes,
+    },
+    after: data,
   });
   return { id };
+}
+
+export async function updateListingAddress(
+  actor: Actor,
+  id: string,
+  input: { addressLine1: string; city: string; zip: string },
+) {
+  const current = await prisma.property.findUnique({ where: { id } });
+  if (!current?.leadId) return { error: "Assign a realtor before saving." as const };
+  return updateListing(actor, id, {
+    leadId: current.leadId,
+    addressLine1: input.addressLine1,
+    addressLine2: current.addressLine2 ?? "",
+    city: input.city,
+    state: current.state,
+    zip: input.zip,
+    propertyType: current.propertyType,
+    sqft: current.sqft?.toString() ?? "",
+    beds: current.beds?.toString() ?? "",
+    bathsHalf: current.bathsHalf?.toString() ?? "",
+    accessNotes: current.accessNotes ?? "",
+  });
+}
+
+export async function setListingCover(actor: Actor, propertyId: string, assetId: string | null) {
+  if (!can(actor, "media.write")) throw new Error("Forbidden");
+  const property = await prisma.property.findUnique({ where: { id: propertyId } });
+  if (!property) return { error: "That listing was not found." as const };
+  if (assetId) {
+    const asset = await prisma.mediaAsset.findFirst({
+      where: { id: assetId, kind: "PHOTO", status: "READY", gallery: { propertyId } },
+    });
+    if (!asset) return { error: "Choose a ready photo from this listing." as const };
+  }
+  await prisma.property.update({ where: { id: propertyId }, data: { coverAssetId: assetId } });
+  await writeAudit({
+    actorId: actor.id,
+    action: "listing.cover",
+    entityType: "Property",
+    entityId: propertyId,
+    before: { coverAssetId: property.coverAssetId },
+    after: { coverAssetId: assetId },
+  });
+  return { ok: true as const };
 }

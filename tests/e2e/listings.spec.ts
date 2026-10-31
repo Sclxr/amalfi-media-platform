@@ -39,11 +39,14 @@ test("admin creates a listing from a realtor and finds it everywhere", async ({ 
   await page.getByRole("heading", { name: "1842 Lake Conway Shore" }).click();
   await expect(page).toHaveURL(/\/admin\/listings\/seed-property-hale/);
   await expect(page.getByRole("main").getByRole("link", { name: "Jordan Hale" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "INV-2026-0001" })).toBeVisible();
   await page.screenshot({ path: `${shots}/listing-detail-light.png`, fullPage: true });
   await setTheme(page, "dark");
   await page.screenshot({ path: `${shots}/listing-detail-dark.png`, fullPage: true });
   await setTheme(page, "light");
+  await page.getByRole("tab", { name: "Orders & Billing" }).click();
+  await expect(page.getByText("Refunds run through Stripe. Stripe is not configured.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "INV-2026-0001" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Void" })).toHaveCount(0);
 
   await page.getByRole("link", { name: "Jordan Hale" }).click();
   await expect(page.getByRole("heading", { name: "Jordan Hale" })).toBeVisible();

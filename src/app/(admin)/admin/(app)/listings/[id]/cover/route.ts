@@ -28,7 +28,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       storageKey: asset.storageKey,
     })),
   }));
-  const cover = pickCover(galleries);
+  const cover = pickCover(galleries, property.coverAssetId);
   if (!cover) return new Response("No cover photo.", { status: 404 });
   const asset = property.galleries.flatMap((gallery) => gallery.assets).find((item) => item.id === cover.assetId);
   try {
