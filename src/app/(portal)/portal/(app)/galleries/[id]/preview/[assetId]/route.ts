@@ -1,7 +1,7 @@
 import { clientMayPreview, previewServable } from "@/lib/preview-access";
 import { getActor } from "@/server/auth/guards";
 import { prisma } from "@/server/db/prisma";
-import { readGalleryFile } from "@/server/services/galleries";
+import { ensureWatermarkedPreview, readGalleryFile } from "@/server/services/galleries";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string; assetId: string }> }) {
   const actor = await getActor();
@@ -20,12 +20,14 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       propertyArchived: Boolean(asset.gallery.property.archivedAt),
       orderArchived: Boolean(asset.gallery.order.archivedAt),
     }) ||
-    !previewServable(asset)
+    !asset.mimeType.startsWith("image/")
   ) {
     return new Response("Not found.", { status: 404 });
   }
+  const previewKey = previewServable(asset) ? asset.previewKey : await ensureWatermarkedPreview(asset);
+  if (!previewKey || previewKey === asset.storageKey) return new Response("Not found.", { status: 404 });
   try {
-    const file = await readGalleryFile(asset.previewKey!);
+    const file = await readGalleryFile(previewKey);
     return new Response(new Uint8Array(file.bytes), {
       headers: {
         "Content-Type": "image/jpeg",

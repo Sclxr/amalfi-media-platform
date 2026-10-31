@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 — 2026-10-31
+
+### Fixed
+
+- Portal thumbnails never serve the original. A missing preview is generated or the image is not found. The watermark is a tiled diagonal "AMALFI MEDIA · PREVIEW" that stays readable on bright photos. `pnpm previews:backfill -- --force` runs in the production container and rewrites existing previews.
+
 ## 0.12.0 — 2026-10-31
 
 ### Added

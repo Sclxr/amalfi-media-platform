@@ -39,7 +39,7 @@ export default async function PortalGalleryPage({
       <div className="grid gap-4 sm:grid-cols-2">
         {gallery.assets.map((asset) => (
           <figure key={asset.id} className="space-y-2">
-            {/* Authenticated original bytes. next/image would re-process the file. */}
+            {/* Watermarked preview only. The original is never used as a thumbnail. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`/portal/galleries/${gallery.id}/preview/${asset.id}`}
