@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 — 2026-10-31
+
+### Added
+
+- A listing has a single-use invite link an admin can copy. Signing up or signing in through it attaches the account to the existing client and keeps the gallery address. Email verification is required. An unverified email does not claim a client by itself. Client emails are unique.
+
 ## 0.10.0 — 2026-10-31
 
 ### Added

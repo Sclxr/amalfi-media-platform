@@ -1,12 +1,16 @@
 import { LoginForm } from "@/components/forms/auth-forms";
+import { portalNext } from "@/lib/invite";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Client sign in" };
 
-export default async function PortalLoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+export default async function PortalLoginPage({ searchParams }: { searchParams: Promise<{ next?: string; invite?: string }> }) {
   const params = await searchParams;
-  const next = params.next?.startsWith("/portal") ? params.next : "/portal";
+  const next = params.next ? portalNext(params.next, "/portal") : "/portal";
+  const invite = params.invite?.trim() || undefined;
+  const registerQuery = new URLSearchParams({ next });
+  if (invite) registerQuery.set("invite", invite);
   return (
     <main className="relative grid min-h-screen place-items-center bg-surface px-4 py-12" data-testid="portal-login">
       <div className="absolute right-4 top-4">
@@ -19,7 +23,7 @@ export default async function PortalLoginPage({ searchParams }: { searchParams: 
           <p className="text-sm text-muted-foreground">Orders, galleries, and invoices for your listings.</p>
         </CardHeader>
         <CardContent>
-          <LoginForm next={next} registerHref="/portal/register" />
+          <LoginForm next={next} invite={invite} registerHref={`/portal/register?${registerQuery}`} />
         </CardContent>
       </Card>
     </main>

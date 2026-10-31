@@ -9,6 +9,7 @@ import { getEnv } from "@/server/env";
 import { logger } from "@/server/logger";
 import { assertPasswordAcceptable } from "@/lib/passwords";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { ensureClientProfile } from "@/server/services/client-link";
 
 const env = getEnv();
 
@@ -37,7 +38,7 @@ export const auth = betterAuth({
     minPasswordLength: 10,
     maxPasswordLength: 128,
     autoSignIn: true,
-    requireEmailVerification: false,
+    requireEmailVerification: true,
     revokeSessionsOnPasswordReset: true,
     resetPasswordTokenExpiresIn: 60 * 30,
     sendResetPassword: async ({ user, url }) => {
@@ -58,6 +59,20 @@ export const auth = betterAuth({
     password: {
       hash: hashPassword,
       verify: async ({ hash, password }) => verifyPassword(hash, password),
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: false,
+    sendVerificationEmail: async ({ user, url }) => {
+      logger.info({ email: user.email }, "email verification requested");
+      if (env.emailDevPreview) {
+        await prisma.appSetting.upsert({
+          where: { key: "dev.lastEmailVerification" },
+          create: { key: "dev.lastEmailVerification", value: { email: user.email, url, at: new Date().toISOString() } },
+          update: { value: { email: user.email, url, at: new Date().toISOString() } },
+        });
+      }
     },
   },
   user: {
@@ -135,14 +150,22 @@ export const auth = betterAuth({
         },
         after: async (user) => {
           if (user.role !== "CLIENT") return;
-          const [firstName, ...rest] = user.name.trim().split(/\s+/);
-          await prisma.client.create({
-            data: {
-              userId: user.id,
-              firstName: firstName || "Client",
-              lastName: rest.join(" "),
-              email: user.email.toLowerCase(),
-            },
+          await ensureClientProfile({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            emailVerified: Boolean(user.emailVerified),
+          });
+        },
+      },
+      update: {
+        after: async (user) => {
+          if (user.role !== "CLIENT" || !user.emailVerified) return;
+          await ensureClientProfile({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            emailVerified: true,
           });
         },
       },

@@ -12,7 +12,7 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `ENCRYPTION_KEY` | yes | 32+ characters. Reserved for TOTP and token encryption |
 | `EMAIL_MARKETING_ENABLED` | no | Default `false`. Boot fails if `true` outside production |
 | `EMAIL_TRANSACTIONAL_ENABLED` | no | Default `false`. No sender is wired yet |
-| `EMAIL_DEV_PREVIEW` | no | Local only. Stores the last password-reset URL in `AppSetting` |
+| `EMAIL_DEV_PREVIEW` | no | Local only. Stores the last password-reset URL and email-verification URL in `AppSetting`. Invite links are copied from the listing and do not use this |
 | `GMAIL_API_ENABLED` | no | Default off. The Gmail client is a stub and does not call Google. See `docs/GMAIL_OAUTH.md` |
 | `STAGING_BASIC_AUTH` | staging | `username:password`. Required when `APP_ENV=staging` |
 | `STRIPE_SECRET_KEY` | no | Staging must be `sk_test_`. Production must not be a test key |
