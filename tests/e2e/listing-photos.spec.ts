@@ -91,7 +91,7 @@ test("a listing accepts a photo larger than the 1 MB server-action limit", async
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByTestId("overview")).toBeVisible();
   await page.goto("/admin/listings/seed-property-hale?tab=gallery");
-  await expect(page.getByRole("heading", { name: "1842 Lake Conway Shore" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "1842 Lake Conway Shore" })).toBeVisible();
   await page.getByLabel("Gallery file").setInputFiles({ name, mimeType: "image/png", buffer: bytes });
   await page.getByRole("button", { name: "Upload photos" }).click();
   await expect(page.getByRole("button", { name, exact: true })).toBeVisible({ timeout: 30_000 });

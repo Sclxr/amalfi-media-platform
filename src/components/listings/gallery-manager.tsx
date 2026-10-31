@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createListingOrderAction,
@@ -62,6 +62,10 @@ export function GalleryManager({
   const [orders, setOrders] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(galleries.map((gallery) => [gallery.id, gallery.photos.map((photo) => photo.id)])),
   );
+  const incoming = galleries.map((gallery) => gallery.photos.map((photo) => photo.id).join(",")).join("|");
+  useEffect(() => {
+    setOrders(Object.fromEntries(galleries.map((gallery) => [gallery.id, gallery.photos.map((photo) => photo.id)])));
+  }, [incoming, galleries]);
 
   const photos = galleries.flatMap((gallery) => gallery.photos.map((photo) => ({ ...photo, galleryId: gallery.id })));
   const open = photos.find((photo) => photo.id === openId) ?? null;
