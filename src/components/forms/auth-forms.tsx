@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { claimListingInviteAction } from "@/app/(portal)/portal/(auth)/invite/actions";
 
-export function LoginForm({ next, registerHref }: { next: string; registerHref?: string }) {
+export function LoginForm({ next, registerHref, invite }: { next: string; registerHref?: string; invite?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -42,6 +43,13 @@ export function LoginForm({ next, registerHref }: { next: string; registerHref?:
     if (result.data && "twoFactorRedirect" in result.data && result.data.twoFactorRedirect) {
       setTotp(true);
       return;
+    }
+    if (invite) {
+      const claimed = await claimListingInviteAction({ token: invite });
+      if ("error" in claimed && claimed.error) {
+        setError(claimed.error);
+        return;
+      }
     }
     router.push(next);
     router.refresh();
@@ -90,9 +98,10 @@ export function LoginForm({ next, registerHref }: { next: string; registerHref?:
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ next, invite }: { next: string; invite?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -100,18 +109,39 @@ export function RegisterForm() {
     setPending(true);
     setError(null);
     const form = new FormData(event.currentTarget);
+    const name = String(form.get("name") ?? "");
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
     const result = await authClient.signUp.email({
-      name: String(form.get("name") ?? ""),
-      email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
+      name,
+      email,
+      password,
+      callbackURL: next,
     });
-    setPending(false);
     if (result.error) {
+      setPending(false);
       setError(result.error.message ?? "Could not create the account.");
       return;
     }
-    router.push("/portal");
-    router.refresh();
+    if (invite) {
+      const claimed = await claimListingInviteAction({ token: invite, email, password });
+      if ("error" in claimed && claimed.error) {
+        setPending(false);
+        setError(claimed.error);
+        return;
+      }
+      const signedIn = await authClient.signIn.email({ email, password });
+      setPending(false);
+      if (signedIn.error) {
+        setError(signedIn.error.message ?? "Confirm your email, then sign in.");
+        return;
+      }
+      router.push(claimed.next && claimed.next.startsWith("/portal/") ? claimed.next : next);
+      router.refresh();
+      return;
+    }
+    setPending(false);
+    setMessage("Confirm your email before signing in. In local development the link is saved for preview.");
   }
 
   return (
@@ -134,12 +164,13 @@ export function RegisterForm() {
           {error}
         </p>
       ) : null}
+      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       <Button className="w-full" type="submit" disabled={pending}>
         {pending ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-sm text-muted-foreground">
         Already registered?{" "}
-        <Link className="text-primary" href="/portal/login">
+        <Link className="text-primary" href={invite ? `/portal/login?next=${encodeURIComponent(next)}&invite=${encodeURIComponent(invite)}` : `/portal/login?next=${encodeURIComponent(next)}`}>
           Sign in
         </Link>
       </p>

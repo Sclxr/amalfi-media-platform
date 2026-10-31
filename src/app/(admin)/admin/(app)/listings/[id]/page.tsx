@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, rescheduleListingBookingAction, voidListingInvoiceAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
+import { InviteLink } from "@/components/listings/invite-link";
 import { ListingHeader } from "@/components/listings/listing-header";
 import { ListingPrice } from "@/components/listings/listing-price";
 import { ArchivedBanner } from "@/components/removal/archive-view";
@@ -230,6 +231,7 @@ export default async function ListingDetailPage({
               <Link className="text-primary" href={`/admin/listings/${property.id}?tab=billing`}>
                 Orders and billing
               </Link>
+              {canEdit ? <InviteLink propertyId={property.id} /> : null}
             </CardContent>
           </Card>
         </div>

@@ -225,6 +225,7 @@ model User {
   createdCampaigns  Campaign[]           @relation("CampaignCreator")
   importBatches     ImportBatch[]
   refunds           Refund[]
+  listingInvites    ListingInvite[]
 
   @@unique([email])
   @@index([role])
@@ -478,12 +479,31 @@ model Client {
   invoices   Invoice[]
   galleries  Gallery[]
   reminders  Reminder[]
+  listingInvites ListingInvite[]
 
+  /// Also unique on lower(email) in migration 20261031070000_listing_invite.
   @@index([email])
   @@index([brokerageId])
 }
 
 // ---------- Email marketing ----------
+
+model ListingInvite {
+  id          String    @id @default(cuid())
+  clientId    String
+  propertyId  String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([propertyId, expiresAt])
+  @@index([clientId])
+}
 
 model EmailTemplate {
   id        String        @id @default(cuid())
@@ -662,6 +682,7 @@ model Property {
   coverAsset   MediaAsset?  @relation("ListingCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   orders       Order[]
   galleries    Gallery[]
+  listingInvites ListingInvite[]
 
   @@index([clientId])
   @@index([leadId])

@@ -4,6 +4,7 @@ import { stagingGate } from "@/lib/staging-gate";
 const PUBLIC_PORTAL = [
   "/portal/login",
   "/portal/register",
+  "/portal/invite",
   "/portal/forgot-password",
   "/portal/reset-password",
 ];

@@ -1,5 +1,5 @@
 import "server-only";
-import type { PropertyType } from "@prisma/client";
+import { Prisma, type PropertyType } from "@prisma/client";
 import type { Actor } from "@/lib/actor";
 import { normalizeEmail } from "@/lib/email";
 import {
@@ -162,6 +162,50 @@ export async function listRealtorOptions(actor: Actor) {
   });
 }
 
+async function clientIdForLead(
+  tx: Prisma.TransactionClient,
+  lead: {
+    id: string;
+    clientId: string | null;
+    email: string | null;
+    emailNormalized: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    brokerageId: string | null;
+    convertedAt: Date | null;
+  },
+  fallbackEmail: string | null,
+) {
+  if (lead.clientId) return lead.clientId;
+  const email = normalizeEmail(lead.email) ?? fallbackEmail;
+  if (!email) return null;
+  const existing = await tx.client.findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { id: true } });
+  const clientId = existing
+    ? existing.id
+    : (
+        await tx.client.create({
+          data: {
+            firstName: lead.firstName?.trim() || "Realtor",
+            lastName: lead.lastName?.trim() || "Contact",
+            email,
+            phone: lead.phone,
+            brokerageId: lead.brokerageId,
+          },
+        })
+      ).id;
+  await tx.lead.update({
+    where: { id: lead.id },
+    data: {
+      email: lead.email ?? email,
+      emailNormalized: lead.emailNormalized ?? email,
+      clientId,
+      convertedAt: lead.convertedAt ?? new Date(),
+    },
+  });
+  return clientId;
+}
+
 export async function createListing(
   actor: Actor,
   input: {
@@ -185,30 +229,8 @@ export async function createListing(
   const created = await prisma.$transaction(async (tx) => {
     const lead = await tx.lead.findFirst({ where: { id: input.leadId, deletedAt: null } });
     if (!lead) return { error: "Choose a realtor from the CRM." as const };
-    let clientId = lead.clientId;
-    if (!clientId) {
-      const email = normalizeEmail(lead.email) ?? normalizeEmail(input.email);
-      if (!email) return { error: "Add an email for this realtor before creating a listing." as const };
-      const client = await tx.client.create({
-        data: {
-          firstName: lead.firstName?.trim() || "Realtor",
-          lastName: lead.lastName?.trim() || "Contact",
-          email,
-          phone: lead.phone,
-          brokerageId: lead.brokerageId,
-        },
-      });
-      await tx.lead.update({
-        where: { id: lead.id },
-        data: {
-          email: lead.email ?? email,
-          emailNormalized: lead.emailNormalized ?? email,
-          clientId: client.id,
-          convertedAt: lead.convertedAt ?? new Date(),
-        },
-      });
-      clientId = client.id;
-    }
+    const clientId = await clientIdForLead(tx, lead, normalizeEmail(input.email));
+    if (!clientId) return { error: "Add an email for this realtor before creating a listing." as const };
     const property = await tx.property.create({
       data: {
         clientId,
@@ -293,25 +315,8 @@ export async function updateListing(
   const saved = await prisma.$transaction(async (tx) => {
     let clientId = current.clientId;
     if (lead.clientId !== current.clientId || lead.id !== current.leadId) {
-      let nextClientId = lead.clientId;
-      if (!nextClientId) {
-        const email = normalizeEmail(lead.email);
-        if (!email) return { error: "Add an email for this realtor before moving the listing." as const };
-        const client = await tx.client.create({
-          data: {
-            firstName: lead.firstName?.trim() || "Realtor",
-            lastName: lead.lastName?.trim() || "Contact",
-            email,
-            phone: lead.phone,
-            brokerageId: lead.brokerageId,
-          },
-        });
-        await tx.lead.update({
-          where: { id: lead.id },
-          data: { clientId: client.id, email: lead.email ?? email, emailNormalized: lead.emailNormalized ?? email, convertedAt: lead.convertedAt ?? new Date() },
-        });
-        nextClientId = client.id;
-      }
+      const nextClientId = lead.clientId ?? (await clientIdForLead(tx, lead, null));
+      if (!nextClientId) return { error: "Add an email for this realtor before moving the listing." as const };
       clientId = nextClientId;
     }
     if (clientId !== current.clientId) {
