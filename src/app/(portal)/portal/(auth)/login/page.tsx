@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/forms/auth-forms";
+import { PortalOtpForm } from "@/components/forms/portal-otp-form";
 import { portalNext } from "@/lib/invite";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ export default async function PortalLoginPage({ searchParams }: { searchParams: 
           <p className="text-sm text-muted-foreground">Orders, galleries, and invoices for your listings.</p>
         </CardHeader>
         <CardContent>
-          <LoginForm next={next} invite={invite} registerHref={`/portal/register?${registerQuery}`} />
+          <PortalOtpForm next={next} invite={invite} registerHref={`/portal/register?${registerQuery}`} />
         </CardContent>
       </Card>
     </main>

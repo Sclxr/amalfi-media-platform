@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { twoFactor } from "better-auth/plugins";
+import { emailOTP, twoFactor } from "better-auth/plugins";
 import { hashPassword, verifyPassword } from "@/server/auth/password";
 import { prisma } from "@/server/db/prisma";
 import { writeAudit } from "@/server/audit";
@@ -9,7 +9,7 @@ import { getEnv } from "@/server/env";
 import { logger } from "@/server/logger";
 import { assertPasswordAcceptable } from "@/lib/passwords";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { passwordResetMessage, verificationMessage } from "@/lib/email-messages";
+import { loginCodeMessage, passwordResetMessage, verificationMessage } from "@/lib/email-messages";
 import { sendTransactional } from "@/server/email/send";
 import { ensureClientProfile } from "@/server/services/client-link";
 
@@ -116,6 +116,8 @@ export const auth = betterAuth({
       "/sign-up/email": { window: 15 * 60, max: 5 },
       "/request-password-reset": { window: 60 * 60, max: 3 },
       "/reset-password": { window: 60 * 60, max: 5 },
+      "/email-otp/send-verification-otp": { window: 15 * 60, max: LOGIN_ATTEMPT_MAX },
+      "/sign-in/email-otp": { window: 15 * 60, max: LOGIN_ATTEMPT_MAX },
     },
   },
   advanced: {
@@ -135,6 +137,38 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    emailOTP({
+      otpLength: 6,
+      expiresIn: 60 * 10,
+      allowedAttempts: 5,
+      disableSignUp: true,
+      storeOTP: "hashed",
+      rateLimit: { window: 15 * 60, max: LOGIN_ATTEMPT_MAX },
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        if (type !== "sign-in") return;
+        const account = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+          select: { role: true, disabledAt: true },
+        });
+        if (!account || account.role !== "CLIENT" || account.disabledAt) return;
+        logger.info({ email }, "portal sign-in code requested");
+        await sendTransactional(loginCodeMessage({ to: email, code: otp }));
+        if (env.emailDevPreview) {
+          const key = `dev.portalOtp:${email.toLowerCase()}`;
+          await prisma.appSetting.upsert({
+            where: { key },
+            create: { key, value: { to: email.toLowerCase(), code: otp, at: new Date().toISOString() } },
+            update: { value: { to: email.toLowerCase(), code: otp, at: new Date().toISOString() } },
+          });
+        }
+        await writeAudit({
+          action: "auth.otp.sent",
+          entityType: "User",
+          entityId: email.toLowerCase(),
+          after: { type: "sign-in" },
+        });
+      },
+    }),
     twoFactor({
       issuer: "Amalfi Media",
     }),
@@ -227,6 +261,26 @@ export const auth = betterAuth({
           throw new APIError("TOO_MANY_REQUESTS", {
             message: "Too many login attempts. Try again in a few minutes.",
           });
+        }
+      }
+      if (ctx.path === "/email-otp/send-verification-otp" || ctx.path === "/sign-in/email-otp") {
+        const email = String(ctx.body?.email ?? "").toLowerCase().trim();
+        const decision = consumeRateLimit(`otp:${ctx.path}:${email}:${ip}`, {
+          windowMs: 15 * 60 * 1000,
+          max: LOGIN_ATTEMPT_MAX,
+        });
+        if (!decision.allowed) {
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: "Too many codes. Try again in a few minutes.",
+          });
+        }
+        if (ctx.path === "/sign-in/email-otp") {
+          const account = email
+            ? await prisma.user.findUnique({ where: { email }, select: { role: true } })
+            : null;
+          if (account && account.role !== "CLIENT") {
+            throw new APIError("BAD_REQUEST", { message: "Invalid OTP" });
+          }
         }
       }
       if (ctx.path === "/request-password-reset") {

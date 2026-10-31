@@ -6,6 +6,7 @@ test("a realtor can request a shoot and an admin can quote it", async ({ page })
   const stamp = Date.now();
   const address = `${stamp} Oak Street`;
   await page.goto("/portal/login");
+  await page.getByRole("button", { name: "Use password instead" }).click();
   await page.getByLabel("Email").fill("client.demo@amalfimedia.xyz");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

@@ -100,6 +100,7 @@ test("a new client claims a gallery, pays, and downloads", async ({ page, browse
   await guestPage.goto(inviteUrl!);
   await guestPage.getByRole("link", { name: "Create an account" }).click();
   await expect(guestPage).toHaveURL(/next=/);
+  await guestPage.getByRole("button", { name: "Create a password instead" }).click();
   await guestPage.getByLabel("Name").fill("Casey Nguyen");
   await guestPage.getByLabel("Email").fill(email);
   await guestPage.getByLabel("Password").fill(clientPassword);
@@ -116,6 +117,7 @@ test("a new client claims a gallery, pays, and downloads", async ({ page, browse
   const other = await browser.newContext();
   const otherPage = await other.newPage();
   await otherPage.goto("/portal/login");
+  await otherPage.getByRole("button", { name: "Use password instead" }).click();
   await otherPage.getByLabel("Email").fill("client.demo@amalfimedia.xyz");
   await otherPage.getByLabel("Password").fill(password);
   await otherPage.getByRole("button", { name: "Sign in" }).click();

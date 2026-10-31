@@ -11,7 +11,9 @@ import { normalizeEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
 import { leadFormSchema } from "@/schemas/lead";
 import { brokerageNameKey } from "@/schemas/brokerage";
-import { stagingGate } from "@/lib/staging-gate";
+import { NextRequest } from "next/server";
+import { proxy } from "@/proxy";
+import { stagingBasicAuthBypass, stagingGate } from "@/lib/staging-gate";
 import { LOCAL_DEMO_PASSWORD, resolveSeedPassword } from "@/lib/seed-password";
 import { shouldRunStartupSeed } from "@/lib/seed-marker.mjs";
 import { isSafeMediaKey, signMediaToken, verifyMediaToken } from "@/lib/media-sign";
@@ -159,6 +161,58 @@ describe("staging access gate", () => {
     expect(stagingGate({ appEnv: "staging", basicAuth: "preview:secret", authorizationHeader: header, pathname: "/admin" }).action).toBe("allow");
     expect(stagingGate({ appEnv: "staging", basicAuth: "preview:secret", authorizationHeader: null, pathname: "/admin" }).action).toBe("challenge");
     expect(stagingGate({ appEnv: "development", basicAuth: undefined, authorizationHeader: null, pathname: "/admin" }).action).toBe("allow");
+  });
+
+  it("lets portal and auth routes through and keeps admin behind the password", async () => {
+    const open = [
+      "/portal",
+      "/portal/login",
+      "/portal/invite",
+      "/portal/register",
+      "/portal/galleries/abc/preview/photo",
+      "/portal/galleries/abc/download",
+      "/portal/api/auth/sign-in/email-otp",
+      "/portal/api/auth/email-otp/send-verification-otp",
+      "/api/auth/sign-in/email",
+    ];
+    const closed = ["/admin", "/admin/login", "/admin/settings/api-keys", "/api/bot", "/api/bot/leads"];
+    for (const pathname of open) {
+      expect(stagingBasicAuthBypass(pathname), pathname).toBe(true);
+      expect(
+        stagingGate({ appEnv: "staging", basicAuth: "preview:secret", authorizationHeader: null, pathname }).action,
+        pathname,
+      ).toBe("allow");
+      expect(
+        stagingGate({ appEnv: "staging", basicAuth: undefined, authorizationHeader: null, pathname }).action,
+        pathname,
+      ).toBe("allow");
+    }
+    for (const pathname of closed) {
+      expect(stagingBasicAuthBypass(pathname), pathname).toBe(false);
+      expect(
+        stagingGate({ appEnv: "staging", basicAuth: "preview:secret", authorizationHeader: null, pathname }).action,
+        pathname,
+      ).toBe("challenge");
+    }
+    expect(stagingBasicAuthBypass("/portal-admin")).toBe(false);
+    expect(stagingBasicAuthBypass("/api/authorize")).toBe(false);
+
+    const previousEnv = process.env.APP_ENV;
+    const previousAuth = process.env.STAGING_BASIC_AUTH;
+    process.env.APP_ENV = "staging";
+    process.env.STAGING_BASIC_AUTH = "preview:secret";
+    try {
+      const portal = await proxy(new NextRequest("https://staging.amalfimedia.xyz/portal/login"));
+      expect(portal.status).toBe(200);
+      const admin = await proxy(new NextRequest("https://staging.amalfimedia.xyz/admin"));
+      expect(admin.status).toBe(401);
+      expect(admin.headers.get("WWW-Authenticate")).toContain("Basic");
+    } finally {
+      if (previousEnv === undefined) delete process.env.APP_ENV;
+      else process.env.APP_ENV = previousEnv;
+      if (previousAuth === undefined) delete process.env.STAGING_BASIC_AUTH;
+      else process.env.STAGING_BASIC_AUTH = previousAuth;
+    }
   });
 });
 

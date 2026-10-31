@@ -88,7 +88,7 @@ Do not add a Render pre-deploy command. Free web services do not support one. St
 
 `pnpm db:seed` is still the manual command. It upserts the demo rows and refreshes the marker. Use it only when you intend to refresh demo accounts. Startup will not do that on its own.
 
-Sign in at `/admin/login` with `eathen@amalfimedia.xyz` and `SEED_ADMIN_PASSWORD`. The browser will first ask for the `STAGING_BASIC_AUTH` user and password. The blueprint sets `S3_BUCKET` to `amalfi-staging` and keeps `EMAIL_MARKETING_ENABLED=false`. Staging still refuses a live Stripe key, a production-looking database URL, and marketing email.
+Sign in at `/admin/login` with `eathen@amalfimedia.xyz` and `SEED_ADMIN_PASSWORD`. The browser will first ask for the `STAGING_BASIC_AUTH` user and password. Realtors open `/portal` without that password and sign in with an email code or their portal password. The blueprint sets `S3_BUCKET` to `amalfi-staging` and keeps `EMAIL_MARKETING_ENABLED=false`. Staging still refuses a live Stripe key, a production-looking database URL, and marketing email.
 
 ## 5. DNS
 

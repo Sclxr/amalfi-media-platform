@@ -50,6 +50,7 @@ test("a portal gallery shows a tiled watermark on a bright photo", async ({ page
   const guest = await browser.newContext();
   const guestPage = await guest.newPage();
   await guestPage.goto("/portal/login");
+  await guestPage.getByRole("button", { name: "Use password instead" }).click();
   await guestPage.getByLabel("Email").fill("client.demo@amalfimedia.xyz");
   await guestPage.getByLabel("Password").fill(password);
   await guestPage.getByRole("button", { name: "Sign in" }).click();

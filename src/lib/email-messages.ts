@@ -19,6 +19,14 @@ export function passwordResetMessage(input: { to: string; url: string }): MailMe
   };
 }
 
+export function loginCodeMessage(input: { to: string; code: string }): MailMessage {
+  return {
+    to: input.to,
+    subject: "Your Amalfi Media sign-in code",
+    text: `Your sign-in code is ${input.code}. It expires in 10 minutes. If you did not ask for this, you can ignore this email.\n`,
+  };
+}
+
 export function verificationMessage(input: { to: string; url: string }): MailMessage {
   return {
     to: input.to,

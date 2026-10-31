@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { galleryInviteMessage, passwordResetMessage, receiptMessage, verificationMessage } from "@/lib/email-messages";
+import { galleryInviteMessage, loginCodeMessage, passwordResetMessage, receiptMessage, verificationMessage } from "@/lib/email-messages";
 import { marketingSendDecision } from "@/lib/marketing";
 import { inviteEmailNotice, stagingRecipientAllowed, transactionalDeliveryPlan, transactionalSendDecision } from "@/lib/transactional-email";
 
@@ -57,6 +57,10 @@ describe("transactional email", () => {
     expect(invite.subject).toContain("10 Palm");
     expect(invite.text).toContain("token=abc");
     expect(verificationMessage({ to: "a@b.c", url: "https://app.example/verify" }).text).toContain("/verify");
+    const code = loginCodeMessage({ to: "realtor@example.com", code: "482913" });
+    expect(code.subject).toBe("Your Amalfi Media sign-in code");
+    expect(code.text).toContain("482913");
+    expect(code.text).not.toContain("token=");
     expect(passwordResetMessage({ to: "a@b.c", url: "https://app.example/reset" }).text).toContain("/reset");
     const receipt = receiptMessage({
       to: "a@b.c",

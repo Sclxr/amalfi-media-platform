@@ -78,6 +78,7 @@ test("an admin can copy an invite and a new account claims that gallery", async 
   await setTheme(guestPage, "light");
   await guestPage.getByRole("link", { name: "Create an account" }).click();
   await expect(guestPage).toHaveURL(/\/portal\/register\?/);
+  await guestPage.getByRole("button", { name: "Create a password instead" }).click();
   expect(guestPage.url()).toContain("invite=");
   expect(guestPage.url()).toContain("next=");
   await guestPage.getByLabel("Name").fill("Riley Chen");

@@ -44,6 +44,35 @@ export async function createListingInvite(actor: Actor, propertyId: string) {
   return { url: `${origin}/portal/invite?token=${encodeURIComponent(token)}`, expiresAt: expiresAt.toISOString() };
 }
 
+/**
+ * A valid invite for this email gets a client user row so the sign-in code can be delivered.
+ * The client stays unclaimed until the code is accepted.
+ */
+export async function prepareInviteSignIn(token: string, email: string) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return { error: "Enter a valid email." as const };
+  const invite = await prisma.listingInvite.findUnique({
+    where: { tokenHash: hashInviteToken(token.trim()) },
+    include: { client: true },
+  });
+  if (!invite || invite.usedAt || invite.expiresAt.getTime() <= Date.now()) {
+    return { error: "This invite link is invalid or expired." as const };
+  }
+  if (normalizeEmail(invite.client.email) !== normalized) {
+    return { error: "Use the email this listing was created for." as const };
+  }
+  const existing = await prisma.user.findUnique({ where: { email: normalized } });
+  if (existing?.disabledAt) return { error: "This account is disabled." as const };
+  if (existing && existing.role !== "CLIENT") return { error: "This email uses the admin sign-in." as const };
+  if (!existing) {
+    const name = `${invite.client.firstName} ${invite.client.lastName}`.trim() || "Client";
+    await prisma.user.create({
+      data: { email: normalized, name, role: "CLIENT", emailVerified: false },
+    });
+  }
+  return { ok: true as const };
+}
+
 export async function readInvite(token: string) {
   const tokenHash = hashInviteToken(token);
   const invite = await prisma.listingInvite.findUnique({
@@ -68,6 +97,7 @@ export async function readInvite(token: string) {
   return {
     address: invite.property.addressLine1,
     clientName: `${invite.client.firstName} ${invite.client.lastName}`.trim(),
+    clientEmail: invite.client.email,
     next: galleryDestination(gallery?.id),
   };
 }

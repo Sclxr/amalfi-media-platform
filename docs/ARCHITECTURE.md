@@ -50,7 +50,7 @@ Login is limited to 5 attempts per 15 minutes per account and IP in process memo
 
 `APP_ENV=staging` requires:
 
-- `STAGING_BASIC_AUTH` as `username:password`, checked before every page except `/portal/api/health`
+- `STAGING_BASIC_AUTH` as `username:password`, checked before `/admin` and admin APIs. `/portal` (including login, invite, gallery preview, and download) and `/api/auth` skip that password. Gallery files still require a signed-in client.
 - Stripe keys, if set, to be `sk_test_` / `pk_test_`
 - `S3_BUCKET`, if set, to include `staging`
 - `DATABASE_URL` not to look like a production database name
