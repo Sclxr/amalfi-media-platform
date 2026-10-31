@@ -22,3 +22,13 @@ export function renderTransactionalPreview(input: { subject: string; body: strin
     body: input.body.replaceAll("{{address}}", input.address),
   };
 }
+
+/** Production sends only when the flag is on and a provider is configured. Everywhere else is a preview. */
+export function transactionalDeliveryPlan(
+  input: TransactionalSendInput & { providerConfigured: boolean },
+): "send" | "preview" | "skip" {
+  const decision = transactionalSendDecision(input);
+  if (decision.allowed) return input.providerConfigured ? "send" : "skip";
+  if (input.appEnv === "production") return "skip";
+  return "preview";
+}

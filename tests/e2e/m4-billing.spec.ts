@@ -13,7 +13,7 @@ const png = Buffer.from(
   "base64",
 );
 
-test("billing stays unconfigured and a gallery preview does not require payment", async ({ page }) => {
+test("a gallery preview is watermarked and download stays locked until payment", async ({ page }) => {
   const photoName = `paid-check-${Date.now()}.png`;
   await page.goto("/admin/login");
   await page.getByLabel("Email").fill("eathen@amalfimedia.xyz");
@@ -22,7 +22,7 @@ test("billing stays unconfigured and a gallery preview does not require payment"
   await expect(page.getByTestId("overview")).toBeVisible();
 
   await page.goto("/admin/billing");
-  await expect(page.getByText("Stripe is not configured.")).toBeVisible();
+  await expect(page.getByText("Checkout uses Stripe. Card numbers stay at Stripe.")).toBeVisible();
   await expect(page.getByRole("link", { name: "INV-2026-0001" })).toBeVisible();
 
   await page.goto("/admin/listings");

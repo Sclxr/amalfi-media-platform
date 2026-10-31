@@ -14,6 +14,14 @@ export const envSchema = z
     EMAIL_MARKETING_ENABLED: z.enum(["true", "false"]).default("false"),
     EMAIL_TRANSACTIONAL_ENABLED: z.enum(["true", "false"]).default("false"),
     EMAIL_DEV_PREVIEW: z.enum(["true", "false"]).default("false"),
+    EMAIL_PROVIDER: z.enum(["resend", "smtp"]).optional(),
+    EMAIL_FROM: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    STRIPE_API_BASE: z.string().url().optional(),
     STAGING_BASIC_AUTH: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -113,6 +121,13 @@ export const envSchema = z
           code: "custom",
           path: ["DATABASE_URL"],
           message: "Production DATABASE_URL must not use the staging database.",
+        });
+      }
+      if (value.STRIPE_API_BASE && !value.STRIPE_API_BASE.startsWith("https://api.stripe.com")) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["STRIPE_API_BASE"],
+          message: "Production Stripe API base must be https://api.stripe.com.",
         });
       }
     }

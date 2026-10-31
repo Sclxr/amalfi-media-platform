@@ -44,7 +44,7 @@ test("admin creates a listing from a realtor and finds it everywhere", async ({ 
   await page.screenshot({ path: `${shots}/listing-detail-dark.png`, fullPage: true });
   await setTheme(page, "light");
   await page.getByRole("tab", { name: "Orders & Billing" }).click();
-  await expect(page.getByText("Refunds run through Stripe. Stripe is not configured.")).toBeVisible();
+  await expect(page.getByText("Refunds run through Stripe. Recorded payments stay unchanged on this page.")).toBeVisible();
   await expect(page.getByRole("link", { name: "INV-2026-0001" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Void" })).toHaveCount(0);
 
