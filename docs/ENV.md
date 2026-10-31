@@ -16,7 +16,7 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `GMAIL_API_ENABLED` | no | Default off. The Gmail client is a stub and does not call Google. See `docs/GMAIL_OAUTH.md` |
 | `STAGING_BASIC_AUTH` | staging | `username:password`. Required when `APP_ENV=staging` |
 | `STRIPE_SECRET_KEY` | no | Staging must be `sk_test_`. Production must not be a test key |
-| `STRIPE_WEBHOOK_SECRET` | no | Later milestone |
+| `STRIPE_WEBHOOK_SECRET` | no | Signing secret for `POST /api/stripe/webhook`. Comma-separated while rotating so both secrets are accepted. Subscribe the endpoint to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created`, and `charge.dispute.closed` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no | Staging must be `pk_test_` |
 | `S3_ENDPOINT` | no | R2 S3 API endpoint |
 | `S3_REGION` | no | `auto` for R2 |

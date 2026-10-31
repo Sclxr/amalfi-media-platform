@@ -1,6 +1,6 @@
 import "server-only";
 import type { Actor } from "@/lib/actor";
-import { galleryDownloadDecision, type InvoiceStatus } from "@/lib/gallery-access";
+import { coveringInvoiceStatus, galleryDownloadDecision, type InvoiceStatus } from "@/lib/gallery-access";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
@@ -21,9 +21,14 @@ async function storeWatermarkedPreview(originalKey: string) {
   return key;
 }
 
-function bestInvoiceStatus(statuses: string[]): InvoiceStatus | null {
-  const paid = statuses.find((status) => status === "PAID" || status === "PARTIALLY_REFUNDED");
-  return (paid ?? statuses[0] ?? null) as InvoiceStatus | null;
+function bestInvoiceStatus(invoices: { status: string; createdAt: Date; amountRefundedCents: number }[]): InvoiceStatus | null {
+  return coveringInvoiceStatus(
+    invoices.map((invoice) => ({
+      status: invoice.status,
+      createdAt: invoice.createdAt.getTime(),
+      amountRefundedCents: invoice.amountRefundedCents,
+    })),
+  );
 }
 
 export async function listGalleries(actor: Actor) {
@@ -348,12 +353,12 @@ export async function clientGallery(clientId: string, id: string) {
 export function downloadDecisionFor(gallery: {
   requirePaid: boolean;
   client: { allowUnpaidDownloads: boolean };
-  order: { invoices: { status: string }[] };
+  order: { invoices: { status: string; createdAt: Date; amountRefundedCents: number }[] };
 }) {
   return galleryDownloadDecision({
     requirePaid: gallery.requirePaid,
     allowUnpaidDownloads: gallery.client.allowUnpaidDownloads,
-    invoiceStatus: bestInvoiceStatus(gallery.order.invoices.map((invoice) => invoice.status)),
+    invoiceStatus: bestInvoiceStatus(gallery.order.invoices),
   });
 }
 

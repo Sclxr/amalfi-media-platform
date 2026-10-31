@@ -29,8 +29,12 @@ describe("stripe billing", () => {
         object: {
           id: "cs_test",
           amount_total: 12000,
-          payment_intent: "pi_test",
-          receipt_url: "https://pay.stripe.com/receipts/test",
+          payment_status: "paid",
+          currency: "usd",
+          payment_intent: {
+            id: "pi_test",
+            latest_charge: { receipt_url: "https://pay.stripe.com/receipts/test" },
+          },
           metadata: { invoiceId: "inv_test" },
           payment_method_details: { card: { number: "4242424242424242" } },
         },
@@ -63,6 +67,9 @@ describe("stripe billing", () => {
       rememberIgnored: async (id) => {
         events.add(id);
       },
+      applyRefund: async () => "rejected",
+      applyDispute: async () => "rejected",
+      applyPaymentFailed: async () => "failed",
       commitPaid: async (delivered) => {
         if (events.has(delivered.id)) return "duplicate";
         if (failuresLeft > 0) {
@@ -80,9 +87,14 @@ describe("stripe billing", () => {
       type: "checkout.session.completed",
       invoiceId: invoice.id,
       amountCents: 12000,
+      amountRefundedCents: null,
+      currency: "usd",
+      paymentStatus: "paid",
       paymentIntentId: "pi_retry",
+      chargeId: null,
       receiptUrl: "https://pay.stripe.com/receipts/retry",
       checkoutSessionId: "cs_retry",
+      disputeStatus: null,
     };
 
     await expect(applyCheckoutEvent(event, writer)).rejects.toThrow(/invoice update failed/);
@@ -129,7 +141,9 @@ describe("stripe billing", () => {
         clientId: client.id,
         subtotalCents: 12000,
         totalCents: 12000,
+        currency: "usd",
         status: "OPEN",
+        stripeCheckoutSessionId: `${stamp}-cs`,
       },
     });
     const event: CheckoutEvent = {
@@ -137,9 +151,14 @@ describe("stripe billing", () => {
       type: "checkout.session.completed",
       invoiceId: invoice.id,
       amountCents: 12000,
+      amountRefundedCents: null,
+      currency: "usd",
+      paymentStatus: "paid",
       paymentIntentId: `${stamp}-taken`,
+      chargeId: null,
       receiptUrl: "https://pay.stripe.com/receipts/retry",
       checkoutSessionId: `${stamp}-cs`,
+      disputeStatus: null,
     };
     try {
       await expect(prismaCheckoutWriter.commitPaid(event)).rejects.toThrow();

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0 — 2026-10-31
+
+### Fixed
+
+- Stripe checkout is accepted only when the session is paid, the amount and currency match the open invoice, and the session id is the one stored on that invoice. Void and refunded invoices stay unpaid.
+- Refunds, disputes, and failed asynchronous payments are applied. A refund or dispute locks downloads again. The newest live invoice on the order is the one that unlocks a gallery, and a partial refund does not.
+- Paying an invoice reuses an open Checkout session and does not open a second one when that session is already complete. Invoice numbers retry instead of colliding. Receipt links are read from the charge. Webhook signatures accept every `v1` value and every configured secret.
+
 ## 0.8.0 — 2026-10-31
 
 ### Added
