@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 — 2026-10-31
+
+### Added
+
+- An order created from a listing can be priced with an active package (including the $120 introductory package), a custom amount, or line items. The invoice is created from that price. A recorded payment or an open invoice blocks a price change.
+
 ## 0.9.0 — 2026-10-31
 
 ### Fixed

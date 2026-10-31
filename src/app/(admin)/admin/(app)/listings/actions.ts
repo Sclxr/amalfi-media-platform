@@ -17,7 +17,7 @@ import {
   updateGalleryDetails,
 } from "@/server/services/galleries";
 import { createListing, setListingCover, updateListing } from "@/server/services/listings";
-import { changeOrderStatus, rescheduleBooking, setQuotePrices } from "@/server/services/orders";
+import { changeOrderStatus, rescheduleBooking, setOrderPrice, setQuotePrices } from "@/server/services/orders";
 
 async function actorOrLogin() {
   const actor = await getActor();
@@ -215,6 +215,33 @@ export async function rescheduleListingBookingAction(propertyId: string, formDat
   const result = await rescheduleBooking(actor, String(formData.get("bookingId") ?? ""), String(formData.get("startLocal") ?? ""));
   const notice = "error" in result && result.error ? result.error : "";
   redirect(withNotice(`/admin/listings/${propertyId}?tab=bookings`, notice));
+}
+
+export async function setListingPriceAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const orderId = String(formData.get("orderId") ?? "");
+  const mode = String(formData.get("mode") ?? "");
+  const result =
+    mode === "package"
+      ? await setOrderPrice(actor, propertyId, orderId, { mode: "package", packageId: String(formData.get("packageId") ?? "") })
+      : mode === "custom"
+        ? await setOrderPrice(actor, propertyId, orderId, {
+            mode: "custom",
+            label: String(formData.get("label") ?? ""),
+            amount: String(formData.get("amount") ?? ""),
+          })
+        : mode === "lines"
+          ? await setOrderPrice(actor, propertyId, orderId, {
+              mode: "lines",
+              rows: formData.getAll("lineLabel").map((label, index) => ({
+                label: String(label),
+                quantity: String(formData.getAll("lineQty")[index] ?? ""),
+                amount: String(formData.getAll("lineAmount")[index] ?? ""),
+              })),
+            })
+          : { error: "Choose a package, a custom price, or line items." as const };
+  const notice = "error" in result && result.error ? result.error : "Price saved.";
+  redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
 }
 
 export async function listingQuoteAction(propertyId: string, orderId: string, formData: FormData) {

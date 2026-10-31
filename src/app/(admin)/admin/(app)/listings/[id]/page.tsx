@@ -4,14 +4,16 @@ import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, re
 import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
 import { ListingHeader } from "@/components/listings/listing-header";
+import { ListingPrice } from "@/components/listings/listing-price";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
-import { AskConfirm } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatDateTime } from "@/lib/dates";
 import { canVoidInvoice } from "@/lib/invoice-void";
+import { orderPriceLock } from "@/lib/order-price";
 import { hasFinancialHistory } from "@/lib/removal";
 import { canMarkOrderDelivered, pickUploadOrder, propertyTypeLabel } from "@/lib/listing";
 import { formatCents } from "@/lib/money";
@@ -20,6 +22,7 @@ import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { getActor } from "@/server/auth/guards";
 import { billingStatus } from "@/server/services/billing";
+import { listActivePackages } from "@/server/services/catalog";
 import { getListing, listRealtorOptions } from "@/server/services/listings";
 
 export const metadata = { title: "Listing" };
@@ -58,6 +61,7 @@ export default async function ListingDetailPage({
   const canSeeMoney = can(actor, "billing.read");
   const stripe = billingStatus();
   const realtors = canEdit ? await listRealtorOptions(actor) : [];
+  const packages = canEdit ? await listActivePackages(actor) : [];
   const active = pickUploadOrder(property.orders);
   const shoot = property.orders.find((order) => order.id === query.shoot) ?? active ?? property.orders[0] ?? null;
   const shootGalleries = shoot ? property.galleries.filter((gallery) => gallery.orderId === shoot.id) : [];
@@ -307,18 +311,13 @@ export default async function ListingDetailPage({
                     </form>
                   ) : null}
                   {canEdit && nextOrderStatuses(order.status).includes("CANCELLED") ? (
-                    <AskConfirm
+                    <ConfirmDialog
                       title="Cancel this shoot"
                       body={`Cancel order ${order.number} at ${property.addressLine1}? The history of the order is kept.`}
                       confirmLabel="Cancel shoot"
                       destructive
-                      onConfirm={() => {
-                        const data = new FormData();
-                        data.set("status", "CANCELLED");
-                        data.set("note", "Cancelled from the listing.");
-                        data.set("tab", "bookings");
-                        return listingStatusAction(property.id, order.id, data);
-                      }}
+                      action={listingStatusAction.bind(null, property.id, order.id)}
+                      hidden={{ status: "CANCELLED", note: "Cancelled from the listing.", tab: "bookings" }}
                       trigger={<Button type="button" variant="destructive" size="sm">Cancel shoot</Button>}
                     />
                   ) : null}
@@ -341,6 +340,8 @@ export default async function ListingDetailPage({
             const paid = order.invoices.some(
               (invoice) => invoice.amountPaidCents > 0 || invoice.payments.some((payment) => payment.status === "SUCCEEDED"),
             );
+            const priceLock = orderPriceLock(order.invoices);
+            const liveInvoice = order.invoices.some((invoice) => invoice.status !== "VOID");
             const quoteItems = order.items.filter((item) => item.service?.pricingMode === "QUOTE");
             return (
               <Card key={order.id}>
@@ -354,12 +355,20 @@ export default async function ListingDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
+                  {order.items.length === 0 ? <p className="text-muted-foreground">No price yet.</p> : null}
                   {order.items.map((item) => (
                     <p key={item.id}>
                       {item.label}
+                      {item.quantity > 1 ? ` × ${item.quantity}` : ""}
                       {canSeeMoney ? ` · ${item.unitPriceCents === null ? "Quote" : formatCents(item.unitPriceCents)}` : ""}
                     </p>
                   ))}
+                  {canEdit && priceLock === null ? (
+                    <ListingPrice propertyId={property.id} orderId={order.id} orderNumber={order.number} packages={packages} />
+                  ) : null}
+                  {canEdit && priceLock === "Void the open invoice before changing the price." ? (
+                    <p className="text-muted-foreground">{priceLock}</p>
+                  ) : null}
                   {canEdit && !paid && quoteItems.length > 0 ? (
                     <form action={listingQuoteAction.bind(null, property.id, order.id)} className="grid gap-2">
                       {quoteItems.map((item) => (
@@ -389,22 +398,19 @@ export default async function ListingDetailPage({
                       <StatusBadge status={invoice.status} />
                       {canSeeMoney ? <span>{formatCents(invoice.amountPaidCents)} paid of {formatCents(invoice.totalCents)}</span> : null}
                       {canEdit && canVoidInvoice(invoice) ? (
-                        <AskConfirm
+                        <ConfirmDialog
                           title="Void invoice"
                           body={`Void ${invoice.number}? An unpaid invoice can be replaced. A recorded payment cannot be changed here.`}
                           confirmLabel="Void invoice"
                           destructive
-                          onConfirm={() => {
-                            const data = new FormData();
-                            data.set("invoiceId", invoice.id);
-                            return voidListingInvoiceAction(property.id, data);
-                          }}
+                          action={voidListingInvoiceAction.bind(null, property.id)}
+                          hidden={{ invoiceId: invoice.id }}
                           trigger={<Button type="button" variant="secondary" size="sm">Void</Button>}
                         />
                       ) : null}
                     </div>
                   ))}
-                  {canEdit && order.items.some((item) => item.unitPriceCents !== null) ? (
+                  {canEdit && !liveInvoice && order.items.some((item) => item.unitPriceCents !== null) && order.items.every((item) => item.unitPriceCents !== null) ? (
                     <form action={createListingInvoiceAction.bind(null, property.id)}>
                       <input type="hidden" name="orderId" value={order.id} />
                       <Button type="submit" variant="secondary" size="sm">

@@ -6,6 +6,15 @@ import type { z } from "zod";
 import type { areaUpdateSchema, packageUpdateSchema, serviceUpdateSchema } from "@/schemas/catalog";
 import { prisma } from "@/server/db/prisma";
 
+export async function listActivePackages(actor: Actor) {
+  if (!can(actor, "orders.read")) throw new Error("Forbidden");
+  return prisma.package.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, priceCents: true, slug: true },
+  });
+}
+
 export async function getCatalog() {
   const [packages, services, areas] = await Promise.all([
     prisma.package.findMany({
