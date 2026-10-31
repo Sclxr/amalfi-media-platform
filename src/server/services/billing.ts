@@ -4,6 +4,7 @@ import type { Actor } from "@/lib/actor";
 import { can } from "@/lib/permissions";
 import { storedCheckoutAction, stripeBilling } from "@/lib/stripe-billing";
 import { nextInvoiceNumber } from "@/lib/invoice-number";
+import { orderPriceLock } from "@/lib/order-price";
 import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
 import { canVoidInvoice } from "@/lib/invoice-void";
@@ -38,11 +39,18 @@ export async function createInvoiceForOrder(actor: Actor, orderId: string) {
   if (!can(actor, "orders.write")) throw new Error("Forbidden");
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: true, client: true },
+    include: { items: true, client: true, invoices: { include: { payments: true } } },
   });
   if (!order) return { error: "That order was not found." as const };
+  if (order.invoices.some((invoice) => invoice.status !== "VOID")) {
+    return { error: "This order already has an invoice. Void it before creating another." as const };
+  }
+  if (order.items.some((item) => item.unitPriceCents === null)) {
+    return { error: "Price every line before creating an invoice." as const };
+  }
   const priced = order.items.filter((item) => item.unitPriceCents !== null);
   if (priced.length === 0) return { error: "Price the order before creating an invoice." as const };
+  if (orderPriceLock(order.invoices)) return { error: "This order already has a recorded payment." as const };
   const invoice = await createWithUniqueNumber(order, priced);
   await writeAudit({
     actorId: actor.id,

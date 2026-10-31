@@ -3,6 +3,7 @@ import type { OrderStatus } from "@prisma/client";
 import type { Actor } from "@/lib/actor";
 import { can } from "@/lib/permissions";
 import { parseDollarsToCents } from "@/lib/money";
+import { orderPriceLock, orderPriceTotals, parsePriceRows } from "@/lib/order-price";
 import { nextOrderStatuses, type OrderStatus as StatusName } from "@/lib/order-status";
 import { quoteTotals, slotDecision, travelFeeForZip, zonedDateTime } from "@/lib/scheduling";
 import { prisma } from "@/server/db/prisma";
@@ -178,6 +179,74 @@ export async function setQuotePrices(actor: Actor, orderId: string, prices: Reco
     after: { totalCents: totals.totalCents, openQuotes: totals.openQuotes },
   });
   return { ok: true as const, openQuotes: totals.openQuotes };
+}
+
+export type OrderPriceInput =
+  | { mode: "package"; packageId: string }
+  | { mode: "custom"; label: string; amount: string }
+  | { mode: "lines"; rows: { label: string; quantity: string; amount: string }[] };
+
+/** Replaces the uninvoiced lines on an order with a package, one custom amount, or line items. */
+export async function setOrderPrice(actor: Actor, propertyId: string, orderId: string, input: OrderPriceInput) {
+  if (!can(actor, "orders.write")) throw new Error("Forbidden");
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, propertyId },
+    include: { invoices: { include: { payments: true } } },
+  });
+  if (!order) return { error: "That order was not found." as const };
+  const lock = orderPriceLock(order.invoices);
+  if (lock) return { error: lock };
+  const resolved = await resolvePriceLines(input);
+  if (!resolved.ok) return { error: resolved.error };
+  const totals = orderPriceTotals({
+    lines: resolved.lines,
+    travelFeeCents: order.travelFeeCents,
+    discountCents: order.discountCents,
+  });
+  if (!totals) return { error: "That total is too large." as const };
+  await prisma.$transaction(async (tx) => {
+    await tx.orderItem.deleteMany({ where: { orderId: order.id } });
+    await tx.orderItem.createMany({
+      data: resolved.lines.map((line) => ({
+        orderId: order.id,
+        packageId: line.packageId,
+        label: line.label,
+        quantity: line.quantity,
+        unitPriceCents: line.unitPriceCents,
+      })),
+    });
+    await tx.order.update({
+      where: { id: order.id },
+      data: { subtotalCents: totals.subtotalCents, totalCents: totals.totalCents },
+    });
+  });
+  await writeAudit({
+    actorId: actor.id,
+    action: "order.price",
+    entityType: "Order",
+    entityId: order.id,
+    after: { totalCents: totals.totalCents, lines: resolved.lines.map((line) => line.label) },
+  });
+  return { ok: true as const, totalCents: totals.totalCents };
+}
+
+async function resolvePriceLines(input: OrderPriceInput): Promise<
+  | { ok: true; lines: { label: string; quantity: number; unitPriceCents: number; packageId: string | null }[] }
+  | { ok: false; error: string }
+> {
+  if (input.mode === "package") {
+    const pkg = await prisma.package.findFirst({ where: { id: input.packageId, active: true } });
+    if (!pkg) return { ok: false, error: "Choose an active package." };
+    return { ok: true, lines: [{ label: pkg.name, quantity: 1, unitPriceCents: pkg.priceCents, packageId: pkg.id }] };
+  }
+  if (input.mode === "custom") {
+    const parsed = parsePriceRows([{ label: input.label, quantity: "1", amount: input.amount }]);
+    if (!parsed.ok) return parsed;
+    return { ok: true, lines: parsed.lines.map((line) => ({ ...line, packageId: null })) };
+  }
+  const parsed = parsePriceRows(input.rows);
+  if (!parsed.ok) return parsed;
+  return { ok: true, lines: parsed.lines.map((line) => ({ ...line, packageId: null })) };
 }
 
 export async function changeOrderStatus(actor: Actor, orderId: string, toStatus: string, note: string, startLocal?: string) {
