@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getActor } from "@/server/auth/guards";
 import { getEnv } from "@/server/env";
 import { signMediaToken } from "@/lib/media-sign";
+import { formatMegabytes } from "@/lib/media-limit";
 
 const TEN_MINUTES = 10 * 60 * 1000;
 
@@ -32,5 +33,7 @@ export async function POST(request: Request) {
     uploadUrl: `${origin}/portal/api/media/raw?token=${encodeURIComponent(uploadToken)}`,
     downloadUrl: `${origin}/portal/api/media/raw?token=${encodeURIComponent(downloadToken)}`,
     expiresAt,
+    maxBytes: env.mediaMaxUploadBytes,
+    maxLabel: formatMegabytes(env.mediaMaxUploadBytes),
   });
 }

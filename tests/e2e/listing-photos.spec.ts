@@ -51,3 +51,24 @@ test("a new listing accepts a photo, opens it, and publishes it", async ({ page 
   await setTheme(page, "dark");
   await page.screenshot({ path: `${shots}/listing-photos-dark.png`, fullPage: true });
 });
+
+test("a listing accepts a photo larger than the 1 MB server-action limit", async ({ page }) => {
+  const name = `wide-${Date.now()}.png`;
+  // Larger than Next's default 10 MB proxy body clone, so a truncated save fails this check.
+  const bytes = Buffer.alloc(12 * 1024 * 1024, 7);
+  expect(bytes.byteLength).toBeGreaterThan(10 * 1024 * 1024);
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill("eathen@amalfimedia.xyz");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByTestId("overview")).toBeVisible();
+  await page.goto("/admin/listings/seed-property-hale");
+  await expect(page.getByRole("heading", { name: "1842 Lake Conway Shore" })).toBeVisible();
+  await page.getByLabel("Gallery file").setInputFiles({ name, mimeType: "image/png", buffer: bytes });
+  await page.getByRole("button", { name: "Upload photo" }).click();
+  await expect(page.getByRole("button", { name, exact: true })).toBeVisible({ timeout: 30_000 });
+  const src = await page.getByRole("img", { name, exact: true }).getAttribute("src");
+  const saved = await page.request.get(src ?? "");
+  expect(saved.ok()).toBeTruthy();
+  expect((await saved.body()).byteLength).toBe(bytes.byteLength);
+});

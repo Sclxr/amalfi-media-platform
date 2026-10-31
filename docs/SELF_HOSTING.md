@@ -77,6 +77,23 @@ Copy these new files. Do not open the existing `amalfimedia.xyz` site file. Ubun
 - `infra/nginx/staging.amalfimedia.xyz.conf`
 - `infra/nginx/amalfi-proxy.conf` as `/etc/nginx/snippets/amalfi-proxy.conf`
 
+Photo uploads are a signed PUT to the app. The file is not posted as a Server Action. The app accepts up to 50 MB per file unless `MEDIA_MAX_UPLOAD_BYTES` is set (ceiling 512 MB). Next.js clones that PUT for the proxy and would otherwise keep only the first 10 MB, so the app sets the clone limit to 512 MB and then enforces the per-file cap itself. Host Nginx must allow at least that. The staging and app server blocks, the proxy snippet, and the Compose Nginx file set `client_max_body_size 512m`. Nginx's own default is 1 MB, so a copied snippet that omits the line will reject photos before they reach the app.
+
+Check the live staging block. Do not open the public site file.
+
+```bash
+sudo nginx -T | grep -n client_max_body_size
+```
+
+If `staging.amalfimedia.xyz` already shows `512m` (or anything at least `100m`), leave the host config alone. If the directive is missing, add it to the snippet the staging site includes:
+
+```bash
+printf '\nclient_max_body_size 512m;\n' | sudo tee -a /etc/nginx/snippets/amalfi-proxy.conf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+The same line belongs in the app host snippet when production is cut over. Do not change `amalfimedia.xyz`.
+
 The media locations are `internal`. A request from the internet to `/internal-media/` is not served. Only `X-Accel-Redirect` from the app can use them. The host Nginx aliases the same directories the containers write.
 
 Port 80 answers `/.well-known/acme-challenge/` from its own webroot, then redirects every other path to HTTPS. Staging uses `/var/www/letsencrypt-staging`. The app host uses `/var/www/letsencrypt-app`. Neither is the public site's webroot. Renewals keep working after the redirect is in place because the challenge location is matched first.

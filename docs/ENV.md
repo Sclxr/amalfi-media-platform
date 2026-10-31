@@ -23,6 +23,8 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `S3_BUCKET` | no | Staging name must include `staging` |
 | `S3_ACCESS_KEY_ID` | no | R2 token |
 | `S3_SECRET_ACCESS_KEY` | no | R2 secret |
+| `MEDIA_ROOT` | staging/prod | Directory for photos. Staging path must contain `staging` |
+| `MEDIA_MAX_UPLOAD_BYTES` | no | Max bytes for one signed upload. Default 50 MB. Ceiling 512 MB |
 | `SENTRY_DSN` | no | Reserved. Errors currently go to pino |
 | `LOG_LEVEL` | no | Default `info` |
 | `SEED_ADMIN_PASSWORD` | staging/prod seed | Required to seed outside development and test |

@@ -1,8 +1,7 @@
+import { formatMegabytes } from "@/lib/media-limit";
 import { verifyMediaToken } from "@/lib/media-sign";
-import { readMediaFile, writeMediaFile } from "@/server/storage/filesystem";
+import { MediaTooLargeError, readMediaFile, writeMediaStream } from "@/server/storage/filesystem";
 import { getEnv } from "@/server/env";
-
-const MAX_BYTES = 200 * 1024 * 1024;
 
 function tokenFrom(request: Request) {
   return new URL(request.url).searchParams.get("token") ?? "";
@@ -10,22 +9,30 @@ function tokenFrom(request: Request) {
 
 export async function PUT(request: Request) {
   const env = getEnv();
-  if (!env.MEDIA_ROOT) return Response.json({ error: "MEDIA_ROOT is not configured." }, { status: 503 });
+  if (!env.MEDIA_ROOT) return Response.json({ error: "Media storage is not configured." }, { status: 503 });
   const verified = verifyMediaToken(tokenFrom(request), env.ENCRYPTION_KEY);
   if (!verified || verified.purpose !== "upload") {
     return Response.json({ error: "Upload link is invalid or expired." }, { status: 401 });
   }
-  const bytes = new Uint8Array(await request.arrayBuffer());
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_BYTES) {
-    return Response.json({ error: "File is empty or too large." }, { status: 400 });
+  if (!request.body) return Response.json({ error: "Choose a photo to upload." }, { status: 400 });
+  try {
+    const bytes = await writeMediaStream(env.MEDIA_ROOT, verified.key, request.body, env.mediaMaxUploadBytes);
+    return Response.json({ ok: true, key: verified.key, bytes });
+  } catch (error) {
+    if (error instanceof MediaTooLargeError) {
+      return Response.json(
+        { error: `This photo is too large. The limit is ${formatMegabytes(env.mediaMaxUploadBytes)}.` },
+        { status: 413 },
+      );
+    }
+    const message = error instanceof Error && error.message === "File is empty." ? "Choose a photo to upload." : "The photo was not stored.";
+    return Response.json({ error: message }, { status: 400 });
   }
-  await writeMediaFile(env.MEDIA_ROOT, verified.key, bytes);
-  return Response.json({ ok: true, key: verified.key, bytes: bytes.byteLength });
 }
 
 export async function GET(request: Request) {
   const env = getEnv();
-  if (!env.MEDIA_ROOT) return Response.json({ error: "MEDIA_ROOT is not configured." }, { status: 503 });
+  if (!env.MEDIA_ROOT) return Response.json({ error: "Media storage is not configured." }, { status: 503 });
   const verified = verifyMediaToken(tokenFrom(request), env.ENCRYPTION_KEY);
   if (!verified || verified.purpose !== "download") {
     return Response.json({ error: "Download link is invalid or expired." }, { status: 401 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mediaMaxUploadBytes } from "@/lib/media-limit";
 
 const appEnvSchema = z.enum(["development", "test", "staging", "production"]);
 
@@ -23,6 +24,7 @@ export const envSchema = z
     S3_ACCESS_KEY_ID: z.string().optional(),
     S3_SECRET_ACCESS_KEY: z.string().optional(),
     MEDIA_ROOT: z.string().optional(),
+    MEDIA_MAX_UPLOAD_BYTES: z.string().optional(),
     SENTRY_DSN: z.string().optional(),
     LOG_LEVEL: z.string().default("info"),
     SEED_ADMIN_PASSWORD: z.string().optional(),
@@ -120,6 +122,7 @@ export type ParsedEnv = z.infer<typeof envSchema> & {
   emailMarketingEnabled: boolean;
   emailTransactionalEnabled: boolean;
   emailDevPreview: boolean;
+  mediaMaxUploadBytes: number;
 };
 
 function pathHasSegment(value: string, segment: string) {
@@ -150,5 +153,6 @@ export function parseEnv(source: Record<string, string | undefined>): ParsedEnv 
     emailMarketingEnabled: parsed.EMAIL_MARKETING_ENABLED === "true",
     emailTransactionalEnabled: parsed.EMAIL_TRANSACTIONAL_ENABLED === "true",
     emailDevPreview: parsed.EMAIL_DEV_PREVIEW === "true",
+    mediaMaxUploadBytes: mediaMaxUploadBytes(parsed.MEDIA_MAX_UPLOAD_BYTES),
   };
 }

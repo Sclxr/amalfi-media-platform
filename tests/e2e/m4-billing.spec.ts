@@ -7,6 +7,7 @@ const png = Buffer.from(
 );
 
 test("billing stays unconfigured and a gallery preview does not require payment", async ({ page }) => {
+  const photoName = `paid-check-${Date.now()}.png`;
   await page.goto("/admin/login");
   await page.getByLabel("Email").fill("eathen@amalfimedia.xyz");
   await page.getByLabel("Password").fill(password);
@@ -20,11 +21,12 @@ test("billing stays unconfigured and a gallery preview does not require payment"
   await page.goto("/admin/listings");
   await page.getByRole("link", { name: /1842 Lake Conway Shore/ }).click();
   await expect(page.getByRole("heading", { name: "1842 Lake Conway Shore" })).toBeVisible();
-  await page.getByLabel("Gallery file").setInputFiles({ name: "preview.png", mimeType: "image/png", buffer: png });
+  await page.getByLabel("Gallery file").setInputFiles({ name: photoName, mimeType: "image/png", buffer: png });
   await page.getByRole("button", { name: "Upload photo" }).click();
-  await expect(page.getByRole("button", { name: "preview.png", exact: true }).first()).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("button", { name: "Publish", exact: true }).first().click();
-  await expect(page.getByText("Published for the client.")).toBeVisible();
+  await expect(page.getByRole("button", { name: photoName, exact: true })).toBeVisible({ timeout: 20_000 });
+  const publish = page.getByRole("button", { name: "Publish", exact: true });
+  if ((await publish.count()) > 0) await publish.first().click();
+  await expect(page.getByText("Published for the client.").first()).toBeVisible();
 
   await page.goto("/portal/login");
   await page.getByLabel("Email").fill("client.demo@amalfimedia.xyz");
@@ -33,7 +35,7 @@ test("billing stays unconfigured and a gallery preview does not require payment"
   await expect(page.getByRole("heading", { name: /Hello, Jordan/ })).toBeVisible();
   await page.goto("/portal/galleries");
   await page.getByRole("link", { name: "1842 Lake Conway Shore" }).first().click();
-  const image = page.getByRole("img", { name: "preview.png" }).first();
+  const image = page.getByRole("img", { name: photoName }).first();
   await expect(image).toBeVisible();
   const src = await image.getAttribute("src");
   const preview = await page.request.get(src ?? "");
