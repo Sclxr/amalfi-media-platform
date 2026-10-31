@@ -16,6 +16,7 @@ import {
   unpublishGallery,
   updateGalleryDetails,
 } from "@/server/services/galleries";
+import { createListingInvite } from "@/server/services/invites";
 import { createListing, setListingCover, updateListing } from "@/server/services/listings";
 import { changeOrderStatus, rescheduleBooking, setOrderPrice, setQuotePrices } from "@/server/services/orders";
 
@@ -268,6 +269,14 @@ export async function voidListingInvoiceAction(propertyId: string, formData: For
   const result = await voidUnpaidInvoice(actor, String(formData.get("invoiceId") ?? ""));
   const notice = "error" in result && result.error ? result.error : "Invoice voided.";
   redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+}
+
+export async function createListingInviteAction(propertyId: string) {
+  const actor = await actorOrLogin();
+  const result = await createListingInvite(actor, propertyId);
+  if ("error" in result && result.error) return { error: result.error };
+  if (!("url" in result)) return { error: "Could not create an invite link." };
+  return { url: result.url };
 }
 
 export async function createListingOrderAction(propertyId: string) {
