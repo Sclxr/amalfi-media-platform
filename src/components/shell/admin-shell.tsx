@@ -6,7 +6,6 @@ import {
   ClipboardList,
   Contact,
   Home,
-  Images,
   KeyRound,
   LayoutDashboard,
   Megaphone,
@@ -55,10 +54,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Delivery",
-    items: [
-      { href: "/admin/media", label: "Media", icon: Images },
-      { href: "/admin/billing", label: "Billing", icon: Receipt },
-    ],
+    items: [{ href: "/admin/billing", label: "Billing", icon: Receipt }],
   },
   {
     label: "Growth",

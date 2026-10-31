@@ -2,13 +2,22 @@
 
 import { useRef, useState } from "react";
 import { registerUploadAction } from "@/app/(admin)/admin/(app)/billing/actions";
+import { uploadListingPhotoAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { Button } from "@/components/ui/button";
 
-export function GalleryUpload({ galleryId }: { galleryId: string }) {
+export function GalleryUpload({
+  galleryId,
+  propertyId,
+  label = "Upload",
+}: {
+  galleryId?: string;
+  propertyId?: string;
+  label?: string;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const signed = useRef(false);
-  const action = registerUploadAction.bind(null, galleryId);
+  const action = propertyId ? uploadListingPhotoAction.bind(null, propertyId) : registerUploadAction.bind(null, galleryId ?? "");
 
   return (
     <form
@@ -47,14 +56,14 @@ export function GalleryUpload({ galleryId }: { galleryId: string }) {
         form.requestSubmit();
       }}
     >
-      <input name="file" type="file" required aria-label="Gallery file" />
+      <input name="file" type="file" required accept={propertyId ? "image/*" : undefined} aria-label="Gallery file" />
       <input type="hidden" name="key" />
       <input type="hidden" name="fileName" />
       <input type="hidden" name="mimeType" />
       <input type="hidden" name="size" />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" disabled={pending}>
-        {pending ? "Uploading" : "Upload"}
+        {pending ? "Uploading" : label}
       </Button>
     </form>
   );

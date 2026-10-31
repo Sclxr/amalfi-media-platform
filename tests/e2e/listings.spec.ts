@@ -35,8 +35,10 @@ test("admin creates a listing from a realtor and finds it everywhere", async ({ 
   await page.screenshot({ path: `${shots}/listings-grid-dark.png`, fullPage: true });
   await setTheme(page, "light");
 
-  await page.getByRole("link", { name: /1842 Lake Conway Shore/ }).click();
-  await expect(page.getByRole("link", { name: "Jordan Hale" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /1842 Lake Conway Shore/ }).first()).toBeVisible();
+  await page.getByRole("heading", { name: "1842 Lake Conway Shore" }).click();
+  await expect(page).toHaveURL(/\/admin\/listings\/seed-property-hale/);
+  await expect(page.getByRole("main").getByRole("link", { name: "Jordan Hale" })).toBeVisible();
   await expect(page.getByRole("link", { name: "INV-2026-0001" })).toBeVisible();
   await page.screenshot({ path: `${shots}/listing-detail-light.png`, fullPage: true });
   await setTheme(page, "dark");
