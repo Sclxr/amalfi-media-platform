@@ -1,4 +1,4 @@
-export const PAID_INVOICE_STATUSES = ["PAID", "PARTIALLY_REFUNDED"] as const;
+export const PAID_INVOICE_STATUSES = ["PAID"] as const;
 
 export type InvoiceStatus =
   | "DRAFT"
@@ -9,6 +9,21 @@ export type InvoiceStatus =
   | "UNCOLLECTIBLE"
   | "PARTIALLY_REFUNDED"
   | "REFUNDED";
+
+export type CoveringInvoice = {
+  status: string;
+  createdAt: number;
+  amountRefundedCents: number;
+};
+
+/** The newest invoice that was not voided is the one that covers this gallery. */
+export function coveringInvoiceStatus(invoices: readonly CoveringInvoice[]): InvoiceStatus | null {
+  const live = invoices.filter((invoice) => invoice.status !== "VOID");
+  const latest = [...live].sort((left, right) => right.createdAt - left.createdAt)[0];
+  if (!latest) return null;
+  if (latest.status === "PAID" && latest.amountRefundedCents > 0) return "PARTIALLY_REFUNDED";
+  return latest.status as InvoiceStatus;
+}
 
 export type GalleryDownloadInput = {
   requirePaid: boolean;
