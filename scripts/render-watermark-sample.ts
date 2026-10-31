@@ -3,25 +3,31 @@ import sharp from "sharp";
 import { watermarkedPreview } from "../src/lib/preview-image";
 
 async function main() {
-  const destination = process.argv[2] ?? "/tmp/watermark-sample.jpg";
-  const sky = await sharp({
-    create: { width: 1400, height: 900, channels: 3, background: { r: 186, g: 214, b: 236 } },
+  const directory = process.argv[2] ?? "/tmp";
+  const exterior = await sharp({
+    create: { width: 1400, height: 900, channels: 3, background: { r: 120, g: 176, b: 214 } },
   })
     .composite([
       {
         input: await sharp({
-          create: { width: 900, height: 520, channels: 3, background: { r: 245, g: 245, b: 242 } },
+          create: { width: 860, height: 460, channels: 3, background: { r: 236, g: 236, b: 232 } },
         })
           .png()
           .toBuffer(),
-        left: 250,
-        top: 220,
+        left: 270,
+        top: 250,
       },
     ])
     .png()
     .toBuffer();
-  writeFileSync(destination, await watermarkedPreview(sky));
-  console.log(destination);
+  const interior = await sharp({
+    create: { width: 1400, height: 900, channels: 3, background: { r: 248, g: 248, b: 246 } },
+  })
+    .png()
+    .toBuffer();
+  writeFileSync(`${directory}/watermark-exterior.jpg`, await watermarkedPreview(exterior));
+  writeFileSync(`${directory}/watermark-interior.jpg`, await watermarkedPreview(interior));
+  console.log(directory);
 }
 
 main();

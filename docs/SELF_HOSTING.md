@@ -85,7 +85,7 @@ From `deploy/`:
 docker compose -p amalfi-staging --env-file staging.env -f docker-compose.staging.yml exec app pnpm previews:backfill -- --force
 ```
 
-That writes a smaller watermarked JPEG next to each original and points the preview at it. It does not replace the original. The letters are drawn as shapes, so the container does not need a system font for the mark to appear. A portal thumbnail never falls back to the original: if a preview is missing, the next view creates one, and a failure is a 404. After this release, run the command with `--force` once so photos that already have a blank bar are rewritten.
+That writes a smaller watermarked JPEG next to each original and points the preview at it. It does not replace the original. The letters are outlines from the bundled DejaVu Sans file, so the container does not need fontconfig for the mark to appear. A portal thumbnail never falls back to the original: if a preview is missing, the next view creates one, and a failure is a 404. After this release, run the command with `--force` once so photos that already have a blank bar are rewritten.
 
 Photo uploads are a signed PUT to the app. The file is not posted as a Server Action. The app accepts up to 50 MB per file unless `MEDIA_MAX_UPLOAD_BYTES` is set (ceiling 512 MB). Next.js clones that PUT for the proxy and would otherwise keep only the first 10 MB, so the app sets the clone limit to 512 MB and then enforces the per-file cap itself. Host Nginx must allow at least that. The staging and app server blocks, the proxy snippet, and the Compose Nginx file set `client_max_body_size 512m`. Nginx's own default is 1 MB, so a copied snippet that omits the line will reject photos before they reach the app.
 

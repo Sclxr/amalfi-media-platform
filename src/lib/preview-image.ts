@@ -1,67 +1,76 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { randomUUID } from "node:crypto";
+import opentype from "opentype.js";
 import sharp from "sharp";
 
 const MAX_EDGE = 1600;
+const MARK = "AMALFI MEDIA · PREVIEW";
 
-/**
- * 5×7 glyphs drawn as rectangles. Sharp's SVG text needs fontconfig, which the
- * production image does not have, so these outlines do not depend on a font.
- */
-const GLYPHS: Record<string, readonly string[]> = {
-  A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
-  D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
-  E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
-  F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
-  I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
-  L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
-  M: ["10001", "11011", "10101", "10001", "10001", "10001", "10001"],
-  P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
-  R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
-  V: ["10001", "10001", "10001", "10001", "01010", "01010", "00100"],
-  W: ["10001", "10001", "10001", "10101", "10101", "11011", "10001"],
-  "·": ["00000", "00000", "00100", "01110", "00100", "00000", "00000"],
-  " ": ["000", "000", "000", "000", "000", "000", "000"],
+type LabelOutline = {
+  d: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
-const MARK = "AMALFI MEDIA · PREVIEW";
+let cachedLabel: LabelOutline | null = null;
 
 export function previewObjectKey() {
   return `previews/${randomUUID()}.jpg`;
 }
 
-function glyphMarkup(text: string, cell: number, originX: number, originY: number) {
-  const stroke = Math.max(2, Math.round(cell / 3));
-  const parts: string[] = [];
-  let cursor = originX;
-  for (const character of text) {
-    const rows = GLYPHS[character] ?? GLYPHS[" "];
-    const width = (rows[0]?.length ?? 3) * cell;
-    rows.forEach((row, rowIndex) => {
-      for (let column = 0; column < row.length; column += 1) {
-        if (row[column] !== "1") continue;
-        const x = cursor + column * cell;
-        const y = originY + rowIndex * cell;
-        parts.push(
-          `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="#ffffff" stroke="#111111" stroke-width="${stroke}"/>`,
-        );
-      }
-    });
-    cursor += width + cell;
-  }
-  return { markup: parts.join(""), width: cursor - originX };
+function bundledFontPath() {
+  const candidates = [
+    path.join(process.cwd(), "src/lib/fonts/DejaVuSans.ttf"),
+    path.join(process.cwd(), "lib/fonts/DejaVuSans.ttf"),
+  ];
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (!found) throw new Error("The bundled DejaVu Sans font is missing.");
+  return found;
 }
 
-/** Diagonal tiles of the preview label, drawn as paths so no system font is required. */
+/** Glyph outlines from the bundled font. SVG text is not used, so fontconfig is not required. */
+export function labelOutline(): LabelOutline {
+  if (cachedLabel) return cachedLabel;
+  const font = opentype.loadSync(bundledFontPath());
+  const size = 100;
+  const glyph = font.getPath(MARK, 0, size * 0.8, size);
+  const box = glyph.getBoundingBox();
+  const d = glyph.toPathData(2);
+  if (d.length < 80) throw new Error("The watermark label did not produce glyph outlines.");
+  cachedLabel = {
+    d,
+    x: box.x1,
+    y: box.y1,
+    width: box.x2 - box.x1,
+    height: box.y2 - box.y1,
+  };
+  return cachedLabel;
+}
+
+function tileMarkup(outline: LabelOutline, scale: number) {
+  const placed = `translate(${-outline.x} ${-outline.y}) scale(${scale})`;
+  return `<g transform="${placed}">
+    <path d="${outline.d}" transform="translate(1.4 1.8)" fill="rgba(0,0,0,0.34)"/>
+    <path d="${outline.d}" fill="rgba(255,255,255,0.4)" stroke="rgba(0,0,0,0.42)" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke fill"/>
+  </g>`;
+}
+
+/** Sparse diagonal tiles. White fill stays light; a thin dark edge keeps the words readable. */
 export function watermarkSvg(width: number, height: number) {
-  const cell = Math.max(7, Math.round(Math.min(width, height) / 55));
-  const letterHeight = cell * 7;
-  const tile = glyphMarkup(MARK, cell, 0, 0);
-  const stepX = Math.round(tile.width + cell * 6);
-  const stepY = Math.round(letterHeight + cell * 8);
+  const outline = labelOutline();
+  const fontSize = Math.max(54, Math.round(Math.min(width, height) / 11));
+  const scale = fontSize / 100;
+  const tileWidth = outline.width * scale;
+  const tileHeight = outline.height * scale;
+  const stepX = Math.round(tileWidth + fontSize * 2.2);
+  const stepY = Math.round(tileHeight + fontSize * 3.6);
   const tiles: string[] = [];
   for (let y = -height; y < height * 2; y += stepY) {
     for (let x = -width; x < width * 2; x += stepX) {
-      tiles.push(`<g transform="translate(${x} ${y})">${glyphMarkup(MARK, cell, 0, 0).markup}</g>`);
+      tiles.push(`<g transform="translate(${Math.round(x)} ${Math.round(y)})">${tileMarkup(outline, scale)}</g>`);
     }
   }
   return Buffer.from(

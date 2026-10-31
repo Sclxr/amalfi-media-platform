@@ -26,8 +26,8 @@ ENV MEDIA_ROOT=/var/lib/amalfi/production/media
 RUN pnpm build
 
 FROM base AS runner
-# The worker container uses this same image. Fonts keep any leftover SVG text readable;
-# the watermark itself is drawn as rectangles and does not need them.
+# The worker container uses this same image. The watermark draws bundled DejaVu outlines
+# and does not need these fonts; they remain so any other text still has a face.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/*
