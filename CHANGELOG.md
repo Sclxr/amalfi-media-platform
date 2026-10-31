@@ -6,6 +6,7 @@
 
 - Admin listings use the existing property records and the CRM realtor. Status, shoot date, and cover photo come from the related order, booking, and gallery.
 - A listing page is where staff upload, reorder, delete, and publish photos. The Media menu item now sends people to listings.
+- Photo bytes go through the signed upload route. The listing form only sends the file name and storage key. The default limit is 50 MB per file. Next's proxy body clone is 512 MB so a photo is not cut off at 10 MB.
 
 ## 0.4.0 — 2026-10-30
 

@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
   // assets stay at /_next on that host. The public site at amalfimedia.xyz is
   // a different Nginx server block and is never modified.
   experimental: {
+    // Server Actions stay at the 1 MB default. Photo bytes use the signed PUT.
+    // The proxy clones that PUT, and Next's default clone stops at 10 MB, so a
+    // larger photo would be stored short. 512mb matches the app ceiling and Nginx.
+    proxyClientMaxBodySize: "512mb",
     serverActions: {
       allowedOrigins: [
         "localhost:3000",
