@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatusBadge } from "@/components/data/status-badge";
+import { ArchiveView } from "@/components/removal/archive-view";
+import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LISTING_STATUSES, listingStatusLabel } from "@/lib/listing";
@@ -14,12 +16,13 @@ export const metadata = { title: "Listings" };
 export default async function ListingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; view?: string; notice?: string }>;
 }) {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
   const params = await searchParams;
   const listings = await listListings(actor, params);
+  const returnTo = params.view === "archived" ? "/admin/listings?view=archived" : "/admin/listings";
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -27,12 +30,17 @@ export default async function ListingsPage({
           <h1 className="text-3xl font-semibold tracking-tight">Listings</h1>
           <p className="mt-2 text-muted-foreground">One property record, shared with orders, galleries, and invoices.</p>
         </div>
-        {can(actor, "orders.write") ? (
-          <Button asChild>
-            <Link href="/admin/listings/new">Add listing</Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <ArchiveView href="/admin/listings" view={params.view} />
+          {can(actor, "orders.write") ? <BulkBar kind="listing" returnTo={returnTo} canArchive /> : null}
+          {can(actor, "orders.write") ? (
+            <Button asChild>
+              <Link href="/admin/listings/new">Add listing</Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
+      {params.notice ? <p className="rounded-md border border-border px-4 py-3 text-sm">{params.notice}</p> : null}
       <form className="grid gap-3 md:grid-cols-[1fr_220px_auto]" method="get">
         <Input name="q" defaultValue={params.q ?? ""} placeholder="Search address or realtor" aria-label="Search listings" />
         <select
@@ -58,6 +66,22 @@ export default async function ListingsPage({
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {listings.map((listing) => (
             <article key={listing.id} className="overflow-hidden rounded-lg border border-border bg-card">
+              <div className="flex items-center justify-between gap-2 px-4 pt-3">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" data-bulk="listing" value={listing.id} aria-label={`Select ${listing.addressLine1}`} />
+                  Select
+                </label>
+                <RecordMenu
+                  kind="listing"
+                  id={listing.id}
+                  name={listing.addressLine1}
+                  archived={listing.archived}
+                  canArchive={can(actor, "orders.write")}
+                  canPermanent={can(actor, "records.delete")}
+                  deletable={listing.deletable}
+                  returnTo={returnTo}
+                />
+              </div>
               <Link href={`/admin/listings/${listing.id}`} className="block">
                 <div className="relative h-40 bg-accent">
                   {listing.hasCover ? (

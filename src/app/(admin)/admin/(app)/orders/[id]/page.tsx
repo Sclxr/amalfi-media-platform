@@ -2,10 +2,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { quoteOrderAction, statusOrderAction } from "@/app/(admin)/admin/(app)/orders/actions";
 import { StatusBadge } from "@/components/data/status-badge";
+import { ArchivedBanner } from "@/components/removal/archive-view";
+import { RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
+import { can } from "@/lib/permissions";
+import { hasFinancialHistory } from "@/lib/removal";
 import { adminOrderLabel, nextOrderStatuses, type OrderStatus } from "@/lib/order-status";
 import { getActor } from "@/server/auth/guards";
 import { getOrder } from "@/server/services/orders";
@@ -33,9 +37,20 @@ export default async function AdminOrderPage({
       <Link className="text-sm text-primary" href="/admin/orders">
         Orders
       </Link>
+      {order.archivedAt ? <ArchivedBanner>This order is archived. Restore it to put it back on the active list.</ArchivedBanner> : null}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">{order.property.addressLine1}</h1>
         <StatusBadge status={order.status} />
+        <RecordMenu
+          kind="order"
+          id={order.id}
+          name={`Order ${order.number}`}
+          archived={Boolean(order.archivedAt)}
+          canArchive={can(actor, "orders.write")}
+          canPermanent={can(actor, "records.delete")}
+          deletable={!hasFinancialHistory(order.invoices)}
+          returnTo={`/admin/orders/${order.id}`}
+        />
       </div>
       <p className="text-sm text-muted-foreground">
         {order.client.firstName} {order.client.lastName} · {formatCents(order.totalCents)} · travel {formatCents(order.travelFeeCents)} · {order.property.zip}

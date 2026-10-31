@@ -4,12 +4,15 @@ import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, re
 import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
 import { ListingHeader } from "@/components/listings/listing-header";
+import { ArchivedBanner } from "@/components/removal/archive-view";
+import { RecordMenu } from "@/components/removal/record-menu";
 import { AskConfirm } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatDateTime } from "@/lib/dates";
 import { canVoidInvoice } from "@/lib/invoice-void";
+import { hasFinancialHistory } from "@/lib/removal";
 import { canMarkOrderDelivered, pickUploadOrder, propertyTypeLabel } from "@/lib/listing";
 import { formatCents } from "@/lib/money";
 import { adminOrderLabel, nextOrderStatuses, type OrderStatus } from "@/lib/order-status";
@@ -68,6 +71,7 @@ export default async function ListingDetailPage({
       <Link className="text-sm text-primary" href="/admin/listings">
         Listings
       </Link>
+      {property.archivedAt ? <ArchivedBanner>This listing is archived. Restore it to put it back on the active list.</ArchivedBanner> : null}
       <ListingHeader
         propertyId={property.id}
         addressLine1={property.addressLine1}
@@ -78,6 +82,18 @@ export default async function ListingDetailPage({
         coverSrc={card.hasCover ? `/admin/listings/${property.id}/cover` : null}
         canEdit={canEdit}
         canMedia={canMedia}
+        menu={
+          <RecordMenu
+            kind="listing"
+            id={property.id}
+            name={property.addressLine1}
+            archived={Boolean(property.archivedAt)}
+            canArchive={canEdit}
+            canPermanent={can(actor, "records.delete")}
+            deletable={!hasFinancialHistory(property.orders.flatMap((order) => order.invoices))}
+            returnTo="/admin/listings"
+          />
+        }
         realtors={realtors.map((realtor) => ({
           id: realtor.id,
           name: `${realtor.firstName ?? ""} ${realtor.lastName ?? ""}`.trim() || realtor.email || "Realtor",
@@ -238,6 +254,7 @@ export default async function ListingDetailPage({
             orderId={shoot && shoot.status !== "CANCELLED" ? shoot.id : null}
             cancelled={shoot?.status === "CANCELLED"}
             canWrite={canMedia}
+            canDeleteGallery={Boolean(shoot) && can(actor, "records.delete") && !hasFinancialHistory(shoot?.invoices ?? [])}
             galleries={shootGalleries.map((gallery) => ({
               id: gallery.id,
               title: gallery.title,

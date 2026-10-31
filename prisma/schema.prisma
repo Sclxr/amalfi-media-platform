@@ -354,10 +354,11 @@ model Brokerage {
   website   String?
   address   String?
   city      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  leads     Lead[]
-  clients   Client[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+  leads      Lead[]
+  clients    Client[]
 }
 
 model LeadSource {
@@ -446,9 +447,10 @@ model ImportBatch {
   mergedRows  Int      @default(0)
   skippedRows Int      @default(0)
   errors      Json?
-  createdById String   @db.Uuid
-  createdAt   DateTime @default(now())
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  archivedAt  DateTime?
+  createdBy   User      @relation(fields: [createdById], references: [id])
   leads       Lead[]
 }
 
@@ -463,9 +465,10 @@ model Client {
   licenseNo             String?
   privateNotes          String?
   /// Admin-controlled exception to pay-before-download.
-  allowUnpaidDownloads  Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  allowUnpaidDownloads  Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  archivedAt            DateTime?
 
   user       User?      @relation(fields: [userId], references: [id])
   brokerage  Brokerage? @relation(fields: [brokerageId], references: [id])
@@ -508,6 +511,7 @@ model Campaign {
   segment      Json?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  archivedAt   DateTime?
   createdBy    User           @relation("CampaignCreator", fields: [createdById], references: [id])
   approvedBy   User?          @relation("CampaignApprover", fields: [approvedById], references: [id])
   messages     EmailMessage[]
@@ -648,6 +652,7 @@ model Property {
   bathsHalf    Int?
   accessNotes  String?
   createdAt    DateTime     @default(now())
+  archivedAt   DateTime?
   /// CRM realtor. Null on older rows until someone assigns one.
   leadId       String?
   /// Staff-chosen cover. Empty falls back to the first ready photo on a published gallery.
@@ -678,6 +683,7 @@ model Order {
   internalNotes  String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+  archivedAt     DateTime?
   client         Client      @relation(fields: [clientId], references: [id])
   property       Property    @relation(fields: [propertyId], references: [id])
   items          OrderItem[]

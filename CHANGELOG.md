@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 — 2026-10-31
+
+### Added
+
+- Listings, orders, realtors, clients, brokerages, campaigns, and import batches can be archived and restored. An Archived filter shows the hidden records.
+- Admins can permanently delete a record that has no paid invoice. The confirmation names what will be removed. Photo files are deleted after the database commit. Staff cannot delete.
+
 ## 0.6.0 — 2026-10-31
 
 ### Added

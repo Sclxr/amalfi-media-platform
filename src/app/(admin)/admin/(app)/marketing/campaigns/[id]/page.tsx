@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { campaignAction } from "@/app/(admin)/admin/(app)/marketing/actions";
 import { StatusBadge } from "@/components/data/status-badge";
+import { ArchivedBanner } from "@/components/removal/archive-view";
+import { RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CAN_SPAM_ADDRESS_LINES, listUnsubscribeHeaders } from "@/lib/canspam";
 import { can } from "@/lib/permissions";
+import { campaignRemoval } from "@/lib/removal";
 import { getActor } from "@/server/auth/guards";
 import { campaignPreviewHtml, getCampaign, recipientsForCampaign } from "@/server/services/campaigns";
 
@@ -27,8 +30,20 @@ export default async function CampaignPage({
   const [html, recipients] = await Promise.all([campaignPreviewHtml(actor, id), recipientsForCampaign(actor, id)]);
   const action = campaignAction.bind(null, campaign.id);
   const headers = listUnsubscribeHeaders("https://app.amalfimedia.xyz/api/unsubscribe?token=preview");
+  const sentMessages = campaign.messages.filter((message) => message.sentAt).length;
   return (
     <div className="space-y-6">
+      {campaign.archivedAt ? <ArchivedBanner>This campaign is archived. Restore it to put it back on the active list.</ArchivedBanner> : null}
+      <RecordMenu
+        kind="campaign"
+        id={campaign.id}
+        name={campaign.name}
+        archived={Boolean(campaign.archivedAt)}
+        canArchive={can(actor, "marketing.draft")}
+        canPermanent={can(actor, "records.delete")}
+        deletable={campaignRemoval({ status: campaign.status, sentMessages }).canDelete}
+        returnTo={`/admin/marketing/campaigns/${campaign.id}`}
+      />
       <div>
         <Link className="text-sm text-primary" href="/admin/marketing">
           Marketing

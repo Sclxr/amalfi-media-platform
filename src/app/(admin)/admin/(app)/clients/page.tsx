@@ -1,17 +1,22 @@
 import { notFound, redirect } from "next/navigation";
 import { trustedAction } from "@/app/(admin)/admin/(app)/billing/actions";
+import { ArchiveView } from "@/components/removal/archive-view";
+import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { can } from "@/lib/permissions";
+import { clientRemoval } from "@/lib/removal";
 import { getActor } from "@/server/auth/guards";
 import { listClients } from "@/server/services/galleries";
 
 export const metadata = { title: "Clients" };
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ view?: string; notice?: string }> }) {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
   if (!can(actor, "settings.manage")) notFound();
-  const clients = await listClients(actor);
+  const params = await searchParams;
+  const clients = await listClients(actor, params.view);
+  const returnTo = params.view === "archived" ? "/admin/clients?view=archived" : "/admin/clients";
   return (
     <div className="space-y-6">
       <div>
@@ -20,9 +25,28 @@ export default async function ClientsPage() {
           Trusted clients may download before an invoice is paid. Everyone else is blocked on the server.
         </p>
       </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <ArchiveView href="/admin/clients" view={params.view} />
+        {can(actor, "crm.write") ? <BulkBar kind="client" returnTo={returnTo} canArchive /> : null}
+      </div>
+      {params.notice ? <p className="text-sm">{params.notice}</p> : null}
       <div className="space-y-3">
         {clients.map((client) => (
-          <form key={client.id} action={trustedAction} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div key={client.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <label className="text-xs">
+              <input type="checkbox" data-bulk="client" value={client.id} aria-label={`Select ${client.firstName} ${client.lastName}`} />
+            </label>
+            <RecordMenu
+              kind="client"
+              id={client.id}
+              name={`${client.firstName} ${client.lastName}`}
+              archived={Boolean(client.archivedAt)}
+              canArchive={can(actor, "crm.write")}
+              canPermanent={can(actor, "records.delete")}
+              deletable={clientRemoval(client._count).canDelete}
+              returnTo={returnTo}
+            />
+            <form action={trustedAction} className="flex flex-1 flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-medium">
                 {client.firstName} {client.lastName}
@@ -37,7 +61,8 @@ export default async function ClientsPage() {
             <Button type="submit" variant="secondary" size="sm">
               Save
             </Button>
-          </form>
+            </form>
+          </div>
         ))}
       </div>
     </div>

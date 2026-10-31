@@ -27,9 +27,14 @@ export async function listCalendar(actor: Actor, view: string, anchor: Date) {
   const range = calendarRange(view, anchor);
   const bookings = await prisma.booking.findMany({
     where: {
-      OR: [
-        { startAt: { gte: range.start, lt: range.end } },
-        { startAt: null, order: { preferredDate: { gte: range.start, lt: range.end } } },
+      AND: [
+        {
+          OR: [
+            { startAt: { gte: range.start, lt: range.end } },
+            { startAt: null, order: { preferredDate: { gte: range.start, lt: range.end } } },
+          ],
+        },
+        { order: { archivedAt: null, property: { archivedAt: null } } },
       ],
     },
     include: { order: { include: { property: true, client: true } } },

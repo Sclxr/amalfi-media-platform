@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { deliverListingAction, updateListingAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { StatusBadge } from "@/components/data/status-badge";
@@ -34,6 +35,7 @@ export function ListingHeader({
   coverSrc,
   canEdit,
   canMedia,
+  menu,
   editor,
   realtors,
   delivery,
@@ -47,6 +49,7 @@ export function ListingHeader({
   coverSrc: string | null;
   canEdit: boolean;
   canMedia: boolean;
+  menu?: ReactNode;
   editor: ListingEditorValues;
   realtors: { id: string; name: string }[];
   delivery: { galleryId: string; title: string; statusLabel: string; canMarkDelivered: boolean; orderLabel: string } | null;
@@ -87,7 +90,8 @@ export function ListingHeader({
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {menu}
         {canEdit ? (
           <Modal title="Edit listing" description="Portal access stays with the current client." trigger={<Button type="button" variant="secondary">Edit listing</Button>}>
             <form action={save} className="grid gap-3">

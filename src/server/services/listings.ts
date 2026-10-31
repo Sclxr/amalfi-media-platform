@@ -12,6 +12,7 @@ import {
   type ListingOrder,
   type ListingStatus,
 } from "@/lib/listing";
+import { hasFinancialHistory } from "@/lib/removal";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/server/db/prisma";
 import { writeAudit } from "@/server/audit";
@@ -47,12 +48,13 @@ const listingInclude = {
 
 export type ListingRecord = Awaited<ReturnType<typeof loadListings>>[number];
 
-async function loadListings(where?: { leadId?: string; id?: string; q?: string }) {
+async function loadListings(where?: { leadId?: string; id?: string; q?: string; archived?: boolean }) {
   const q = where?.q?.trim();
   return prisma.property.findMany({
     where: {
       id: where?.id,
       leadId: where?.leadId,
+      archivedAt: where?.id ? undefined : where?.archived ? { not: null } : null,
       OR: q
         ? [
             { addressLine1: { contains: q, mode: "insensitive" } },
@@ -81,6 +83,8 @@ export type ListingCard = {
   statusLabel: string;
   shootDate: Date | null;
   hasCover: boolean;
+  archived: boolean;
+  deletable: boolean;
   orderId: string | null;
   galleryId: string | null;
   invoiceId: string | null;
@@ -125,15 +129,17 @@ function toCard(property: ListingRecord, now = new Date()): ListingCard {
     statusLabel: listingStatusLabel(listingStatus(order)),
     shootDate: pickShootDate(order, now),
     hasCover: Boolean(cover),
+    archived: Boolean(property.archivedAt),
+    deletable: !hasFinancialHistory(property.orders.flatMap((item) => item.invoices)),
     orderId: order?.id ?? null,
     galleryId: galleryForOrder?.id ?? cover?.galleryId ?? null,
     invoiceId: invoice?.id ?? null,
   };
 }
 
-export async function listListings(actor: Actor, query: { q?: string; status?: string; leadId?: string }) {
+export async function listListings(actor: Actor, query: { q?: string; status?: string; leadId?: string; view?: string }) {
   if (!can(actor, "orders.read")) throw new Error("Forbidden");
-  const rows = await loadListings({ q: query.q, leadId: query.leadId });
+  const rows = await loadListings({ q: query.q, leadId: query.leadId, archived: query.view === "archived" });
   const cards = rows.map((row) => toCard(row));
   if (!query.status) return cards;
   return cards.filter((card) => card.status === query.status);

@@ -298,7 +298,7 @@ export async function deliverListingGallery(actor: Actor, propertyId: string, ga
 
 export async function clientGallery(clientId: string, id: string) {
   return prisma.gallery.findFirst({
-    where: { id, clientId, status: "PUBLISHED" },
+    where: { id, clientId, status: "PUBLISHED", property: { archivedAt: null }, order: { archivedAt: null } },
     include: {
       assets: { where: { status: "READY" }, orderBy: { sortOrder: "asc" } },
       property: true,
@@ -352,7 +352,11 @@ export async function setTrustedDownloads(actor: Actor, clientId: string, allow:
   });
 }
 
-export async function listClients(actor: Actor) {
+export async function listClients(actor: Actor, view?: string) {
   if (!can(actor, "settings.manage") && !can(actor, "crm.read")) throw new Error("Forbidden");
-  return prisma.client.findMany({ orderBy: { lastName: "asc" } });
+  return prisma.client.findMany({
+    where: { archivedAt: view === "archived" ? { not: null } : null },
+    orderBy: { lastName: "asc" },
+    include: { _count: { select: { properties: true, orders: true, invoices: true, galleries: true } } },
+  });
 }

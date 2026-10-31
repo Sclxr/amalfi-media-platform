@@ -26,6 +26,7 @@ import {
   setListingCoverAction,
   updateGalleryDetailsAction,
 } from "@/app/(admin)/admin/(app)/listings/actions";
+import { RecordMenu } from "@/components/removal/record-menu";
 import { AskConfirm } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,12 +55,14 @@ export function GalleryManager({
   cancelled,
   galleries,
   canWrite,
+  canDeleteGallery = false,
 }: {
   propertyId: string;
   orderId: string | null;
   cancelled: boolean;
   galleries: ManagedGallery[];
   canWrite: boolean;
+  canDeleteGallery?: boolean;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -237,6 +240,18 @@ export function GalleryManager({
                       {gallery.status === "PUBLISHED" ? "Unpublish" : "Publish"}
                     </Button>
                   </form>
+                  {canDeleteGallery ? (
+                    <RecordMenu
+                      kind="gallery"
+                      id={gallery.id}
+                      name={gallery.title}
+                      archived={false}
+                      canArchive={false}
+                      canPermanent
+                      deletable
+                      returnTo={`/admin/listings/${propertyId}?tab=gallery`}
+                    />
+                  ) : null}
                   {gallery.status !== "ARCHIVED" ? (
                     <AskConfirm
                       title="Archive gallery"

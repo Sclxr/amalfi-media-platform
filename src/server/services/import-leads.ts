@@ -138,3 +138,12 @@ export async function commitImport(actor: Actor, csv: string, mapping: ImportMap
   });
   return { id: batch.id, createdRows: batch.createdRows, mergedRows: batch.mergedRows, skippedRows: batch.skippedRows };
 }
+
+export async function listImportBatches(actor: Actor, view?: string) {
+  if (!can(actor, "crm.write")) throw new Error("Forbidden");
+  return prisma.importBatch.findMany({
+    where: { archivedAt: view === "archived" ? { not: null } : null },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+}

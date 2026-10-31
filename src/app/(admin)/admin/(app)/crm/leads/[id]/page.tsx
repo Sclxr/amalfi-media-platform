@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { NoteForm } from "@/components/forms/record-form";
 import { StatusBadge } from "@/components/data/status-badge";
+import { ArchivedBanner } from "@/components/removal/archive-view";
+import { RecordMenu } from "@/components/removal/record-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +13,7 @@ import { addNoteAction } from "@/app/(admin)/admin/(app)/crm/actions";
 import { createTaskAction, logActivityAction } from "@/app/(admin)/admin/(app)/crm/growth-actions";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { can } from "@/lib/permissions";
+import { previewRemoval } from "@/server/services/removal";
 import { getActor } from "@/server/auth/guards";
 import { getLead } from "@/server/services/leads";
 import { listListings } from "@/server/services/listings";
@@ -32,11 +35,26 @@ export default async function LeadDetailPage({
   if (!lead) notFound();
   const tab = query.tab === "listings" ? "listings" : "details";
   const listings = tab === "listings" && can(actor, "orders.read") ? await listListings(actor, { leadId: lead.id }) : [];
+  const removal = can(actor, "crm.write") || can(actor, "records.delete") ? await previewRemoval(actor, "lead", lead.id) : null;
+  const leadName = `${lead.firstName ?? ""} ${lead.lastName ?? ""}`.trim() || "Realtor";
   const noteAction = addNoteAction.bind(null, lead.id);
   const activityAction = logActivityAction.bind(null, lead.id);
   const taskAction = createTaskAction.bind(null, lead.id);
   return (
     <div className="space-y-6">
+      {lead.deletedAt ? <ArchivedBanner>This realtor is archived. Restore them to put them back on the active list.</ArchivedBanner> : null}
+      <div className="flex flex-wrap items-center gap-3">
+        <RecordMenu
+          kind="lead"
+          id={lead.id}
+          name={removal && "name" in removal ? removal.name : leadName}
+          archived={Boolean(lead.deletedAt)}
+          canArchive={can(actor, "crm.write")}
+          canPermanent={can(actor, "records.delete")}
+          deletable={Boolean(removal && "decision" in removal && removal.decision.canDelete)}
+          returnTo={`/admin/crm/leads/${lead.id}`}
+        />
+      </div>
       {query.notice === "duplicate" ? (
         <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
           That email is already on file. Showing the existing realtor instead of creating a duplicate.
