@@ -5,6 +5,7 @@ import {
   Calendar,
   ClipboardList,
   Contact,
+  Home,
   Images,
   KeyRound,
   LayoutDashboard,
@@ -16,6 +17,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -25,19 +27,51 @@ import { Button } from "@/components/ui/button";
 import type { ShellUser } from "@/lib/actor";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/admin/crm/leads", label: "Realtors", icon: Users },
-  { href: "/admin/crm/brokerages", label: "Brokerages", icon: Building2 },
-  { href: "/admin/marketing", label: "Marketing", icon: Megaphone },
-  { href: "/admin/bookings", label: "Bookings", icon: Calendar },
-  { href: "/admin/orders", label: "Orders", icon: ClipboardList },
-  { href: "/admin/clients", label: "Clients", icon: Contact },
-  { href: "/admin/billing", label: "Billing", icon: Receipt },
-  { href: "/admin/media", label: "Media", icon: Images },
-  { href: "/admin/settings/catalog", label: "Catalog", icon: Package, permission: "settings.manage" },
-  { href: "/admin/settings/api-keys", label: "API keys", icon: KeyRound, permission: "settings.manage" },
-] as const;
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  permission?: ShellUser["permissions"][number];
+};
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Work",
+    items: [
+      { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+      { href: "/admin/listings", label: "Listings", icon: Home },
+      { href: "/admin/bookings", label: "Bookings", icon: Calendar },
+      { href: "/admin/orders", label: "Orders", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/admin/crm/leads", label: "Realtors", icon: Users },
+      { href: "/admin/crm/brokerages", label: "Brokerages", icon: Building2 },
+      { href: "/admin/clients", label: "Clients", icon: Contact },
+    ],
+  },
+  {
+    label: "Delivery",
+    items: [
+      { href: "/admin/media", label: "Media", icon: Images },
+      { href: "/admin/billing", label: "Billing", icon: Receipt },
+    ],
+  },
+  {
+    label: "Growth",
+    items: [{ href: "/admin/marketing", label: "Marketing", icon: Megaphone }],
+  },
+  {
+    label: "Settings",
+    items: [
+      { href: "/admin/settings/catalog", label: "Catalog", icon: Package, permission: "settings.manage" },
+      { href: "/admin/settings/api-keys", label: "API keys", icon: KeyRound, permission: "settings.manage" },
+    ],
+  },
+];
 
 function isActive(pathname: string, href: string, exact?: boolean) {
   if (exact) return pathname === href;
@@ -49,7 +83,18 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const items = useMemo(
-    () => NAV.filter((item) => !("permission" in item) || user.permissions.includes(item.permission)),
+    () =>
+      NAV_GROUPS.flatMap((group) => group.items).filter(
+        (item) => !item.permission || user.permissions.includes(item.permission),
+      ),
+    [user.permissions],
+  );
+  const groups = useMemo(
+    () =>
+      NAV_GROUPS.map((group) => ({
+        label: group.label,
+        items: group.items.filter((item) => !item.permission || user.permissions.includes(item.permission)),
+      })).filter((group) => group.items.length > 0),
     [user.permissions],
   );
 
@@ -93,26 +138,33 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
               <X />
             </Button>
           </div>
-          <nav className="mt-8 flex flex-1 flex-col gap-1" aria-label="Admin">
-            {items.map((item) => {
-              const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex h-10 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
-                    active && "bg-primary/10 font-medium text-primary",
-                  )}
-                >
-                  <Icon className="size-5" strokeWidth={1.75} />
-                  {item.label}
-                </Link>
-              );
-            })}
+          <nav className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto" aria-label="Admin">
+            {groups.map((group) => (
+              <div key={group.label}>
+                <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.label}</p>
+                <div className="flex flex-col gap-1">
+                  {group.items.map((item) => {
+                    const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        onClick={() => setOpen(false)}
+                        className={cn(
+                          "flex h-10 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
+                          active && "bg-primary/10 font-medium text-primary",
+                        )}
+                      >
+                        <Icon className="size-5" strokeWidth={1.75} />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
           <p className="px-3 pb-2 text-xs text-muted-foreground">Orlando · Central Florida</p>
         </aside>

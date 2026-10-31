@@ -375,11 +375,39 @@ async function main() {
     update: { allowUnpaidDownloads: false, brokerageId: lakeside.id },
   });
 
+  const jordanLead = await prisma.lead.upsert({
+    where: { externalRef: "seed:jordan-hale" },
+    create: {
+      id: "seed-lead-jordan-hale",
+      externalRef: "seed:jordan-hale",
+      firstName: "Jordan",
+      lastName: "Hale",
+      email: client.email,
+      emailNormalized: client.email.toLowerCase(),
+      phone: client.phone,
+      phoneE164: "+13215550108",
+      city: "Orlando",
+      status: "CONVERTED",
+      convertedAt: new Date(),
+      clientId: client.id,
+      brokerageId: lakeside.id,
+      ownerId: admin.id,
+    },
+    update: {
+      clientId: client.id,
+      status: "CONVERTED",
+      firstName: "Jordan",
+      lastName: "Hale",
+      brokerageId: lakeside.id,
+    },
+  });
+
   const property = await prisma.property.upsert({
     where: { id: "seed-property-hale" },
     create: {
       id: "seed-property-hale",
       clientId: client.id,
+      leadId: jordanLead.id,
       addressLine1: "1842 Lake Conway Shore",
       city: "Orlando",
       state: "FL",
@@ -389,7 +417,7 @@ async function main() {
       beds: 4,
       bathsHalf: 5,
     },
-    update: { clientId: client.id },
+    update: { clientId: client.id, leadId: jordanLead.id },
   });
 
   let order = await prisma.order.findFirst({ where: { internalNotes: "seed:intro-order" } });

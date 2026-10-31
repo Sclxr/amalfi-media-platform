@@ -399,6 +399,7 @@ model Lead {
   activities  LeadActivity[]
   reminders   Reminder[]
   emails      EmailMessage[]
+  properties  Property[]
 
   @@index([status, nextFollowUpAt])
   @@index([phoneE164])
@@ -647,11 +648,15 @@ model Property {
   bathsHalf    Int?
   accessNotes  String?
   createdAt    DateTime     @default(now())
+  /// CRM realtor. Null on older rows until someone assigns one.
+  leadId       String?
   client       Client       @relation(fields: [clientId], references: [id])
+  lead         Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
   orders       Order[]
   galleries    Gallery[]
 
   @@index([clientId])
+  @@index([leadId])
   @@index([zip])
 }
 
