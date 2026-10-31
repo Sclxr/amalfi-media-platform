@@ -1,3 +1,4 @@
+import { clientMayPreview, previewServable } from "@/lib/preview-access";
 import { getActor } from "@/server/auth/guards";
 import { prisma } from "@/server/db/prisma";
 import { readGalleryFile } from "@/server/services/galleries";
@@ -7,16 +8,29 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!actor?.clientId) return new Response("Sign in required.", { status: 401 });
   const { id, assetId } = await context.params;
   const asset = await prisma.mediaAsset.findFirst({
-    where: { id: assetId, galleryId: id, gallery: { clientId: actor.clientId, status: "PUBLISHED" } },
+    where: { id: assetId, galleryId: id },
+    include: { gallery: { include: { property: true, order: true } } },
   });
-  if (!asset) return new Response("Not found.", { status: 404 });
+  if (
+    !asset ||
+    !clientMayPreview({
+      actorClientId: actor.clientId,
+      galleryClientId: asset.gallery.clientId,
+      status: asset.gallery.status,
+      propertyArchived: Boolean(asset.gallery.property.archivedAt),
+      orderArchived: Boolean(asset.gallery.order.archivedAt),
+    }) ||
+    !previewServable(asset)
+  ) {
+    return new Response("Not found.", { status: 404 });
+  }
   try {
-    const file = await readGalleryFile(asset.previewKey ?? asset.storageKey);
+    const file = await readGalleryFile(asset.previewKey!);
     return new Response(new Uint8Array(file.bytes), {
       headers: {
-        "Content-Type": asset.mimeType,
+        "Content-Type": "image/jpeg",
         "Cache-Control": "private, max-age=60",
-        "X-Preview-Watermark": "false",
+        "X-Preview-Watermark": "true",
       },
     });
   } catch {

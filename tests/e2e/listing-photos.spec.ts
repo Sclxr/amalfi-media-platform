@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
 
 const password = process.env.SEED_ADMIN_PASSWORD ?? "Amalfi-Demo-2026!";
 const shots = "/opt/cursor/artifacts/screenshots";
@@ -138,9 +139,12 @@ async function dragPhoto(page: Page, sourceName: string, targetName: string) {
 }
 
 test("a listing accepts a photo larger than the 1 MB server-action limit", async ({ page }) => {
+  test.setTimeout(90_000);
   const name = `wide-${Date.now()}.png`;
-  // Larger than Next's default 10 MB proxy body clone, so a truncated save fails this check.
-  const bytes = Buffer.alloc(12 * 1024 * 1024, 7);
+  // A real photo larger than Next's default 10 MB proxy body clone, so a truncated save fails this check.
+  const noise = Buffer.alloc(2600 * 2000 * 3);
+  for (let i = 0; i < noise.length; i += 97) noise[i] = (i * 13) % 256;
+  const bytes = await sharp(noise, { raw: { width: 2600, height: 2000, channels: 3 } }).png({ compressionLevel: 0 }).toBuffer();
   expect(bytes.byteLength).toBeGreaterThan(10 * 1024 * 1024);
   await page.goto("/admin/login");
   await page.getByLabel("Email").fill("eathen@amalfimedia.xyz");

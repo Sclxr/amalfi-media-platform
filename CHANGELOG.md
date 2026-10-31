@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 — 2026-10-31
+
+### Added
+
+- Uploads and replacements store a downscaled watermarked preview that is a different file from the original. `pnpm previews:backfill` creates those previews for photos already on disk.
+- Client previews require the signed-in realtor, a published gallery, and an active listing. Downloads and ZIP files include every photo, are written to a unique temporary file, and no longer return a reusable media token.
+- Moving a listing to another realtor moves the orders, galleries, and invoices with it.
+
 ## 0.7.0 — 2026-10-31
 
 ### Added

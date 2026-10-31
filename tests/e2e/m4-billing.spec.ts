@@ -1,6 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { mkdirSync } from "node:fs";
+import { expect, test, type Page } from "@playwright/test";
 
 const password = process.env.SEED_ADMIN_PASSWORD ?? "Amalfi-Demo-2026!";
+const shots = "/opt/cursor/artifacts/screenshots";
+
+async function setTheme(page: Page, theme: "light" | "dark") {
+  await page.evaluate((value) => localStorage.setItem("theme", value), theme);
+  await page.reload();
+}
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -41,7 +48,14 @@ test("billing stays unconfigured and a gallery preview does not require payment"
   const src = await image.getAttribute("src");
   const preview = await page.request.get(src ?? "");
   expect(preview.ok()).toBeTruthy();
-  expect(preview.headers()["x-preview-watermark"]).toBe("false");
+  expect(preview.headers()["x-preview-watermark"]).toBe("true");
+  expect(preview.headers()["content-type"]).toContain("image/jpeg");
+  expect(preview.headers()["x-media-token"]).toBeUndefined();
+  mkdirSync(shots, { recursive: true });
+  await setTheme(page, "light");
+  await page.screenshot({ path: `${shots}/watermark-preview-light.png`, fullPage: true });
+  await setTheme(page, "dark");
+  await page.screenshot({ path: `${shots}/watermark-preview-dark.png`, fullPage: true });
   await expect(page.getByText("Payment required before download.")).toBeVisible();
   const download = await page.request.get(`${page.url().replace(/\/$/, "")}/download`);
   expect(download.status()).toBe(402);

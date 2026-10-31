@@ -1,8 +1,6 @@
 import { getActor } from "@/server/auth/guards";
 import { writeAudit } from "@/server/audit";
-import { clientGallery, downloadDecisionFor, readGalleryFile } from "@/server/services/galleries";
-import { signMediaToken } from "@/lib/media-sign";
-import { getEnv } from "@/server/env";
+import { buildGalleryZip, clientGallery, downloadDecisionFor, readGalleryFile } from "@/server/services/galleries";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const actor = await getActor();
@@ -12,27 +10,22 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!gallery) return new Response("Not found.", { status: 404 });
   const decision = downloadDecisionFor(gallery);
   if (!decision.allowed) return new Response("Payment required before download.", { status: 402 });
-  const asset = gallery.assets[0];
-  if (!asset) return new Response("This gallery has no files.", { status: 404 });
+  const photos = gallery.assets.filter((asset) => asset.kind === "PHOTO");
+  if (photos.length === 0) return new Response("This gallery has no files.", { status: 404 });
+  const zip = await buildGalleryZip(photos.map((asset) => ({ name: asset.fileName, key: asset.storageKey })));
   await writeAudit({
     actorId: actor.id,
     action: "gallery.download",
     entityType: "Gallery",
     entityId: id,
-    after: { assetId: asset.id, reason: decision.reason },
+    after: { photos: photos.length, reason: decision.reason },
   });
-  const env = getEnv();
-  const file = await readGalleryFile(asset.storageKey);
-  const token = signMediaToken(
-    { purpose: "download", key: asset.storageKey, expiresAt: Date.now() + 10 * 60 * 1000 },
-    env.ENCRYPTION_KEY,
-  );
+  const file = await readGalleryFile(zip.key);
   return new Response(new Uint8Array(file.bytes), {
     headers: {
-      "Content-Type": asset.mimeType,
-      "Content-Disposition": `attachment; filename="${asset.fileName}"`,
-      "X-Accel-Redirect": `/internal-media/${asset.storageKey}`,
-      "X-Media-Token": token,
+      "Content-Type": "application/zip",
+      "Content-Disposition": 'attachment; filename="gallery.zip"',
+      "X-Accel-Redirect": `/internal-media/${zip.key}`,
     },
   });
 }
