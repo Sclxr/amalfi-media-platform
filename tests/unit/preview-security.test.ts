@@ -71,9 +71,32 @@ describe("watermarked previews", () => {
       .toBuffer();
     const marked = await watermarkedPreview(white);
     const plain = await sharp(white).resize(900, 600).jpeg({ quality: 72 }).toBuffer();
-    const markedMean = (await sharp(marked).stats()).channels[0]?.mean ?? 255;
-    const plainMean = (await sharp(plain).stats()).channels[0]?.mean ?? 255;
-    expect(plainMean - markedMean).toBeGreaterThan(8);
+    const markedRaw = await sharp(marked).raw().toBuffer({ resolveWithObject: true });
+    const plainRaw = await sharp(plain).raw().toBuffer({ resolveWithObject: true });
+    const runs: number[] = [];
+    let changed = 0;
+    for (let y = 0; y < markedRaw.info.height; y += 1) {
+      let run = 0;
+      for (let x = 0; x < markedRaw.info.width; x += 1) {
+        const index = (y * markedRaw.info.width + x) * markedRaw.info.channels;
+        const delta = Math.abs((markedRaw.data[index] ?? 0) - (plainRaw.data[index] ?? 0));
+        const ink = delta > 18;
+        if (ink) {
+          changed += 1;
+          run += 1;
+        } else if (run > 0) {
+          runs.push(run);
+          run = 0;
+        }
+      }
+      if (run > 0) runs.push(run);
+    }
+    const short = runs.filter((length) => length <= 14);
+    const long = runs.filter((length) => length >= 40);
+    expect(changed).toBeGreaterThan(1500);
+    expect(changed).toBeLessThan(markedRaw.info.width * markedRaw.info.height * 0.22);
+    expect(short.length).toBeGreaterThan(40);
+    expect(short.length).toBeGreaterThan(long.length);
     const meta = await sharp(preview).metadata();
     expect(meta.width).toBeLessThanOrEqual(1600);
     expect(meta.height).toBeLessThanOrEqual(1600);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 — 2026-10-31
+
+### Fixed
+
+- The preview watermark uses the outlines of the bundled DejaVu Sans file, so the words render without fontconfig. The lettering is a light diagonal tile with a thin dark edge. `pnpm previews:backfill -- --force` rewrites the blank bars.
+
 ## 0.13.0 — 2026-10-31
 
 ### Fixed
