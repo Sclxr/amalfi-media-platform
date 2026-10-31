@@ -5,7 +5,7 @@
 ### Added
 
 - The listing page is a header plus Overview, Gallery, Bookings, and Orders & Billing. Edits, delivery, and destructive actions open dialogs.
-- Galleries stay with one order. Uploads still use the signed route, including several files with progress. Staff can reorder, set a cover, replace a photo, and preview what the client sees.
+- Galleries stay with one order. Uploads still use the signed route, including several files with progress. Staff reorder photos by dragging, including with a short press on a touch screen, and can set a cover, replace a photo, and preview what the client sees.
 - An unpaid invoice can be voided. A recorded payment is left unchanged, and refunds are not started when Stripe is not configured.
 
 ## 0.5.0 — 2026-10-31

@@ -80,6 +80,63 @@ test("a new listing accepts a photo, opens it, and publishes it", async ({ page 
   await page.screenshot({ path: `${shots}/listing-photos-dark.png`, fullPage: true });
 });
 
+test("dragging a photo saves the new order", async ({ page }) => {
+  const stamp = Date.now();
+  const first = `alpha-${stamp}.png`;
+  const second = `beta-${stamp}.png`;
+  const address = `${stamp} Drag Lane`;
+  await page.goto("/admin/login");
+  await page.getByLabel("Email").fill("eathen@amalfimedia.xyz");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByTestId("overview")).toBeVisible();
+  await page.goto("/admin/crm/leads");
+  await page.getByRole("link", { name: "Jordan Hale" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Listings" }).click();
+  await page.getByRole("link", { name: "Add listing" }).click();
+  await page.getByLabel("Address").fill(address);
+  await page.getByLabel("ZIP").fill("32804");
+  await page.getByRole("button", { name: "Create listing" }).click();
+  await page.getByRole("tab", { name: "Gallery" }).click();
+  await page.getByRole("button", { name: "Create an order for these photos" }).click();
+  await page.getByRole("dialog", { name: "Create an order" }).getByRole("button", { name: "Create order" }).click();
+  await page.getByLabel("Gallery file").setInputFiles([
+    { name: first, mimeType: "image/png", buffer: png },
+    { name: second, mimeType: "image/png", buffer: png },
+  ]);
+  await page.getByRole("button", { name: "Upload photos" }).click();
+  const grid = page.getByTestId("listing-photos");
+  await expect(grid.getByRole("button", { name: first, exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(grid.getByRole("button", { name: second, exact: true })).toBeVisible();
+  const saved = page.waitForURL(/[?&]photos=/);
+  await dragPhoto(page, second, first);
+  await saved;
+  await expect(page.getByTestId("listing-photos").getByRole("button").nth(0)).toHaveAccessibleName(second);
+  await page.reload();
+  await expect(page.getByTestId("listing-photos").getByRole("button").nth(0)).toHaveAccessibleName(second);
+  await expect(page.getByRole("button", { name: "Earlier" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Later" })).toHaveCount(0);
+});
+
+async function dragPhoto(page: Page, sourceName: string, targetName: string) {
+  const source = page.getByRole("button", { name: sourceName, exact: true });
+  const target = page.getByRole("button", { name: targetName, exact: true });
+  await source.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error("Photo handles were not on screen.");
+  const startX = sourceBox.x + sourceBox.width / 2;
+  const startY = sourceBox.y + sourceBox.height / 2;
+  const endX = targetBox.x + targetBox.width / 2;
+  const endY = targetBox.y + targetBox.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.waitForTimeout(400);
+  await page.mouse.move(endX, endY, { steps: 20 });
+  await page.mouse.up();
+}
+
 test("a listing accepts a photo larger than the 1 MB server-action limit", async ({ page }) => {
   const name = `wide-${Date.now()}.png`;
   // Larger than Next's default 10 MB proxy body clone, so a truncated save fails this check.

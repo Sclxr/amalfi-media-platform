@@ -3,6 +3,18 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   createListingOrderAction,
   deleteListingPhotosAction,
   moveListingPhotosAction,
@@ -18,7 +30,7 @@ import { AskConfirm } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { movePhotoOrder, stepPhotoOrder } from "@/lib/listing";
+import { movePhotoOrder } from "@/lib/listing";
 import { putSignedPhoto } from "@/lib/upload-photo";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +70,6 @@ export function GalleryManager({
   const [rows, setRows] = useState<{ name: string; state: string }[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
   const incoming = galleries.map((gallery) => gallery.photos.map((photo) => photo.id).join(",")).join("|");
   const [orders, setOrders] = useState<Record<string, string[]>>(() => photoOrder(galleries));
   const [tracked, setTracked] = useState(incoming);
@@ -303,55 +314,17 @@ export function GalleryManager({
               ) : null}
             </div>
             {ordered.length === 0 ? <p className="text-sm text-muted-foreground">No photos for this shoot yet.</p> : null}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" data-testid="listing-photos">
-              {ordered.map((photo) => (
-                <figure
-                  key={photo.id}
-                  draggable={canWrite}
-                  onDragStart={() => setDragId(photo.id)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => {
-                    if (!dragId) return;
-                    applyOrder(gallery.id, movePhotoOrder(ids, dragId, photo.id));
-                    setDragId(null);
-                  }}
-                  className={cn("space-y-2 rounded-md border border-border p-2", selected.includes(photo.id) && "ring-2 ring-primary")}
-                >
-                  <button type="button" className="block w-full" onClick={() => setOpenId(photo.id)} aria-label={photo.fileName}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photo.src} alt={photo.fileName} className="aspect-[4/3] w-full rounded-md object-cover" />
-                  </button>
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    {canWrite ? (
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${photo.fileName}`}
-                          checked={selected.includes(photo.id)}
-                          onChange={(event) => {
-                            setSelected((current) =>
-                              event.target.checked ? [...current, photo.id] : current.filter((id) => id !== photo.id),
-                            );
-                          }}
-                        />
-                        Select
-                      </label>
-                    ) : <span />}
-                    {photo.cover ? <span className="text-muted-foreground">Cover</span> : null}
-                  </div>
-                  {canWrite ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="secondary" size="sm" onClick={() => applyOrder(gallery.id, stepPhotoOrder(ids, photo.id, "earlier"))}>
-                        Earlier
-                      </Button>
-                      <Button type="button" variant="secondary" size="sm" onClick={() => applyOrder(gallery.id, stepPhotoOrder(ids, photo.id, "later"))}>
-                        Later
-                      </Button>
-                    </div>
-                  ) : null}
-                </figure>
-              ))}
-            </div>
+            <PhotoGrid
+              photos={ordered}
+              ids={ids}
+              canWrite={canWrite}
+              selected={selected}
+              onSelect={(photoId, checked) => {
+                setSelected((current) => (checked ? [...current, photoId] : current.filter((id) => id !== photoId)));
+              }}
+              onOpen={setOpenId}
+              onReorder={(next) => applyOrder(gallery.id, next)}
+            />
           </section>
         );
       })}
@@ -418,6 +391,129 @@ export function GalleryManager({
         </div>
       ) : null}
     </div>
+  );
+}
+
+const PRESS_DELAY_MS = 200;
+
+function PhotoGrid({
+  photos,
+  ids,
+  canWrite,
+  selected,
+  onSelect,
+  onOpen,
+  onReorder,
+}: {
+  photos: ManagedPhoto[];
+  ids: string[];
+  canWrite: boolean;
+  selected: string[];
+  onSelect: (photoId: string, checked: boolean) => void;
+  onOpen: (photoId: string) => void;
+  onReorder: (next: string[]) => void;
+}) {
+  const dragged = useRef(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: PRESS_DELAY_MS, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: PRESS_DELAY_MS, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function onDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : "";
+    if (overId && activeId !== overId) onReorder(movePhotoOrder(ids, activeId, overId));
+    setTimeout(() => {
+      dragged.current = false;
+    }, 0);
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={() => {
+        dragged.current = true;
+      }}
+      onDragCancel={() => {
+        dragged.current = false;
+      }}
+      onDragEnd={onDragEnd}
+    >
+      <SortableContext items={ids} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" data-testid="listing-photos">
+          {photos.map((photo) => (
+            <SortablePhoto
+              key={photo.id}
+              photo={photo}
+              canWrite={canWrite}
+              selected={selected.includes(photo.id)}
+              dragged={dragged}
+              onSelect={onSelect}
+              onOpen={onOpen}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortablePhoto({
+  photo,
+  canWrite,
+  selected,
+  dragged,
+  onSelect,
+  onOpen,
+}: {
+  photo: ManagedPhoto;
+  canWrite: boolean;
+  selected: boolean;
+  dragged: { current: boolean };
+  onSelect: (photoId: string, checked: boolean) => void;
+  onOpen: (photoId: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: photo.id,
+    disabled: !canWrite,
+  });
+  return (
+    <figure className={cn("space-y-2 rounded-md border border-border p-2", selected && "ring-2 ring-primary", isDragging && "z-10 opacity-70")}>
+      <button
+        type="button"
+        ref={setNodeRef}
+        style={{ transform: CSS.Transform.toString(transform), transition }}
+        className="block w-full cursor-grab touch-manipulation active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+        aria-label={photo.fileName}
+        onClick={() => {
+          if (dragged.current) return;
+          onOpen(photo.id);
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo.src} alt={photo.fileName} draggable={false} className="pointer-events-none aspect-[4/3] w-full rounded-md object-cover" />
+      </button>
+      <div className="flex items-center justify-between gap-2 text-xs">
+        {canWrite ? (
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              aria-label={`Select ${photo.fileName}`}
+              checked={selected}
+              onChange={(event) => onSelect(photo.id, event.target.checked)}
+            />
+            Select
+          </label>
+        ) : (
+          <span />
+        )}
+        {photo.cover ? <span className="text-muted-foreground">Cover</span> : null}
+      </div>
+    </figure>
   );
 }
 
