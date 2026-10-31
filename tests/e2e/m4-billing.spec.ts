@@ -21,8 +21,9 @@ test("billing stays unconfigured and a gallery preview does not require payment"
   await page.goto("/admin/listings");
   await page.getByRole("link", { name: /1842 Lake Conway Shore/ }).click();
   await expect(page.getByRole("heading", { name: "1842 Lake Conway Shore" })).toBeVisible();
+  await page.getByRole("tab", { name: "Gallery" }).click();
   await page.getByLabel("Gallery file").setInputFiles({ name: photoName, mimeType: "image/png", buffer: png });
-  await page.getByRole("button", { name: "Upload photo" }).click();
+  await page.getByRole("button", { name: "Upload photos" }).click();
   await expect(page.getByRole("button", { name: photoName, exact: true })).toBeVisible({ timeout: 20_000 });
   const publish = page.getByRole("button", { name: "Publish", exact: true });
   if ((await publish.count()) > 0) await publish.first().click();

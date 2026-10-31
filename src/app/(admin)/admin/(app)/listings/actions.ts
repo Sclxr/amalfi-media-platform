@@ -2,20 +2,39 @@
 
 import { redirect, unstable_rethrow } from "next/navigation";
 import { getActor } from "@/server/auth/guards";
-import { createListing, updateListingAddress } from "@/server/services/listings";
+import { createInvoiceForOrder, voidUnpaidInvoice } from "@/server/services/billing";
 import {
+  archiveGallery,
   deleteGalleryPhoto,
-  ensureListingUploadGallery,
-  moveGalleryPhoto,
+  deliverListingGallery,
+  movePhotosToGallery,
+  prepareListingGallery,
   publishGallery,
   registerUpload,
+  reorderGalleryPhotos,
+  replaceGalleryPhoto,
   unpublishGallery,
+  updateGalleryDetails,
 } from "@/server/services/galleries";
+import { createListing, setListingCover, updateListing } from "@/server/services/listings";
+import { changeOrderStatus, rescheduleBooking, setQuotePrices } from "@/server/services/orders";
 
 async function actorOrLogin() {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
   return actor;
+}
+
+function listingPath(propertyId: string, tab: string, shoot?: string) {
+  const params = new URLSearchParams({ tab, photos: String(Date.now()) });
+  if (shoot) params.set("shoot", shoot);
+  return `/admin/listings/${propertyId}?${params.toString()}`;
+}
+
+function withNotice(path: string, notice?: string) {
+  if (!notice) return path;
+  const join = path.includes("?") ? "&" : "?";
+  return `${path}${join}notice=${encodeURIComponent(notice)}`;
 }
 
 export type ListingState = { error?: string };
@@ -42,33 +61,86 @@ export async function createListingAction(_prev: ListingState, formData: FormDat
 
 export async function updateListingAction(id: string, formData: FormData) {
   const actor = await actorOrLogin();
-  const result = await updateListingAddress(actor, id, {
+  const result = await updateListing(actor, id, {
+    leadId: String(formData.get("leadId") ?? ""),
     addressLine1: String(formData.get("addressLine1") ?? ""),
+    addressLine2: String(formData.get("addressLine2") ?? ""),
     city: String(formData.get("city") ?? ""),
+    state: String(formData.get("state") ?? ""),
     zip: String(formData.get("zip") ?? ""),
+    propertyType: String(formData.get("propertyType") ?? ""),
+    sqft: String(formData.get("sqft") ?? ""),
+    beds: String(formData.get("beds") ?? ""),
+    bathsHalf: String(formData.get("bathsHalf") ?? ""),
+    accessNotes: String(formData.get("accessNotes") ?? ""),
   });
-  if ("error" in result && result.error) redirect(`/admin/listings/${id}?notice=${encodeURIComponent(result.error)}`);
-  redirect(`/admin/listings/${id}`);
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(`/admin/listings/${id}?tab=overview`, notice));
 }
 
-function photosPath(propertyId: string) {
-  return `/admin/listings/${propertyId}?photos=${Date.now()}#photos`;
-}
-
-export async function uploadListingPhotoAction(propertyId: string, formData: FormData) {
+export async function prepareListingGalleryAction(
+  propertyId: string,
+  input: { orderId?: string; createOrder?: boolean },
+): Promise<{ id?: string; error?: string; needsOrder?: boolean }> {
   const actor = await actorOrLogin();
-  const ensured = await ensureListingUploadGallery(actor, propertyId);
-  if ("error" in ensured && ensured.error) {
-    redirect(`/admin/listings/${propertyId}?notice=${encodeURIComponent(ensured.error)}#photos`);
+  try {
+    const result = await prepareListingGallery(actor, propertyId, input);
+    if ("needsOrder" in result && result.needsOrder) return { error: result.error, needsOrder: true };
+    if ("error" in result && result.error) return { error: result.error };
+    if (!("id" in result)) return { error: "Could not prepare the gallery." };
+    return { id: result.id };
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not prepare the gallery." };
   }
-  if (!("id" in ensured)) redirect(photosPath(propertyId));
-  await registerUpload(actor, ensured.id, {
-    key: String(formData.get("key") ?? ""),
-    fileName: String(formData.get("fileName") ?? "upload"),
-    mimeType: String(formData.get("mimeType") ?? "application/octet-stream"),
-    sizeBytes: Number(formData.get("size") ?? 0),
-  });
-  redirect(photosPath(propertyId));
+}
+
+export async function saveListingPhotoAction(
+  galleryId: string,
+  input: { key: string; fileName: string; mimeType: string; size: number },
+): Promise<{ error?: string }> {
+  const actor = await actorOrLogin();
+  try {
+    const result = await registerUpload(actor, galleryId, {
+      key: input.key,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      sizeBytes: input.size,
+    });
+    if ("error" in result && result.error) return { error: result.error };
+    return {};
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: "The photo could not be saved. Try again." };
+  }
+}
+
+export async function replaceListingPhotoAction(
+  propertyId: string,
+  assetId: string,
+  input: { key: string; fileName: string; mimeType: string; size: number },
+): Promise<{ error?: string }> {
+  const actor = await actorOrLogin();
+  try {
+    const result = await replaceGalleryPhoto(actor, propertyId, assetId, {
+      key: input.key,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      sizeBytes: input.size,
+    });
+    if ("error" in result && result.error) return { error: result.error };
+    return {};
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: "The photo could not be replaced. Try again." };
+  }
+}
+
+export async function reorderListingPhotosAction(propertyId: string, galleryId: string, orderedIds: string[]) {
+  const actor = await actorOrLogin();
+  const result = await reorderGalleryPhotos(actor, propertyId, galleryId, orderedIds);
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(listingPath(propertyId, "gallery"), notice));
 }
 
 export async function publishListingGalleryAction(formData: FormData) {
@@ -76,21 +148,104 @@ export async function publishListingGalleryAction(formData: FormData) {
   const propertyId = String(formData.get("propertyId") ?? "");
   const galleryId = String(formData.get("galleryId") ?? "");
   if (formData.get("mode") === "unpublish") await unpublishGallery(actor, galleryId);
+  else if (formData.get("mode") === "archive") await archiveGallery(actor, galleryId);
   else await publishGallery(actor, galleryId);
-  redirect(photosPath(propertyId));
+  redirect(listingPath(propertyId, "gallery"));
 }
 
-export async function deleteListingPhotoAction(formData: FormData) {
+export async function deleteListingPhotosAction(propertyId: string, assetIds: string[]) {
   const actor = await actorOrLogin();
-  const propertyId = String(formData.get("propertyId") ?? "");
-  await deleteGalleryPhoto(actor, propertyId, String(formData.get("assetId") ?? ""));
-  redirect(photosPath(propertyId));
+  for (const assetId of assetIds) {
+    await deleteGalleryPhoto(actor, propertyId, assetId);
+  }
+  redirect(listingPath(propertyId, "gallery"));
 }
 
-export async function moveListingPhotoAction(formData: FormData) {
+export async function moveListingPhotosAction(propertyId: string, assetIds: string[], targetGalleryId: string) {
   const actor = await actorOrLogin();
-  const propertyId = String(formData.get("propertyId") ?? "");
-  const direction = formData.get("direction") === "earlier" ? "earlier" : "later";
-  await moveGalleryPhoto(actor, propertyId, String(formData.get("assetId") ?? ""), direction);
-  redirect(photosPath(propertyId));
+  const result = await movePhotosToGallery(actor, propertyId, assetIds, targetGalleryId);
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(listingPath(propertyId, "gallery"), notice));
+}
+
+export async function setListingCoverAction(propertyId: string, assetId: string) {
+  const actor = await actorOrLogin();
+  const result = await setListingCover(actor, propertyId, assetId);
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(listingPath(propertyId, "gallery"), notice));
+}
+
+export async function updateGalleryDetailsAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const result = await updateGalleryDetails(actor, String(formData.get("galleryId") ?? ""), {
+    title: String(formData.get("title") ?? ""),
+    requirePaid: formData.get("requirePaid") === "on",
+  });
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(listingPath(propertyId, "gallery"), notice));
+}
+
+export async function deliverListingAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const result = await deliverListingGallery(
+    actor,
+    propertyId,
+    String(formData.get("galleryId") ?? ""),
+    formData.get("markDelivered") === "on",
+  );
+  const notice = "error" in result && result.error ? result.error : "Published for the client. No email was sent.";
+  redirect(withNotice(listingPath(propertyId, "gallery"), notice));
+}
+
+export async function listingStatusAction(propertyId: string, orderId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const result = await changeOrderStatus(
+    actor,
+    orderId,
+    String(formData.get("status") ?? ""),
+    String(formData.get("note") ?? ""),
+    String(formData.get("startLocal") ?? ""),
+  );
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(`/admin/listings/${propertyId}?tab=${formData.get("tab") === "bookings" ? "bookings" : "overview"}`, notice));
+}
+
+export async function rescheduleListingBookingAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const result = await rescheduleBooking(actor, String(formData.get("bookingId") ?? ""), String(formData.get("startLocal") ?? ""));
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(`/admin/listings/${propertyId}?tab=bookings`, notice));
+}
+
+export async function listingQuoteAction(propertyId: string, orderId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const prices: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("price:")) prices[key.slice("price:".length)] = String(value);
+  }
+  const result = await setQuotePrices(actor, orderId, prices);
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+}
+
+export async function createListingInvoiceAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const result = await createInvoiceForOrder(actor, String(formData.get("orderId") ?? ""));
+  if ("id" in result && result.id) redirect(`/admin/listings/${propertyId}?tab=billing`);
+  const notice = "error" in result && result.error ? result.error : "Could not create the invoice.";
+  redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+}
+
+export async function voidListingInvoiceAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const result = await voidUnpaidInvoice(actor, String(formData.get("invoiceId") ?? ""));
+  const notice = "error" in result && result.error ? result.error : "Invoice voided.";
+  redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+}
+
+export async function createListingOrderAction(propertyId: string) {
+  const actor = await actorOrLogin();
+  const result = await prepareListingGallery(actor, propertyId, { createOrder: true });
+  const notice = "error" in result && result.error ? result.error : "";
+  redirect(withNotice(listingPath(propertyId, "gallery"), notice));
 }

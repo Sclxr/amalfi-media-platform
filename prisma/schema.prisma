@@ -650,8 +650,11 @@ model Property {
   createdAt    DateTime     @default(now())
   /// CRM realtor. Null on older rows until someone assigns one.
   leadId       String?
+  /// Staff-chosen cover. Empty falls back to the first ready photo on a published gallery.
+  coverAssetId String?      @unique
   client       Client       @relation(fields: [clientId], references: [id])
   lead         Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  coverAsset   MediaAsset?  @relation("ListingCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
   orders       Order[]
   galleries    Gallery[]
 
@@ -860,6 +863,7 @@ model MediaAsset {
   createdAt    DateTime    @default(now())
   gallery      Gallery     @relation(fields: [galleryId], references: [id], onDelete: Cascade)
   uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  listingCover Property?   @relation("ListingCover")
 
   @@index([galleryId, sortOrder])
 }
