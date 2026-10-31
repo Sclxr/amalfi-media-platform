@@ -13,6 +13,7 @@ import {
   registerUpload,
   reorderGalleryPhotos,
   replaceGalleryPhoto,
+  emailPropertyInvite,
   unpublishGallery,
   updateGalleryDetails,
 } from "@/server/services/galleries";
@@ -148,10 +149,16 @@ export async function publishListingGalleryAction(formData: FormData) {
   const actor = await actorOrLogin();
   const propertyId = String(formData.get("propertyId") ?? "");
   const galleryId = String(formData.get("galleryId") ?? "");
-  if (formData.get("mode") === "unpublish") await unpublishGallery(actor, galleryId);
-  else if (formData.get("mode") === "archive") await archiveGallery(actor, galleryId);
-  else await publishGallery(actor, galleryId);
-  redirect(listingPath(propertyId, "gallery"));
+  if (formData.get("mode") === "unpublish") {
+    await unpublishGallery(actor, galleryId);
+    redirect(listingPath(propertyId, "gallery"));
+  }
+  if (formData.get("mode") === "archive") {
+    await archiveGallery(actor, galleryId);
+    redirect(listingPath(propertyId, "gallery"));
+  }
+  const result = await publishGallery(actor, galleryId);
+  redirect(withNotice(listingPath(propertyId, "gallery"), result.notice));
 }
 
 export async function deleteListingPhotosAction(propertyId: string, assetIds: string[]) {
@@ -194,7 +201,12 @@ export async function deliverListingAction(propertyId: string, formData: FormDat
     String(formData.get("galleryId") ?? ""),
     formData.get("markDelivered") === "on",
   );
-  const notice = "error" in result && result.error ? result.error : "Published for the client. No email was sent.";
+  const notice =
+    "error" in result && result.error
+      ? result.error
+      : "notice" in result && result.notice
+        ? result.notice
+        : "Published for the client.";
   redirect(withNotice(listingPath(propertyId, "gallery"), notice));
 }
 
@@ -269,6 +281,12 @@ export async function voidListingInvoiceAction(propertyId: string, formData: For
   const result = await voidUnpaidInvoice(actor, String(formData.get("invoiceId") ?? ""));
   const notice = "error" in result && result.error ? result.error : "Invoice voided.";
   redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+}
+
+export async function sendListingInviteAction(propertyId: string) {
+  const actor = await actorOrLogin();
+  const result = await emailPropertyInvite(actor, propertyId);
+  return { notice: result.notice };
 }
 
 export async function createListingInviteAction(propertyId: string) {

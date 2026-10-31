@@ -168,7 +168,7 @@ export function ListingHeader({
         {canMedia ? (
           <Modal
             title="Deliver gallery"
-            description="The client can open a published gallery in the portal. No email is sent."
+            description="The client can open a published gallery in the portal. Publishing emails a single-use invite."
             trigger={<Button type="button">Deliver gallery</Button>}
           >
             {delivery ? (

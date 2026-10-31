@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 — 2026-10-31
+
+### Added
+
+- Staging can deliver transactional mail when `EMAIL_TRANSACTIONAL_ENABLED` and `EMAIL_STAGING_SEND` are both true. `EMAIL_STAGING_ALLOWLIST` limits recipients to listed addresses or domains; an empty list still sends to everyone. Development and test stay preview-only. Marketing email stays off outside production.
+- The listing page can send the gallery invite and shows whether it was emailed, logged only, or failed. The audit records the attempt without the invite token.
+
 ## 0.14.0 — 2026-10-31
 
 ### Fixed

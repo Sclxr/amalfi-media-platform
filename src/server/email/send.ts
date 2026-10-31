@@ -1,7 +1,7 @@
 import "server-only";
 import nodemailer from "nodemailer";
 import type { MailMessage } from "@/lib/email-messages";
-import { transactionalDeliveryPlan } from "@/lib/transactional-email";
+import { stagingRecipientAllowed, transactionalDeliveryPlan } from "@/lib/transactional-email";
 import { prisma } from "@/server/db/prisma";
 import { getEnv } from "@/server/env";
 import { logger } from "@/server/logger";
@@ -20,8 +20,23 @@ export async function sendTransactional(message: MailMessage): Promise<MailResul
   const mode = transactionalDeliveryPlan({
     appEnv: env.APP_ENV,
     emailTransactionalEnabled: env.emailTransactionalEnabled,
+    stagingSend: env.emailStagingSend,
     providerConfigured: providerConfigured(env),
   });
+  if (mode === "send" && env.APP_ENV === "staging") {
+    const allowed = stagingRecipientAllowed(message.to, env.EMAIL_STAGING_ALLOWLIST);
+    if (!allowed.allowed) {
+      logger.info({ to: message.to, subject: message.subject, reason: allowed.reason }, "transactional email preview");
+      if (env.emailDevPreview) {
+        await prisma.appSetting.upsert({
+          where: { key: "dev.lastTransactionalEmail" },
+          create: { key: "dev.lastTransactionalEmail", value: { to: message.to, subject: message.subject, at: new Date().toISOString() } },
+          update: { value: { to: message.to, subject: message.subject, at: new Date().toISOString() } },
+        });
+      }
+      return { delivered: false, mode: "preview", reason: allowed.reason };
+    }
+  }
   if (mode === "skip") {
     logger.info({ to: message.to, subject: message.subject }, "transactional email skipped");
     return { delivered: false, mode };

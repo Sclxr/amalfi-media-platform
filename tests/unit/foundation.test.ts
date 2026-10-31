@@ -136,6 +136,8 @@ describe("marketing email kill switch", () => {
       DATABASE_URL: "postgresql://amalfi_staging:secret@127.0.0.1:5432/amalfi_staging",
     });
     expect(staging.emailMarketingEnabled).toBe(false);
+    expect(staging.emailStagingSend).toBe(false);
+    expect(staging.EMAIL_STAGING_ALLOWLIST).toBeUndefined();
     expect(() =>
       parseEnv({
         ...baseEnv,

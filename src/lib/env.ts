@@ -13,6 +13,8 @@ export const envSchema = z
     ENCRYPTION_KEY: z.string().min(32),
     EMAIL_MARKETING_ENABLED: z.enum(["true", "false"]).default("false"),
     EMAIL_TRANSACTIONAL_ENABLED: z.enum(["true", "false"]).default("false"),
+    EMAIL_STAGING_SEND: z.enum(["true", "false"]).default("false"),
+    EMAIL_STAGING_ALLOWLIST: z.string().optional(),
     EMAIL_DEV_PREVIEW: z.enum(["true", "false"]).default("false"),
     EMAIL_PROVIDER: z.enum(["resend", "smtp"]).optional(),
     EMAIL_FROM: z.string().optional(),
@@ -136,6 +138,7 @@ export const envSchema = z
 export type ParsedEnv = z.infer<typeof envSchema> & {
   emailMarketingEnabled: boolean;
   emailTransactionalEnabled: boolean;
+  emailStagingSend: boolean;
   emailDevPreview: boolean;
   mediaMaxUploadBytes: number;
 };
@@ -167,6 +170,7 @@ export function parseEnv(source: Record<string, string | undefined>): ParsedEnv 
     ...parsed,
     emailMarketingEnabled: parsed.EMAIL_MARKETING_ENABLED === "true",
     emailTransactionalEnabled: parsed.EMAIL_TRANSACTIONAL_ENABLED === "true",
+    emailStagingSend: parsed.EMAIL_STAGING_SEND === "true",
     emailDevPreview: parsed.EMAIL_DEV_PREVIEW === "true",
     mediaMaxUploadBytes: mediaMaxUploadBytes(parsed.MEDIA_MAX_UPLOAD_BYTES),
   };

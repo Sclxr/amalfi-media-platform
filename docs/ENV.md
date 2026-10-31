@@ -11,7 +11,9 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `AUTH_SECRET` | yes | 32+ characters. Session signing |
 | `ENCRYPTION_KEY` | yes | 32+ characters. Reserved for TOTP and token encryption |
 | `EMAIL_MARKETING_ENABLED` | no | Default `false`. Boot fails if `true` outside production |
-| `EMAIL_TRANSACTIONAL_ENABLED` | no | Default `false`. Production sends only when this is `true` and a provider is configured. Staging and development never send; they log a preview |
+| `EMAIL_TRANSACTIONAL_ENABLED` | no | Default `false`. Production sends only when this is `true` and a provider is configured. Staging also sends when this and `EMAIL_STAGING_SEND` are both `true` |
+| `EMAIL_STAGING_SEND` | no | Default `false`. Set `true` on staging to deliver transactional mail. Ignored in development and test. An empty `EMAIL_STAGING_ALLOWLIST` still sends to every recipient; set the allowlist |
+| `EMAIL_STAGING_ALLOWLIST` | no | Comma-separated emails and domains, for example `eathen@amalfimedia.xyz, amalfimedia.xyz`. Used only when staging sending is on. Empty means no restriction |
 | `EMAIL_DEV_PREVIEW` | no | Local and test only. Stores the last password-reset, verification, invite, and receipt message in `AppSetting`. Leave `false` on staging and production |
 | `EMAIL_PROVIDER` | no | `resend` or `smtp`. Required to send, together with `EMAIL_FROM` |
 | `EMAIL_FROM` | no | From address, such as `Amalfi Media <hello@amalfimedia.xyz>` |

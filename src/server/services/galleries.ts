@@ -8,6 +8,7 @@ import { deleteMediaFile, readMediaFile, resolveMediaPath, writeMediaFile } from
 import { writeAudit } from "@/server/audit";
 import { streamStoredZip, uniqueZipKey } from "@/lib/zip-store";
 import { galleryInviteMessage } from "@/lib/email-messages";
+import { inviteEmailNotice } from "@/lib/transactional-email";
 import { previewServable } from "@/lib/preview-access";
 import { previewObjectKey, watermarkedPreview } from "@/lib/preview-image";
 import { sendTransactional } from "@/server/email/send";
@@ -184,33 +185,59 @@ export async function ensureListingUploadGallery(actor: Actor, propertyId: strin
 
 export async function publishGallery(actor: Actor, id: string) {
   if (!can(actor, "media.write")) throw new Error("Forbidden");
-  await prisma.gallery.update({ where: { id }, data: { status: "PUBLISHED", publishedAt: new Date() } });
+  const gallery = await prisma.gallery.update({
+    where: { id },
+    data: { status: "PUBLISHED", publishedAt: new Date() },
+    select: { propertyId: true },
+  });
   await writeAudit({ actorId: actor.id, action: "gallery.publish", entityType: "Gallery", entityId: id, after: { status: "PUBLISHED" } });
-  const mail = await emailGalleryInvite(actor, id);
-  return { ok: true as const, emailed: mail.emailed, previewed: mail.previewed };
+  const mail = await emailPropertyInvite(actor, gallery.propertyId);
+  return { ok: true as const, emailed: mail.delivered, previewed: mail.mode === "preview", notice: mail.notice };
 }
 
-async function emailGalleryInvite(actor: Actor, galleryId: string) {
+/** Creates a fresh invite, sends or logs it, and audits the attempt without the token. */
+export async function emailPropertyInvite(actor: Actor, propertyId: string) {
+  const failed = (reason: string) => ({
+    delivered: false,
+    mode: "skip" as const,
+    notice: inviteEmailNotice({ recipient: "", mode: "skip", delivered: false, reason }),
+  });
   try {
-    const gallery = await prisma.gallery.findUnique({
-      where: { id: galleryId },
-      include: { property: true, client: true },
-    });
-    if (!gallery?.client.email) return { emailed: false as const, previewed: false as const };
-    const invite = await createListingInvite(actor, gallery.propertyId);
-    if (!("url" in invite) || !invite.url) return { emailed: false as const, previewed: false as const };
+    if (!propertyId) return failed("That listing was not found.");
+    const property = await prisma.property.findUnique({ where: { id: propertyId }, include: { client: true } });
+    if (!property?.client.email) return failed("This listing's client needs an email.");
+    const invite = await createListingInvite(actor, property.id);
+    if (!("url" in invite) || !invite.url) {
+      const reason = "error" in invite && invite.error ? invite.error : "Could not create an invite.";
+      return failed(reason);
+    }
     const result = await sendTransactional(
       galleryInviteMessage({
-        to: gallery.client.email,
-        name: `${gallery.client.firstName} ${gallery.client.lastName}`.trim(),
-        address: gallery.property.addressLine1,
+        to: property.client.email,
+        name: `${property.client.firstName} ${property.client.lastName}`.trim(),
+        address: property.addressLine1,
         url: invite.url,
       }),
     );
-    return { emailed: result.delivered, previewed: result.mode === "preview" };
+    const notice = inviteEmailNotice({
+      recipient: property.client.email,
+      mode: result.mode,
+      delivered: result.delivered,
+      reason: result.reason,
+    });
+    await writeAudit({
+      actorId: actor.id,
+      action: "invite.email",
+      entityType: "Property",
+      entityId: property.id,
+      after: { recipient: property.client.email, mode: result.mode, delivered: result.delivered, reason: result.reason ?? null },
+    }).catch((error) => {
+      logger.error({ err: error, propertyId }, "invite email audit failed");
+    });
+    return { delivered: result.delivered, mode: result.mode, notice };
   } catch (error) {
-    logger.error({ err: error, galleryId }, "gallery invite email failed");
-    return { emailed: false as const, previewed: false as const };
+    logger.error({ err: error, propertyId }, "gallery invite email failed");
+    return failed("The email could not be sent.");
   }
 }
 
@@ -377,15 +404,15 @@ export async function deliverListingGallery(actor: Actor, propertyId: string, ga
     return { error: "Choose a gallery from this shoot." as const };
   }
   const published = await publishGallery(actor, gallery.id);
-  if (!markDelivered) return { ok: true as const, emailed: published.emailed };
+  if (!markDelivered) return { ok: true as const, emailed: published.emailed, notice: published.notice };
   const { changeOrderStatus } = await import("@/server/services/orders");
   const { canMarkOrderDelivered } = await import("@/lib/listing");
   if (!canMarkOrderDelivered(gallery.order.status)) {
-    return { error: "The gallery is published. This order cannot be marked delivered yet." as const, emailed: published.emailed };
+    return { error: "The gallery is published. This order cannot be marked delivered yet." as const, emailed: published.emailed, notice: published.notice };
   }
   const changed = await changeOrderStatus(actor, gallery.orderId, "DELIVERED", "Gallery delivered from the listing.");
-  if ("error" in changed && changed.error) return { error: changed.error, emailed: published.emailed };
-  return { ok: true as const, emailed: published.emailed };
+  if ("error" in changed && changed.error) return { error: changed.error, emailed: published.emailed, notice: published.notice };
+  return { ok: true as const, emailed: published.emailed, notice: published.notice };
 }
 
 export async function clientGallery(clientId: string, id: string) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createListingInviteAction } from "@/app/(admin)/admin/(app)/listings/actions";
+import { createListingInviteAction, sendListingInviteAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -9,10 +9,12 @@ export function InviteLink({ propertyId }: { propertyId: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function create() {
     setError(null);
+    setStatus(null);
     setCopied(false);
     startTransition(async () => {
       const result = await createListingInviteAction(propertyId);
@@ -25,6 +27,15 @@ export function InviteLink({ propertyId }: { propertyId: string }) {
     });
   }
 
+  function send() {
+    setError(null);
+    setStatus(null);
+    startTransition(async () => {
+      const result = await sendListingInviteAction(propertyId);
+      setStatus(result.notice);
+    });
+  }
+
   async function copy() {
     if (!url) return;
     await navigator.clipboard.writeText(url);
@@ -33,9 +44,15 @@ export function InviteLink({ propertyId }: { propertyId: string }) {
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="secondary" size="sm" onClick={create} disabled={pending}>
-        {pending ? "Creating link…" : "Create invite link"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={create} disabled={pending}>
+          {pending ? "Working…" : "Create invite link"}
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={send} disabled={pending}>
+          {pending ? "Working…" : "Send invite by email"}
+        </Button>
+      </div>
+      {status ? <p>{status}</p> : null}
       {url ? (
         <div className="space-y-2">
           <label className="grid gap-1 text-sm">
@@ -45,7 +62,7 @@ export function InviteLink({ propertyId }: { propertyId: string }) {
           <Button type="button" variant="secondary" size="sm" onClick={copy}>
             {copied ? "Copied" : "Copy invite link"}
           </Button>
-          <p className="text-muted-foreground">This link works once and expires in 7 days. A new link replaces the previous one. Email is not sent yet.</p>
+          <p className="text-muted-foreground">This link works once and expires in 7 days. A new link replaces the previous one.</p>
         </div>
       ) : null}
       {error ? <p className="text-destructive">{error}</p> : null}
