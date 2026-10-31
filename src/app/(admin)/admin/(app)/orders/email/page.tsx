@@ -15,6 +15,7 @@ export default async function TransactionalEmailPage() {
   const decision = transactionalSendDecision({
     appEnv: env.APP_ENV,
     emailTransactionalEnabled: env.emailTransactionalEnabled,
+    stagingSend: env.emailStagingSend,
   });
   const templates = await prisma.emailTemplate.findMany({ where: { category: "TRANSACTIONAL" }, orderBy: { key: "asc" } });
   return (

@@ -53,7 +53,9 @@ Set these on the Render service before the first build. The auth module reads th
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `ENCRYPTION_KEY` | a different `openssl rand -base64 32` |
 | `EMAIL_MARKETING_ENABLED` | `false` |
-| `EMAIL_TRANSACTIONAL_ENABLED` | `false` until you want mail. Production sends only with a provider. Staging logs a preview and does not send |
+| `EMAIL_TRANSACTIONAL_ENABLED` | `false` until you want mail. Production sends only with a provider. Staging sends only when this and `EMAIL_STAGING_SEND` are both `true` |
+| `EMAIL_STAGING_SEND` | `false`. Set `true` on staging only after SMTP works. An empty allowlist still delivers to every recipient |
+| `EMAIL_STAGING_ALLOWLIST` | Recommended whenever staging sending is on. Comma-separated addresses and domains. Empty means send to anyone |
 | `EMAIL_DEV_PREVIEW` | `false` |
 | `EMAIL_PROVIDER` | blank, or `resend` / `smtp` in production |
 | `EMAIL_FROM` | blank until sending, then `Amalfi Media <hello@amalfimedia.xyz>` |
