@@ -1,6 +1,6 @@
 # Milestones
 
-Status as of 30 October 2026. Milestones 1 through 3 are in review. Milestone 4 is this pull request.
+Status as of 31 October 2026. Listings are this pull request.
 
 ## Milestone 1 — Foundation
 
@@ -51,6 +51,11 @@ Status as of 30 October 2026. Milestones 1 through 3 are in review. Milestone 4 
 - [x] Webhook signature check and idempotent processing. Card data is not stored
 - [x] Invoice list and detail in admin and the portal, with receipt links
 - [x] Signed gallery uploads, watermark-free previews, pay-before-download, trusted-client override, zip download, and download audit
+
+## Listings
+
+- [x] `/admin/listings` cards use the property, the CRM realtor, the latest non-cancelled order, and a gallery cover
+- [x] A realtor profile lists those same properties and can create one without sending email
 
 ## Later
 

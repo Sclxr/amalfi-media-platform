@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 — 2026-10-31
+
+### Added
+
+- Admin listings use the existing property records and the CRM realtor. Status, shoot date, and cover photo come from the related order, booking, and gallery.
+
 ## 0.4.0 — 2026-10-30
 
 ### Added
