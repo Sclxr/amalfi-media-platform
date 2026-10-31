@@ -26,6 +26,11 @@ ENV MEDIA_ROOT=/var/lib/amalfi/production/media
 RUN pnpm build
 
 FROM base AS runner
+# The worker container uses this same image. Fonts keep any leftover SVG text readable;
+# the watermark itself is drawn as rectangles and does not need them.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

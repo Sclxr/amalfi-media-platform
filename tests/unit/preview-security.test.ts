@@ -74,6 +74,25 @@ describe("watermarked previews", () => {
     const markedMean = (await sharp(marked).stats()).channels[0]?.mean ?? 255;
     const plainMean = (await sharp(plain).stats()).channels[0]?.mean ?? 255;
     expect(plainMean - markedMean).toBeGreaterThan(8);
+    const { data, info } = await sharp(marked).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const runs: number[] = [];
+    for (let y = 0; y < info.height; y += 1) {
+      let run = 0;
+      for (let x = 0; x < info.width; x += 1) {
+        const index = (y * info.width + x) * info.channels;
+        const dark = (data[index] ?? 255) < 70 && (data[index + 1] ?? 255) < 70 && (data[index + 2] ?? 255) < 70;
+        if (dark) run += 1;
+        else if (run > 0) {
+          runs.push(run);
+          run = 0;
+        }
+      }
+      if (run > 0) runs.push(run);
+    }
+    const short = runs.filter((length) => length <= 16);
+    const long = runs.filter((length) => length >= 48);
+    expect(short.length).toBeGreaterThan(80);
+    expect(short.length).toBeGreaterThan(long.length * 4);
     const meta = await sharp(preview).metadata();
     expect(meta.width).toBeLessThanOrEqual(1600);
     expect(meta.height).toBeLessThanOrEqual(1600);

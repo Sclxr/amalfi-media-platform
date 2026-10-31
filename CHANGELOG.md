@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0 — 2026-10-31
+
+### Fixed
+
+- The preview watermark is drawn as letter shapes, not SVG text, so it still reads in the Docker image where fontconfig has no fonts. The runner image also installs fontconfig and DejaVu. `pnpm previews:backfill -- --force` rewrites the blank bars.
+
 ## 0.13.0 — 2026-10-31
 
 ### Fixed

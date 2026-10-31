@@ -2,31 +2,72 @@ import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 
 const MAX_EDGE = 1600;
+
+/**
+ * 5×7 glyphs drawn as rectangles. Sharp's SVG text needs fontconfig, which the
+ * production image does not have, so these outlines do not depend on a font.
+ */
+const GLYPHS: Record<string, readonly string[]> = {
+  A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+  D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+  E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+  F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+  I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"],
+  L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+  M: ["10001", "11011", "10101", "10001", "10001", "10001", "10001"],
+  P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+  R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+  V: ["10001", "10001", "10001", "10001", "01010", "01010", "00100"],
+  W: ["10001", "10001", "10001", "10101", "10101", "11011", "10001"],
+  "·": ["00000", "00000", "00100", "01110", "00100", "00000", "00000"],
+  " ": ["000", "000", "000", "000", "000", "000", "000"],
+};
+
 const MARK = "AMALFI MEDIA · PREVIEW";
 
 export function previewObjectKey() {
   return `previews/${randomUUID()}.jpg`;
 }
 
-/** Diagonal tiles of the preview label. Stroke and fill so it reads on bright and dark photos. */
+function glyphMarkup(text: string, cell: number, originX: number, originY: number) {
+  const stroke = Math.max(2, Math.round(cell / 3));
+  const parts: string[] = [];
+  let cursor = originX;
+  for (const character of text) {
+    const rows = GLYPHS[character] ?? GLYPHS[" "];
+    const width = (rows[0]?.length ?? 3) * cell;
+    rows.forEach((row, rowIndex) => {
+      for (let column = 0; column < row.length; column += 1) {
+        if (row[column] !== "1") continue;
+        const x = cursor + column * cell;
+        const y = originY + rowIndex * cell;
+        parts.push(
+          `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="#ffffff" stroke="#111111" stroke-width="${stroke}"/>`,
+        );
+      }
+    });
+    cursor += width + cell;
+  }
+  return { markup: parts.join(""), width: cursor - originX };
+}
+
+/** Diagonal tiles of the preview label, drawn as paths so no system font is required. */
 export function watermarkSvg(width: number, height: number) {
-  const font = Math.max(36, Math.round(Math.min(width, height) / 14));
-  const stepX = Math.round(font * 11);
-  const stepY = Math.round(font * 4.2);
-  const stroke = Math.max(3, Math.round(font / 10));
-  const labels: string[] = [];
+  const cell = Math.max(7, Math.round(Math.min(width, height) / 55));
+  const letterHeight = cell * 7;
+  const tile = glyphMarkup(MARK, cell, 0, 0);
+  const stepX = Math.round(tile.width + cell * 6);
+  const stepY = Math.round(letterHeight + cell * 8);
+  const tiles: string[] = [];
   for (let y = -height; y < height * 2; y += stepY) {
     for (let x = -width; x < width * 2; x += stepX) {
-      labels.push(`<text x="${x}" y="${y}">${MARK}</text>`);
+      tiles.push(`<g transform="translate(${x} ${y})">${glyphMarkup(MARK, cell, 0, 0).markup}</g>`);
     }
   }
   return Buffer.from(
     `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <style>
-        text { font: 700 ${font}px sans-serif; fill: rgba(255,255,255,0.82); stroke: rgba(0,0,0,0.78); stroke-width: ${stroke}px; paint-order: stroke fill; }
-      </style>
       <g transform="rotate(-28 ${Math.round(width / 2)} ${Math.round(height / 2)})">
-        ${labels.join("")}
+        ${tiles.join("")}
       </g>
     </svg>`,
   );
