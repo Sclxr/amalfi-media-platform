@@ -163,6 +163,36 @@ describe("staging access gate", () => {
     expect(stagingGate({ appEnv: "development", basicAuth: undefined, authorizationHeader: null, pathname: "/admin" }).action).toBe("allow");
   });
 
+  it("turns the staging password off only when STAGING_GATE is off", () => {
+    const closed = { appEnv: "staging", basicAuth: undefined, authorizationHeader: null, pathname: "/admin" };
+    expect(stagingGate(closed).action).toBe("misconfigured");
+    expect(stagingGate({ ...closed, gate: "on" }).action).toBe("misconfigured");
+    expect(stagingGate({ ...closed, gate: "" }).action).toBe("misconfigured");
+    expect(stagingGate({ ...closed, gate: "off", pathname: "/" }).action).toBe("allow");
+    expect(stagingGate({ ...closed, gate: "off", pathname: "/admin" }).action).toBe("allow");
+    expect(stagingGate({ ...closed, gate: "off", pathname: "/api/bot" }).action).toBe("allow");
+    expect(stagingGate({ ...closed, gate: " off " }).action).toBe("allow");
+    expect(stagingGate({ appEnv: "production", basicAuth: undefined, authorizationHeader: null, pathname: "/admin", gate: "off" }).action).toBe("allow");
+    expect(
+      stagingGate({ appEnv: "staging", basicAuth: "preview:secret", authorizationHeader: null, pathname: "/admin", gate: "on" }).action,
+    ).toBe("challenge");
+
+    const stagingBase = {
+      ...baseEnv,
+      APP_ENV: "staging" as const,
+      APP_URL: "https://staging.amalfimedia.xyz",
+      S3_BUCKET: "amalfi-staging",
+      MEDIA_ROOT: "/var/lib/amalfi/staging/media",
+      DATABASE_URL: "postgresql://amalfi_staging:secret@127.0.0.1:5432/amalfi_staging",
+    };
+    expect(() => parseEnv(stagingBase)).toThrow(/STAGING_BASIC_AUTH/);
+    expect(() => parseEnv({ ...stagingBase, STAGING_GATE: "on" })).toThrow(/STAGING_BASIC_AUTH/);
+    const open = parseEnv({ ...stagingBase, STAGING_GATE: "off" });
+    expect(open.STAGING_GATE).toBe("off");
+    expect(open.STAGING_BASIC_AUTH).toBeUndefined();
+    expect(parseEnv({ ...stagingBase, STAGING_BASIC_AUTH: "preview:secret" }).STAGING_GATE).toBe("on");
+  });
+
   it("lets portal and auth routes through and keeps admin behind the password", async () => {
     const open = [
       "/portal",
@@ -199,19 +229,38 @@ describe("staging access gate", () => {
 
     const previousEnv = process.env.APP_ENV;
     const previousAuth = process.env.STAGING_BASIC_AUTH;
+    const previousGate = process.env.STAGING_GATE;
     process.env.APP_ENV = "staging";
     process.env.STAGING_BASIC_AUTH = "preview:secret";
+    delete process.env.STAGING_GATE;
     try {
       const portal = await proxy(new NextRequest("https://staging.amalfimedia.xyz/portal/login"));
       expect(portal.status).toBe(200);
       const admin = await proxy(new NextRequest("https://staging.amalfimedia.xyz/admin"));
       expect(admin.status).toBe(401);
       expect(admin.headers.get("WWW-Authenticate")).toContain("Basic");
+
+      delete process.env.STAGING_BASIC_AUTH;
+      process.env.STAGING_GATE = "off";
+      const unlocked = await proxy(new NextRequest("https://staging.amalfimedia.xyz/admin"));
+      expect(unlocked.status).toBe(307);
+      expect(unlocked.headers.get("location")).toContain("/admin/login");
+      const login = await proxy(new NextRequest("https://staging.amalfimedia.xyz/admin/login"));
+      expect(login.status).toBe(200);
+      const billing = await proxy(new NextRequest("https://staging.amalfimedia.xyz/admin/billing"));
+      expect(billing.status).toBe(307);
+      expect(billing.headers.get("location")).toContain("/admin/login");
+      const signedIn = await proxy(
+        new NextRequest("https://staging.amalfimedia.xyz/admin", { headers: { cookie: "amalfi.session_token=present" } }),
+      );
+      expect(signedIn.status).toBe(200);
     } finally {
       if (previousEnv === undefined) delete process.env.APP_ENV;
       else process.env.APP_ENV = previousEnv;
       if (previousAuth === undefined) delete process.env.STAGING_BASIC_AUTH;
       else process.env.STAGING_BASIC_AUTH = previousAuth;
+      if (previousGate === undefined) delete process.env.STAGING_GATE;
+      else process.env.STAGING_GATE = previousGate;
     }
   });
 });

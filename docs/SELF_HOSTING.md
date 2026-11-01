@@ -65,7 +65,7 @@ Neither publishes `0.0.0.0`. Host Nginx proxies the two hostnames to those local
 - `/var/lib/amalfi/staging/media`
 - `/var/lib/amalfi/production/media`
 
-The app refuses to boot staging if `MEDIA_ROOT` does not contain a `staging` path segment, or if the database name does not contain `staging`. Production refuses a media path or database name that contains `staging`. Marketing email stays off unless `APP_ENV=production` and the flag is true. Staging still requires basic auth and Stripe test keys.
+The app refuses to boot staging if `MEDIA_ROOT` does not contain a `staging` path segment, or if the database name does not contain `staging`. Production refuses a media path or database name that contains `staging`. Marketing email stays off unless `APP_ENV=production` and the flag is true. Staging requires basic auth while `STAGING_GATE=on`, and Stripe test keys. `STAGING_GATE=off` skips only that password.
 
 Startup runs `prisma migrate deploy`, then seeds only when `seed.completed` is missing, then starts the server. A second boot does not overwrite prices or passwords.
 

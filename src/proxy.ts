@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
     basicAuth: process.env.STAGING_BASIC_AUTH,
     authorizationHeader: request.headers.get("authorization"),
     pathname,
+    gate: process.env.STAGING_GATE,
   });
   if (gate.action === "misconfigured") {
     return new NextResponse("Staging access is not configured.", { status: 503 });

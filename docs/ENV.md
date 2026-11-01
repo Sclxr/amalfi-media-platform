@@ -24,7 +24,8 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `SMTP_PASSWORD` | no | SMTP password |
 | `STRIPE_API_BASE` | no | Defaults to `https://api.stripe.com`. Production refuses any other host |
 | `GMAIL_API_ENABLED` | no | Default off. The Gmail client is a stub and does not call Google. See `docs/GMAIL_OAUTH.md` |
-| `STAGING_BASIC_AUTH` | staging | `username:password`. Required when `APP_ENV=staging`. Protects `/admin`. `/portal` and `/api/auth` do not ask for it |
+| `STAGING_GATE` | no | `on` (default) or `off`. On staging, `off` skips the basic-auth password for every path. Admin pages still require an admin session. Ignored outside staging |
+| `STAGING_BASIC_AUTH` | staging | `username:password`. Required when `APP_ENV=staging` and `STAGING_GATE` is `on`. Protects `/admin`. `/portal` and `/api/auth` do not ask for it |
 | `STRIPE_SECRET_KEY` | no | Staging must be `sk_test_`. Production must not be a test key |
 | `STRIPE_WEBHOOK_SECRET` | no | Signing secret for `POST /api/stripe/webhook`. Comma-separated while rotating so both secrets are accepted. Subscribe the endpoint to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created`, and `charge.dispute.closed` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no | Staging must be `pk_test_` |
