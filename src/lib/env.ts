@@ -24,6 +24,7 @@ export const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
     STRIPE_API_BASE: z.string().url().optional(),
+    STAGING_GATE: z.enum(["on", "off"]).default("on"),
     STAGING_BASIC_AUTH: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -49,7 +50,7 @@ export const envSchema = z
       });
     }
     if (value.APP_ENV === "staging") {
-      if (!value.STAGING_BASIC_AUTH?.includes(":")) {
+      if (value.STAGING_GATE !== "off" && !value.STAGING_BASIC_AUTH?.includes(":")) {
         ctx.addIssue({
           code: "custom",
           path: ["STAGING_BASIC_AUTH"],

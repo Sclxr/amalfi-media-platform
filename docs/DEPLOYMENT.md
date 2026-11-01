@@ -64,7 +64,8 @@ Set these on the Render service before the first build. The auth module reads th
 | `SMTP_PORT` | blank, or the SMTP port |
 | `SMTP_USER` | blank unless the SMTP server requires auth |
 | `SMTP_PASSWORD` | blank unless the SMTP server requires auth |
-| `STAGING_BASIC_AUTH` | `preview:<long-random-password>` |
+| `STAGING_GATE` | `on`. Set `off` to stop asking for the staging password. Admin sign-in still applies |
+| `STAGING_BASIC_AUTH` | `preview:<long-random-password>`. Required while `STAGING_GATE=on`. Optional when it is `off` |
 | `STRIPE_SECRET_KEY` | blank, or `sk_test_...` only |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | blank, or `pk_test_...` only |
 | `STRIPE_WEBHOOK_SECRET` | blank until billing. When set, a comma-separated list is accepted during secret rotation |
@@ -88,7 +89,7 @@ Do not add a Render pre-deploy command. Free web services do not support one. St
 
 `pnpm db:seed` is still the manual command. It upserts the demo rows and refreshes the marker. Use it only when you intend to refresh demo accounts. Startup will not do that on its own.
 
-Sign in at `/admin/login` with `eathen@amalfimedia.xyz` and `SEED_ADMIN_PASSWORD`. The browser will first ask for the `STAGING_BASIC_AUTH` user and password. Realtors open `/portal` without that password and sign in with an email code or their portal password. The blueprint sets `S3_BUCKET` to `amalfi-staging` and keeps `EMAIL_MARKETING_ENABLED=false`. Staging still refuses a live Stripe key, a production-looking database URL, and marketing email.
+Sign in at `/admin/login` with `eathen@amalfimedia.xyz` and `SEED_ADMIN_PASSWORD`. While `STAGING_GATE=on`, the browser asks for the `STAGING_BASIC_AUTH` user and password before `/admin`. Set `STAGING_GATE=off` to skip that password; `/admin` still redirects to the admin sign-in without a session. Realtors open `/portal` without the staging password and sign in with an email code or their portal password. The blueprint sets `S3_BUCKET` to `amalfi-staging` and keeps `EMAIL_MARKETING_ENABLED=false`. Staging still refuses a live Stripe key, a production-looking database URL, and marketing email.
 
 ## 5. DNS
 
@@ -104,7 +105,7 @@ The app responds with `noindex` and a robots disallow. Leave it that way on stag
 | R2 | `amalfi-staging` | `amalfi-prod` |
 | Stripe | test keys only | live keys |
 | Marketing email | forced off | off until you set the flag |
-| Access | basic auth plus app login | app login |
+| Access | basic auth plus app login, unless `STAGING_GATE=off` | app login |
 | Host | `staging.amalfimedia.xyz` or the onrender.com URL | `app.amalfimedia.xyz` |
 
 ## Future VPS and Nginx

@@ -49,6 +49,14 @@ Local seed only. The demo password is used only when `APP_ENV=development` and `
 
 Any environment other than development refuses to seed until `SEED_ADMIN_PASSWORD` is set to something other than the demo password. Do not reuse the local demo password on a public URL. Re-running the seed resets those three demo passwords and upserts the demo records. It does not delete realtors you add afterward.
 
+## Staging password
+
+`STAGING_GATE=on` (the default) asks for `STAGING_BASIC_AUTH` before `/admin` when `APP_ENV=staging`. Set this in `deploy/staging.env` to turn that password off. Admin and portal sign-in stay in place.
+
+```bash
+STAGING_GATE=off
+```
+
 ## Checks
 
 ```bash

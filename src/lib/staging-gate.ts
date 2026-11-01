@@ -28,14 +28,18 @@ function credentialsMatch(provided: string, expected: string): boolean {
  * Staging admin stays closed unless the request presents the configured basic-auth secret.
  * A missing secret fails closed for those routes. Portal, invite, and auth routes stay open
  * so a realtor can sign in; gallery files still require an application session.
+ * STAGING_GATE=off skips this password entirely. App login is unchanged.
  */
 export function stagingGate(input: {
   appEnv: string;
   basicAuth: string | undefined;
   authorizationHeader: string | null;
   pathname: string;
+  /** `off` skips the staging password. Missing or `on` keeps the fail-closed gate. */
+  gate?: string;
 }): StagingGateResult {
   if (input.appEnv !== "staging") return { action: "allow" };
+  if (input.gate?.trim() === "off") return { action: "allow" };
   if (stagingBasicAuthBypass(input.pathname)) return { action: "allow" };
   if (!input.basicAuth || !input.basicAuth.includes(":")) return { action: "misconfigured" };
   const header = input.authorizationHeader;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 — 2026-11-01
+
+### Added
+
+- `STAGING_GATE=off` skips the staging basic-auth password. The default stays `on`, and a missing password still fails closed. Admin pages still require an admin session.
+
 ## 0.16.0 — 2026-10-31
 
 ### Added
