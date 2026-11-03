@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/data/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ export default async function PortalHomePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Hello, {actor.name.split(" ")[0]}</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">Hello, {actor.name.split(" ")[0]}</h1>
         <p className="mt-2 text-muted-foreground">Your Amalfi Media listings in Orlando and Central Florida.</p>
       </div>
       <section className="grid gap-4 sm:grid-cols-3">
@@ -36,21 +37,17 @@ export default async function PortalHomePage() {
       {orders.length === 0 ? (
         <EmptyState title="No orders yet" body="When Amalfi schedules a shoot, it will show up here." />
       ) : (
-        <Card>
-          <CardHeader><CardTitle>Recent orders</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {orders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between text-sm">
-                <span>
-                  AM-{String(order.number).padStart(4, "0")} · {order.property.addressLine1}
-                </span>
-                <span className="text-muted-foreground">
-                  {clientOrderLabel(order.status)} · {formatCents(order.totalCents)}
-                </span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Recent orders</h2>
+          {orders.map((order) => (
+            <Link key={order.id} href={`/portal/orders/${order.id}`} className="block min-h-12 rounded-2xl border border-border bg-card p-4">
+              <p className="text-base font-semibold">{order.property.addressLine1}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                AM-{String(order.number).padStart(4, "0")} · {clientOrderLabel(order.status)} · {formatCents(order.totalCents)}
+              </p>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );

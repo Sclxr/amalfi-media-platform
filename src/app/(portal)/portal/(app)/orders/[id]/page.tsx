@@ -23,7 +23,7 @@ export default async function PortalOrderPage({ params }: { params: Promise<{ id
         Orders
       </Link>
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">{order.property.addressLine1}</h1>
+        <h1 className="break-words text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">{order.property.addressLine1}</h1>
         <p className="mt-2 text-muted-foreground">
           {clientOrderLabel(order.status)} · {formatCents(order.totalCents)} · travel {formatCents(order.travelFeeCents)}
         </p>

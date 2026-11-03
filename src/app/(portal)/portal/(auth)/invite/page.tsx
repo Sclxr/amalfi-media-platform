@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PortalOtpForm } from "@/components/forms/portal-otp-form";
-import { ThemeToggle } from "@/components/shell/theme-toggle";
+import { PortalAuthShell } from "@/components/shell/portal-auth-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readInvite } from "@/server/services/invites";
 
@@ -14,16 +14,12 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
   const next = invite?.next ?? "/portal/galleries";
   const query = new URLSearchParams({ next, invite: token });
   return (
-    <main className="relative grid min-h-screen place-items-center bg-surface px-4 py-12">
-      <div className="absolute right-4 top-4">
-        <ThemeToggle />
-      </div>
-      <Card className="w-full max-w-md">
+    <PortalAuthShell>
+      <Card className="w-full">
         <CardHeader>
-          <p className="text-sm font-medium text-primary">Amalfi Media</p>
-          <CardTitle className="text-2xl">Gallery invite</CardTitle>
+          <CardTitle className="text-[1.75rem] leading-tight">Gallery invite</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm">
+        <CardContent className="space-y-4 text-base">
           {invite ? (
             <>
               <p>
@@ -31,7 +27,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               </p>
               <p className="text-muted-foreground">Enter the email on this listing. The code signs you in and uses this link once.</p>
               <PortalOtpForm next={next} invite={token} email={invite.clientEmail} note={null} />
-              <Link className="block text-primary" href={`/portal/register?${query}`}>
+              <Link className="inline-flex min-h-12 items-center text-primary" href={`/portal/register?${query}`}>
                 Create an account
               </Link>
             </>
@@ -40,6 +36,6 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
           )}
         </CardContent>
       </Card>
-    </main>
+    </PortalAuthShell>
   );
 }

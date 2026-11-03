@@ -20,7 +20,12 @@ export function clientScope(actor: Actor) {
         prisma.order.updateMany({ where: { id, clientId }, data: { instructions } }),
     },
     invoices: {
-      list: () => prisma.invoice.findMany({ where: { clientId }, orderBy: { createdAt: "desc" } }),
+      list: () =>
+        prisma.invoice.findMany({
+          where: { clientId },
+          orderBy: { createdAt: "desc" },
+          include: { order: { include: { property: { select: { addressLine1: true } } } } },
+        }),
       get: (id: string) => prisma.invoice.findFirst({ where: { id, clientId } }),
     },
     galleries: {
@@ -28,6 +33,10 @@ export function clientScope(actor: Actor) {
         prisma.gallery.findMany({
           where: { clientId, status: "PUBLISHED", property: { archivedAt: null }, order: { archivedAt: null } },
           orderBy: { createdAt: "desc" },
+          include: {
+            property: { select: { addressLine1: true, city: true, state: true } },
+            assets: { where: { status: "READY" }, orderBy: { sortOrder: "asc" }, take: 1, select: { id: true } },
+          },
         }),
       get: (id: string) =>
         prisma.gallery.findFirst({

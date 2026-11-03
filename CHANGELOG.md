@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0 — 2026-11-03
+
+### Changed
+
+- The client gallery leads with the photos. A tap opens the watermarked preview, and Close or Escape leaves it. The payment card lists the listing price, the card fee, the card total, and Zelle. Orders and galleries are tappable cards with the address on its own line. Sign-in and the email code use the black header.
+
 ## 0.20.0 — 2026-11-03
 
 ### Changed
