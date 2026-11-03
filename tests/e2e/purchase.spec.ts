@@ -157,20 +157,21 @@ test("a new client claims a gallery, pays, and downloads", async ({ page, browse
   await expect(guestPage.getByText("Payment is processing.")).toBeVisible();
 
   const openRow = sql(
-    `SELECT id || '|' || "stripeCheckoutSessionId" || '|' || "totalCents" FROM "Invoice" WHERE status = 'OPEN' AND "clientId" = (SELECT id FROM "Client" WHERE email = '${email}') ORDER BY "createdAt" DESC LIMIT 1`,
+    `SELECT id || '|' || "stripeCheckoutSessionId" || '|' || "totalCents" || '|' || "cardFeeCents" FROM "Invoice" WHERE status = 'OPEN' AND "clientId" = (SELECT id FROM "Client" WHERE email = '${email}') ORDER BY "createdAt" DESC LIMIT 1`,
   );
-  const [invoiceId, sessionId, totalText] = openRow.split("|");
+  const [invoiceId, sessionId, totalText, feeText] = openRow.split("|");
   const total = Number(totalText);
+  const charged = total + Number(feeText);
   expect(sessionId.startsWith("cs_")).toBeTruthy();
   const short = await postWebhook(request, paidEvent(`evt_short_${stamp}`, invoiceId!, sessionId!, 100));
   expect(short.rejected).toBe(true);
-  const wrongCurrency = await postWebhook(request, paidEvent(`evt_eur_${stamp}`, invoiceId!, sessionId!, total, "eur"));
+  const wrongCurrency = await postWebhook(request, paidEvent(`evt_eur_${stamp}`, invoiceId!, sessionId!, charged, "eur"));
   expect(wrongCurrency.rejected).toBe(true);
   expect(sql(`SELECT status FROM "Invoice" WHERE id = '${invoiceId}'`)).toBe("OPEN");
   await guestPage.reload();
   await expect(guestPage.getByText("Payment required before download.")).toBeVisible();
 
-  const paid = await postWebhook(request, paidEvent(`evt_paid_${stamp}`, invoiceId!, sessionId!, total));
+  const paid = await postWebhook(request, paidEvent(`evt_paid_${stamp}`, invoiceId!, sessionId!, charged));
   expect(paid.paid).toBe(true);
   await guestPage.goto(`${galleryUrl}?paid=1`);
   await expect(guestPage.getByText("Payment received. You can download these photos.")).toBeVisible();
@@ -184,7 +185,7 @@ test("a new client claims a gallery, pays, and downloads", async ({ page, browse
   const refunded = await postWebhook(request, {
     id: `evt_refund_${stamp}`,
     type: "charge.refunded",
-    data: { object: { id: `ch_${stamp}`, amount: total, amount_refunded: total, currency: "usd", metadata: { invoiceId } } },
+    data: { object: { id: `ch_${stamp}`, amount: charged, amount_refunded: charged, currency: "usd", metadata: { invoiceId } } },
   });
   expect(refunded.refunded).toBe(true);
   await guestPage.reload();

@@ -69,6 +69,9 @@ Set these on the Render service before the first build. The auth module reads th
 | `STRIPE_SECRET_KEY` | blank, or `sk_test_...` only |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | blank, or `pk_test_...` only |
 | `STRIPE_WEBHOOK_SECRET` | blank until billing. When set, a comma-separated list is accepted during secret rotation |
+| `CARD_FEE_PERCENT` | `2.9`. Card checkout adds this so the listing price remains after the card fee |
+| `CARD_FEE_FIXED_CENTS` | `30` |
+| `ZELLE_PHONE` | `(321) 246-6018` on staging. Blank hides Pay with Zelle |
 | `S3_ENDPOINT` | R2 endpoint |
 | `S3_REGION` | `auto` |
 | `S3_BUCKET` | `amalfi-staging` |

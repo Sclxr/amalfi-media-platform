@@ -29,6 +29,9 @@ Copy `.env.example` to `.env`. Never commit `.env`. Do not put `NODE_ENV` in the
 | `STRIPE_SECRET_KEY` | no | Staging must be `sk_test_`. Production must not be a test key |
 | `STRIPE_WEBHOOK_SECRET` | no | Signing secret for `POST /api/stripe/webhook`. Comma-separated while rotating so both secrets are accepted. Subscribe the endpoint to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created`, and `charge.dispute.closed` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no | Staging must be `pk_test_` |
+| `CARD_FEE_PERCENT` | no | Default `2.9`. Card checkout adds this percent so the listing price remains after the card fee |
+| `CARD_FEE_FIXED_CENTS` | no | Default `30`. Fixed cents added with the percent |
+| `ZELLE_PHONE` | no | Shown in the portal Zelle instructions. Blank hides Pay with Zelle. Staging uses `(321) 246-6018` |
 | `S3_ENDPOINT` | no | R2 S3 API endpoint |
 | `S3_REGION` | no | `auto` for R2 |
 | `S3_BUCKET` | no | Staging name must include `staging` |

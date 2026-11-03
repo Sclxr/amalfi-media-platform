@@ -53,15 +53,22 @@ export default async function InvoiceDetailPage({
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {invoice.payments.length === 0 ? <p className="text-muted-foreground">No receipt yet.</p> : null}
-          {invoice.payments.map((payment) =>
-            payment.receiptUrl ? (
-              <a key={payment.id} className="text-primary" href={payment.receiptUrl}>
-                Receipt
-              </a>
-            ) : (
-              <p key={payment.id}>Payment recorded. Stripe did not include a receipt URL.</p>
-            ),
-          )}
+          {invoice.cardFeeCents > 0 ? <p>Card processing fee {formatCents(invoice.cardFeeCents)} on top of {formatCents(invoice.totalCents)}.</p> : null}
+          {invoice.payments.map((payment) => (
+            <p key={payment.id}>
+              {payment.method === "zelle" ? "Zelle" : payment.method === "card" ? "Card" : "Payment"} {formatCents(payment.amountCents)}
+              {payment.feeCents > 0 ? ` · fee ${formatCents(payment.feeCents)} · listing ${formatCents(payment.baseCents)}` : ""}
+              {payment.note ? ` · ${payment.note}` : ""}
+              {payment.receiptUrl ? (
+                <>
+                  {" "}
+                  <a className="text-primary" href={payment.receiptUrl}>
+                    Receipt
+                  </a>
+                </>
+              ) : null}
+            </p>
+          ))}
         </CardContent>
       </Card>
       {stripe.configured && invoice.status !== "PAID" ? (

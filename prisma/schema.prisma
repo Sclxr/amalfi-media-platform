@@ -137,6 +137,12 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum OrderCollection {
+  UNPAID
+  AWAITING_ZELLE
+  PAID
+}
+
 enum InvoiceStatus {
   DRAFT
   OPEN
@@ -226,6 +232,7 @@ model User {
   importBatches     ImportBatch[]
   refunds           Refund[]
   listingInvites    ListingInvite[]
+  recordedPayments  Payment[]            @relation("PaymentRecorder")
 
   @@unique([email])
   @@index([role])
@@ -699,6 +706,8 @@ model Order {
   travelFeeCents Int         @default(0)
   discountCents  Int         @default(0)
   totalCents     Int         @default(0)
+  cardFeeCents   Int         @default(0)
+  collection     OrderCollection @default(UNPAID)
   preferredDate  DateTime?   @db.Date
   instructions   String?
   internalNotes  String?
@@ -783,6 +792,7 @@ model Invoice {
   subtotalCents           Int
   taxCents                Int           @default(0)
   totalCents              Int
+  cardFeeCents            Int           @default(0)
   amountPaidCents         Int           @default(0)
   amountRefundedCents     Int           @default(0)
   dueAt                   DateTime?
@@ -816,12 +826,17 @@ model Payment {
   invoiceId             String
   status                PaymentStatus
   amountCents           Int
+  baseCents             Int           @default(0)
+  feeCents              Int           @default(0)
   stripePaymentIntentId String?       @unique
   stripeChargeId        String?       @unique
   receiptUrl            String?
   method                String?
+  note                  String?
+  createdById           String?       @db.Uuid
   createdAt             DateTime      @default(now())
   invoice               Invoice       @relation(fields: [invoiceId], references: [id])
+  createdBy             User?         @relation("PaymentRecorder", fields: [createdById], references: [id])
   refunds               Refund[]
 
   @@index([invoiceId])

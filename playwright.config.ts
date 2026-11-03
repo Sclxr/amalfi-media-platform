@@ -30,6 +30,8 @@ export default defineConfig({
       STRIPE_WEBHOOK_SECRET: "whsec_e2e_amalfi_playwright_secret",
       STRIPE_API_BASE: "http://127.0.0.1:4010",
       MEDIA_ROOT: process.env.MEDIA_ROOT ?? "/tmp/amalfi-e2e-media",
+      // Test fixture only. The app reads ZELLE_PHONE and does not default to this number.
+      ZELLE_PHONE: "(321) 246-6018",
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

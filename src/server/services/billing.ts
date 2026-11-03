@@ -2,7 +2,11 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import type { Actor } from "@/lib/actor";
 import { can } from "@/lib/permissions";
+import { cardProcessingQuote } from "@/lib/card-fee";
+import { receiptMessage } from "@/lib/email-messages";
 import { storedCheckoutAction, stripeBilling } from "@/lib/stripe-billing";
+import { sendTransactional } from "@/server/email/send";
+import { logger } from "@/server/logger";
 import { nextInvoiceNumber } from "@/lib/invoice-number";
 import { orderPriceLock } from "@/lib/order-price";
 import { prisma } from "@/server/db/prisma";
@@ -115,6 +119,11 @@ export async function startCheckout(actor: Actor, invoiceId: string, galleryId?:
     if (decision.action === "unavailable") return { error: "Stripe could not reopen the existing checkout." as const };
   }
   const env = getEnv();
+  const quote = cardProcessingQuote({
+    priceCents: invoice.totalCents,
+    percentBps: env.cardFeePercentBps,
+    fixedCents: env.cardFeeFixedCents,
+  });
   const origin = env.APP_URL.replace(/\/$/, "");
   const gallery = await returnGallery(invoice, galleryId);
   const returnPath = gallery ? `/portal/galleries/${gallery.id}` : `/portal/invoices/${invoice.id}`;
@@ -129,6 +138,12 @@ export async function startCheckout(actor: Actor, invoiceId: string, galleryId?:
   body.set("line_items[0][price_data][currency]", invoice.currency.toLowerCase());
   body.set("line_items[0][price_data][unit_amount]", String(invoice.totalCents));
   body.set("line_items[0][price_data][product_data][name]", `Amalfi Media ${invoice.number}`);
+  if (quote.feeCents > 0) {
+    body.set("line_items[1][quantity]", "1");
+    body.set("line_items[1][price_data][currency]", invoice.currency.toLowerCase());
+    body.set("line_items[1][price_data][unit_amount]", String(quote.feeCents));
+    body.set("line_items[1][price_data][product_data][name]", "Card processing fee");
+  }
   const response = await fetch(stripeApi("/v1/checkout/sessions"), {
     method: "POST",
     headers: {
@@ -143,7 +158,7 @@ export async function startCheckout(actor: Actor, invoiceId: string, galleryId?:
   }
   const claimed = await prisma.invoice.updateMany({
     where: { id: invoice.id, status: "OPEN", stripeCheckoutSessionId: invoice.stripeCheckoutSessionId },
-    data: { stripeCheckoutSessionId: payload.id },
+    data: { stripeCheckoutSessionId: payload.id, cardFeeCents: quote.feeCents },
   });
   if (claimed.count === 1) return { url: payload.url };
   const current = await prisma.invoice.findUnique({ where: { id: invoice.id } });
@@ -193,6 +208,145 @@ async function createWithUniqueNumber(
     }
   }
   throw new Error("Could not allocate an invoice number.");
+}
+
+export async function chooseZellePayment(actor: Actor, orderId: string) {
+  if (!actor.clientId) return { error: "Sign in as the client to choose Zelle." as const };
+  if (!getEnv().zellePhone) return { error: "Zelle is not configured." as const };
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, clientId: actor.clientId },
+    include: { invoices: true },
+  });
+  if (!order) return { error: "That order was not found." as const };
+  const open = order.invoices.find((invoice) => invoice.status === "OPEN");
+  if (!open) return { error: "This order does not have an open invoice." as const };
+  if (order.collection === "PAID" || order.invoices.some((invoice) => invoice.status === "PAID")) {
+    return { error: "This order is already paid." as const };
+  }
+  await prisma.order.update({ where: { id: order.id }, data: { collection: "AWAITING_ZELLE" } });
+  await writeAudit({
+    actorId: actor.id,
+    action: "order.zelle.awaiting",
+    entityType: "Order",
+    entityId: order.id,
+    after: { invoiceId: open.id },
+  });
+  return { ok: true as const };
+}
+
+export async function markZellePaid(actor: Actor, invoiceId: string, amountCents: number, note: string) {
+  if (actor.role !== "ADMIN") throw new Error("Forbidden");
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: {
+      client: true,
+      order: { include: { property: true, galleries: { where: { status: "PUBLISHED" }, orderBy: { createdAt: "desc" }, take: 1 } } },
+    },
+  });
+  if (!invoice) return { error: "That invoice was not found." as const };
+  if (invoice.status !== "OPEN") return { error: "Only an open invoice can be marked paid." as const };
+  if (amountCents !== invoice.totalCents) return { error: "Enter the listing price. Zelle does not include the card fee." as const };
+  const trimmed = note.trim().slice(0, 240);
+  await prisma.$transaction(async (tx) => {
+    await tx.invoice.update({
+      where: { id: invoice.id },
+      data: { status: "PAID", amountPaidCents: invoice.totalCents, paidAt: new Date(), cardFeeCents: 0 },
+    });
+    if (invoice.orderId) {
+      await tx.order.update({ where: { id: invoice.orderId }, data: { collection: "PAID", cardFeeCents: 0 } });
+    }
+    await tx.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        status: "SUCCEEDED",
+        amountCents: invoice.totalCents,
+        baseCents: invoice.totalCents,
+        feeCents: 0,
+        method: "zelle",
+        note: trimmed || null,
+        createdById: actor.id,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId: actor.id,
+        action: "payment.zelle",
+        entityType: "Invoice",
+        entityId: invoice.id,
+        after: { amountCents: invoice.totalCents, note: trimmed || null, method: "zelle" },
+      },
+    });
+  });
+  await sendRecordedReceipt(invoice, "zelle");
+  return { ok: true as const };
+}
+
+export async function reverseZellePayment(actor: Actor, invoiceId: string, note: string) {
+  if (actor.role !== "ADMIN") throw new Error("Forbidden");
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId }, include: { payments: true } });
+  if (!invoice) return { error: "That invoice was not found." as const };
+  if (invoice.payments.some((item) => item.status === "SUCCEEDED" && item.method === "card")) {
+    return { error: "A card payment has to be refunded in Stripe." as const };
+  }
+  const payment = invoice.payments.find((item) => item.status === "SUCCEEDED" && item.method === "zelle" && !item.stripeChargeId);
+  if (!payment) return { error: "Only a manual Zelle payment can be reversed here." as const };
+  const trimmed = note.trim().slice(0, 240) || "Zelle payment reversed.";
+  await prisma.$transaction(async (tx) => {
+    await tx.refund.create({
+      data: { paymentId: payment.id, amountCents: payment.baseCents || payment.amountCents, status: "SUCCEEDED", reason: trimmed, createdById: actor.id },
+    });
+    await tx.payment.update({ where: { id: payment.id }, data: { status: "FAILED" } });
+    await tx.invoice.update({
+      where: { id: invoice.id },
+      data: { status: "OPEN", amountPaidCents: 0, paidAt: null },
+    });
+    if (invoice.orderId) {
+      await tx.order.update({ where: { id: invoice.orderId }, data: { collection: "AWAITING_ZELLE" } });
+    }
+    await tx.auditLog.create({
+      data: {
+        actorId: actor.id,
+        action: "payment.zelle.reversed",
+        entityType: "Invoice",
+        entityId: invoice.id,
+        after: { amountCents: payment.amountCents, note: trimmed },
+      },
+    });
+  });
+  return { ok: true as const };
+}
+
+async function sendRecordedReceipt(
+  invoice: {
+    id: string;
+    number: string;
+    totalCents: number;
+    cardFeeCents: number;
+    client: { email: string | null };
+    order: { galleries: { id: string }[] } | null;
+  },
+  method: "zelle" | "card",
+) {
+  try {
+    if (!invoice.client.email) return;
+    const origin = getEnv().APP_URL.replace(/\/$/, "");
+    const gallery = invoice.order?.galleries[0];
+    const fee = method === "zelle" ? 0 : invoice.cardFeeCents;
+    await sendTransactional(
+      receiptMessage({
+        to: invoice.client.email,
+        number: invoice.number,
+        totalCents: invoice.totalCents + fee,
+        baseCents: invoice.totalCents,
+        feeCents: fee,
+        method,
+        receiptUrl: null,
+        galleryUrl: gallery ? `${origin}/portal/galleries/${gallery.id}` : null,
+      }),
+    );
+  } catch (error) {
+    logger.error({ err: error, invoiceId: invoice.id }, "receipt email failed");
+  }
 }
 
 async function readCheckoutSession(secret: string, sessionId: string) {
