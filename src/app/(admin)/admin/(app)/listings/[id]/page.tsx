@@ -8,7 +8,7 @@ import { ListingHeader } from "@/components/listings/listing-header";
 import { ListingPrice } from "@/components/listings/listing-price";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
-import { ConfirmDialog, Modal } from "@/components/ui/dialog";
+import { ConfirmDialog, DialogClose, Modal } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -130,7 +130,7 @@ export default async function ListingDetailPage({
         }
       />
       {query.notice ? <p className="rounded-md border border-border px-4 py-3 text-sm">{query.notice}</p> : null}
-      <nav aria-label="Listing sections" role="tablist" className="flex gap-1 overflow-x-auto border-b border-border">
+      <nav aria-label="Listing sections" role="tablist" className="flex flex-wrap gap-2">
         {TABS.map((item) => (
           <Link
             key={item.id}
@@ -138,8 +138,8 @@ export default async function ListingDetailPage({
             aria-selected={tab === item.id}
             href={`/admin/listings/${property.id}?tab=${item.id}${shoot ? `&shoot=${shoot.id}` : ""}`}
             className={cn(
-              "whitespace-nowrap px-3 py-2 text-sm",
-              tab === item.id ? "border-b-2 border-primary font-medium" : "text-muted-foreground",
+              "inline-flex min-h-12 items-center rounded-full border px-4 text-sm",
+              tab === item.id ? "border-[#111111] bg-[#111111] font-medium text-[#d4bc8c]" : "border-border text-muted-foreground",
             )}
           >
             {item.label}
@@ -241,7 +241,7 @@ export default async function ListingDetailPage({
       {tab === "gallery" ? (
         <div className="space-y-4">
           {property.orders.length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto text-sm">
+            <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 text-sm">
               {property.orders.map((order) => (
                 <Link
                   key={order.id}
@@ -424,7 +424,12 @@ export default async function ListingDetailPage({
                               Note
                               <Input name="note" aria-label={`Zelle note for ${invoice.number}`} placeholder="Optional reference" />
                             </label>
-                            <Button type="submit">Confirm Zelle payment</Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button type="submit">Confirm Zelle payment</Button>
+                              <DialogClose className="inline-flex h-12 items-center rounded-xl border border-border bg-surface px-4 text-sm font-medium">
+                                Cancel
+                              </DialogClose>
+                            </div>
                           </form>
                         </Modal>
                       ) : null}

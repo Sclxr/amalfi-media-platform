@@ -120,8 +120,8 @@ test("dragging a photo saves the new order", async ({ page }) => {
 });
 
 async function dragPhoto(page: Page, sourceName: string, targetName: string) {
-  const source = page.getByRole("button", { name: sourceName, exact: true });
-  const target = page.getByRole("button", { name: targetName, exact: true });
+  const source = page.getByRole("button", { name: `Reorder ${sourceName}`, exact: true });
+  const target = page.getByRole("button", { name: `Reorder ${targetName}`, exact: true });
   await source.scrollIntoViewIfNeeded();
   await target.scrollIntoViewIfNeeded();
   const sourceBox = await source.boundingBox();

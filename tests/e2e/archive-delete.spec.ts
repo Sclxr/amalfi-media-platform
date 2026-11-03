@@ -99,7 +99,7 @@ test("an unpaid listing and its photo file can be deleted", async ({ page }) => 
   await page.goto("/admin/listings");
   await page.getByRole("button", { name: `Actions for ${address}` }).click();
   await page.getByRole("menuitem", { name: "Delete permanently" }).click();
-  await page.getByLabel("Type the name to confirm").fill(address);
+  await page.getByLabel("Type DELETE to confirm").fill("DELETE");
   await page.getByRole("dialog", { name: `Delete ${address}` }).getByRole("button", { name: "Delete permanently" }).click();
   await expect(page.getByRole("heading", { name: "Listings" })).toBeVisible();
   const missing = await page.goto(listingUrl);

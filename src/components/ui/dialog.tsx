@@ -4,6 +4,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
+export const DialogClose = Dialog.Close;
+
 export function Modal({
   title,
   description,

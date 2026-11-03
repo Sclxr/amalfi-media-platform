@@ -33,21 +33,21 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           {invoices.map((invoice) => (
-            <div key={invoice.id} className="flex flex-wrap items-center justify-between gap-3">
-              <Link className="font-medium text-primary" href={`/admin/billing/${invoice.id}`}>
+            <article key={invoice.id} className="rounded-2xl border border-border p-4">
+              <Link className="flex min-h-12 items-center text-base font-medium text-primary" href={`/admin/billing/${invoice.id}`}>
                 {invoice.number}
               </Link>
-              <span>
+              <p>
                 {formatCents(invoice.totalCents)} · <StatusBadge status={invoice.status} />
-              </span>
-            </div>
+              </p>
+            </article>
           ))}
         </CardContent>
       </Card>
       <form action={createInvoiceAction} className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
+        <label className="block w-full min-w-0 text-sm">
           Order
-          <select name="orderId" className="mt-1 block h-10 rounded-sm border border-border bg-background px-3" required>
+          <select name="orderId" className="mt-1 block h-12 w-full max-w-full rounded-xl border border-border bg-card px-3" required>
             {orders.map((order) => (
               <option key={order.id} value={order.id}>
                 {order.property.addressLine1}

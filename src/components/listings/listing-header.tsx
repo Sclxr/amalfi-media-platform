@@ -68,7 +68,7 @@ export function ListingHeader({
           </div>
         )}
         <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-tight">{addressLine1}</h1>
+          <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">{addressLine1}</h1>
           <p className="mt-1 text-muted-foreground">{cityLine}</p>
           <p className="mt-2 text-sm">
             Realtor:{" "}

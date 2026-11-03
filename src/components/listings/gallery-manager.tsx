@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -73,6 +73,14 @@ export function GalleryManager({
   const [rows, setRows] = useState<{ name: string; state: string }[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openId) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenId(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openId]);
   const incoming = galleries.map((gallery) => gallery.photos.map((photo) => photo.id).join(",")).join("|");
   const [orders, setOrders] = useState<Record<string, string[]>>(() => photoOrder(galleries));
   const [tracked, setTracked] = useState(incoming);
@@ -183,8 +191,11 @@ export function GalleryManager({
     <div className="space-y-6">
       {cancelled ? <p className="text-sm text-muted-foreground">This shoot was cancelled. Choose another shoot to add photos.</p> : null}
       {canWrite && !cancelled ? (
-        <div id="upload" className="space-y-3 rounded-md border border-border p-4">
-          <input ref={inputRef} id="gallery-file" type="file" accept="image/*" multiple aria-label="Gallery file" />
+        <div id="upload" className="min-w-0 space-y-3 rounded-2xl border border-border p-4">
+          <label className="relative flex min-h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground">
+            Choose photos
+            <input ref={inputRef} id="gallery-file" type="file" accept="image/*" multiple aria-label="Gallery file" className="absolute inset-0 cursor-pointer opacity-0" />
+          </label>
           {rows.length > 0 ? (
             <ul className="space-y-1 text-sm" aria-live="polite">
               {rows.map((row) => (
@@ -344,10 +355,10 @@ export function GalleryManager({
         );
       })}
       {open && openGallery ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-label="Photo">
-          <div className="flex max-h-full w-full max-w-4xl flex-col items-center gap-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4" role="dialog" aria-modal="true" aria-label="Photo">
+          <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col items-center justify-center gap-4 py-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={open.src} alt={open.fileName} className="max-h-[70vh] max-w-full rounded-md object-contain" />
+            <img src={open.src} alt={open.fileName} className="max-h-[50vh] max-w-full rounded-xl object-contain" />
             <p className="text-sm text-white">{open.fileName}{open.cover ? " · Listing cover" : ""}</p>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <div className="flex flex-wrap justify-center gap-2">
@@ -370,11 +381,11 @@ export function GalleryManager({
                   Set as cover
                 </Button>
               ) : null}
-              <a className="inline-flex h-10 items-center rounded-md border border-border bg-surface px-4 text-sm font-medium" href={open.src} download={open.fileName}>
+              <a className="inline-flex h-12 items-center rounded-xl border border-border bg-surface px-4 text-sm font-medium" href={open.src} download={open.fileName}>
                 Download
               </a>
               {canWrite ? (
-                <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border bg-surface px-4 text-sm font-medium">
+                <label className="inline-flex h-12 cursor-pointer items-center rounded-xl border border-border bg-surface px-4 text-sm font-medium">
                   Replace
                   <input
                     type="file"
@@ -430,7 +441,7 @@ function PhotoGrid({
 }) {
   const dragged = useRef(false);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: PRESS_DELAY_MS, tolerance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: PRESS_DELAY_MS, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
@@ -495,14 +506,14 @@ function SortablePhoto({
     disabled: !canWrite,
   });
   return (
-    <figure className={cn("space-y-2 rounded-md border border-border p-2", selected && "ring-2 ring-primary", isDragging && "z-10 opacity-70")}>
+    <figure
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("space-y-2 rounded-2xl border border-border p-2", selected && "ring-2 ring-gold", isDragging && "z-10 opacity-70")}
+    >
       <button
         type="button"
-        ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
-        className="block w-full cursor-grab touch-manipulation active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
+        className="block w-full"
         aria-label={photo.fileName}
         onClick={() => {
           if (dragged.current) return;
@@ -510,8 +521,19 @@ function SortablePhoto({
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo.src} alt={photo.fileName} draggable={false} className="pointer-events-none aspect-[4/3] w-full rounded-md object-cover" />
+        <img src={photo.src} alt={photo.fileName} draggable={false} className="pointer-events-none aspect-[4/3] w-full rounded-xl object-cover" />
       </button>
+      {canWrite ? (
+        <button
+          type="button"
+          className="flex h-12 w-full cursor-grab items-center justify-center rounded-xl border border-border text-sm active:cursor-grabbing"
+          aria-label={`Reorder ${photo.fileName}`}
+          {...attributes}
+          {...listeners}
+        >
+          Drag to reorder
+        </button>
+      ) : null}
       <div className="flex items-center justify-between gap-2 text-xs">
         {canWrite ? (
           <label className="flex items-center gap-1">

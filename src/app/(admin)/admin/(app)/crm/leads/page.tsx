@@ -55,7 +55,7 @@ export default async function LeadsPage({
       {params.notice ? <p className="text-sm">{params.notice}</p> : null}
       <form className="grid gap-3 md:grid-cols-[1fr_180px_220px_auto]" method="get">
         <Input name="q" defaultValue={params.q ?? ""} placeholder="Search name, email, phone, city" aria-label="Search realtors" />
-        <select name="status" defaultValue={params.status ?? ""} className="h-10 rounded-sm border border-border bg-background px-3 text-sm" aria-label="Status">
+        <select name="status" defaultValue={params.status ?? ""} className="h-12 rounded-xl border border-border bg-card px-3 text-base" aria-label="Status">
           <option value="">All statuses</option>
           {LEAD_STATUSES.map((status) => (
             <option key={status} value={status}>
@@ -63,7 +63,7 @@ export default async function LeadsPage({
             </option>
           ))}
         </select>
-        <select name="brokerageId" defaultValue={params.brokerageId ?? ""} className="h-10 rounded-sm border border-border bg-background px-3 text-sm" aria-label="Brokerage">
+        <select name="brokerageId" defaultValue={params.brokerageId ?? ""} className="h-12 rounded-xl border border-border bg-card px-3 text-base" aria-label="Brokerage">
           <option value="">All brokerages</option>
           {brokerages.map((brokerage) => (
             <option key={brokerage.id} value={brokerage.id}>
@@ -78,7 +78,45 @@ export default async function LeadsPage({
       {leads.length === 0 ? (
         <EmptyState title="No realtors match" body="Try another search, or add a realtor to the pipeline." />
       ) : (
-        <div className="overflow-x-auto rounded-md border border-border" data-testid="lead-table">
+        <>
+        <div className="grid gap-3 md:hidden" data-testid="lead-table">
+          {leads.map((lead) => (
+            <article key={lead.id} className="rounded-2xl border border-border bg-card p-4">
+              <Link className="block min-h-12 text-base font-medium text-primary" href={`/admin/crm/leads/${lead.id}`}>
+                {lead.firstName} {lead.lastName}
+              </Link>
+              <p className="break-all text-sm text-muted-foreground">{lead.email}</p>
+              <p className="mt-2 text-sm">{lead.brokerage?.name ?? "No brokerage"} · {lead.city ?? "No city"}</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <StatusBadge status={lead.status} />
+                <span className="text-sm text-muted-foreground">{formatDate(lead.nextFollowUpAt)}</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" data-bulk="lead" value={lead.id} aria-label={`Select ${lead.firstName} ${lead.lastName}`} />
+                  Select
+                </label>
+                <RecordMenu
+                  kind="lead"
+                  id={lead.id}
+                  name={`${lead.firstName ?? ""} ${lead.lastName ?? ""}`.trim() || "Realtor"}
+                  archived={Boolean(lead.deletedAt)}
+                  canArchive={can(actor, "crm.write")}
+                  canPermanent={can(actor, "records.delete")}
+                  deletable={
+                    leadRemoval({
+                      listings: lead._count.properties,
+                      sentEmails: lead.emails.length,
+                      financial: hasFinancialHistory(lead.client?.invoices ?? []),
+                    }).canDelete
+                  }
+                  returnTo={returnTo}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto rounded-2xl border border-border md:block" data-testid="lead-table-desktop">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-surface text-muted-foreground">
               <tr>
@@ -131,6 +169,7 @@ export default async function LeadsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
