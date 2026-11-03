@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 — 2026-11-03
+
+### Changed
+
+- The app uses a black, warm-white, and gold theme. Buttons, inputs, and checks are sized for a thumb. Admin and the client portal keep a black header, and phones get a bottom bar so the main sections stay one tap away.
+
 ## 0.18.0 — 2026-11-03
 
 ### Added

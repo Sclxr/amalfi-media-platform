@@ -24,7 +24,7 @@ export function Modal({
       {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[min(90vh,40rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-card p-5 text-card-foreground shadow-lg">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[min(90vh,40rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-lg">
           <Dialog.Title className="text-lg font-semibold tracking-tight">{title}</Dialog.Title>
           {description ? <Dialog.Description className="mt-2 text-sm text-muted-foreground">{description}</Dialog.Description> : null}
           <div className={description ? "mt-4" : "mt-4"}>{children}</div>
