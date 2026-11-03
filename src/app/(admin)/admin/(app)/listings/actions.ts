@@ -2,7 +2,8 @@
 
 import { redirect, unstable_rethrow } from "next/navigation";
 import { getActor } from "@/server/auth/guards";
-import { createInvoiceForOrder, voidUnpaidInvoice } from "@/server/services/billing";
+import { createInvoiceForOrder, markZellePaid, reverseZellePayment, voidUnpaidInvoice } from "@/server/services/billing";
+import { parseDollarsToCents } from "@/lib/money";
 import {
   archiveGallery,
   deleteGalleryPhoto,
@@ -274,6 +275,34 @@ export async function createListingInvoiceAction(propertyId: string, formData: F
   if ("id" in result && result.id) redirect(`/admin/listings/${propertyId}?tab=billing`);
   const notice = "error" in result && result.error ? result.error : "Could not create the invoice.";
   redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+}
+
+export async function markZellePaidAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  const amount = parseDollarsToCents(String(formData.get("amount") ?? ""));
+  if (amount === null) redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, "Enter the listing price. Zelle does not include the card fee."));
+  try {
+    const result = await markZellePaid(actor, String(formData.get("invoiceId") ?? ""), amount, String(formData.get("note") ?? ""));
+    const notice = "error" in result && result.error ? result.error : "Zelle payment recorded. Downloads are unlocked.";
+    redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+  } catch (error) {
+    unstable_rethrow(error);
+    const notice = error instanceof Error && error.message === "Forbidden" ? "Only an admin can record a Zelle payment." : "Could not record the Zelle payment.";
+    redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+  }
+}
+
+export async function reverseZellePaymentAction(propertyId: string, formData: FormData) {
+  const actor = await actorOrLogin();
+  try {
+    const result = await reverseZellePayment(actor, String(formData.get("invoiceId") ?? ""), String(formData.get("note") ?? ""));
+    const notice = "error" in result && result.error ? result.error : "Zelle payment reversed. Downloads are locked again.";
+    redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+  } catch (error) {
+    unstable_rethrow(error);
+    const notice = error instanceof Error && error.message === "Forbidden" ? "Only an admin can reverse a Zelle payment." : "Could not reverse the Zelle payment.";
+    redirect(withNotice(`/admin/listings/${propertyId}?tab=billing`, notice));
+  }
 }
 
 export async function voidListingInvoiceAction(propertyId: string, formData: FormData) {

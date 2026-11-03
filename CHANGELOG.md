@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0 — 2026-11-03
+
+### Added
+
+- Card checkout adds a separate card processing fee so the listing price remains after Stripe's fee. The default is 2.9% plus 30 cents ($120.00 becomes $123.89). Zelle is offered at the listing price. An admin can record or reverse that Zelle payment, which unlocks or locks downloads and emails a receipt.
+
 ## 0.17.0 — 2026-11-01
 
 ### Added

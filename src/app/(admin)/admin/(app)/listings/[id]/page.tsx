@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, rescheduleListingBookingAction, voidListingInvoiceAction } from "@/app/(admin)/admin/(app)/listings/actions";
+import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, markZellePaidAction, rescheduleListingBookingAction, reverseZellePaymentAction, voidListingInvoiceAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
 import { InviteLink } from "@/components/listings/invite-link";
@@ -8,7 +8,7 @@ import { ListingHeader } from "@/components/listings/listing-header";
 import { ListingPrice } from "@/components/listings/listing-price";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
-import { ConfirmDialog } from "@/components/ui/dialog";
+import { ConfirmDialog, Modal } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,7 @@ export default async function ListingDetailPage({
   const canEdit = can(actor, "orders.write");
   const canMedia = can(actor, "media.write");
   const canSeeMoney = can(actor, "billing.read");
+  const canRecordZelle = actor.role === "ADMIN";
   const stripe = billingStatus();
   const realtors = canEdit ? await listRealtorOptions(actor) : [];
   const packages = canEdit ? await listActivePackages(actor) : [];
@@ -354,6 +355,8 @@ export default async function ListingDetailPage({
                     </Link>{" "}
                     · {adminOrderLabel(order.status)}
                     {canSeeMoney ? ` · ${formatCents(order.totalCents)}` : ""}
+                    {order.collection === "AWAITING_ZELLE" ? " · Awaiting Zelle" : ""}
+                    {order.cardFeeCents > 0 && canSeeMoney ? ` · card fee ${formatCents(order.cardFeeCents)}` : ""}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
@@ -398,7 +401,44 @@ export default async function ListingDetailPage({
                         {invoice.number}
                       </Link>
                       <StatusBadge status={invoice.status} />
-                      {canSeeMoney ? <span>{formatCents(invoice.amountPaidCents)} paid of {formatCents(invoice.totalCents)}</span> : null}
+                      {canSeeMoney ? (
+                        <span>
+                          {formatCents(invoice.amountPaidCents)} paid of {formatCents(invoice.totalCents)}
+                          {invoice.cardFeeCents > 0 ? ` · card fee ${formatCents(invoice.cardFeeCents)}` : ""}
+                          {invoice.payments.some((payment) => payment.method === "zelle" && payment.status === "SUCCEEDED") ? " · Zelle" : ""}
+                        </span>
+                      ) : null}
+                      {canRecordZelle && invoice.status === "OPEN" ? (
+                        <Modal
+                          title="Mark paid (Zelle)"
+                          description="Record the Zelle payment and unlock the original downloads. This does not charge a card fee."
+                          trigger={<Button type="button" variant="secondary" size="sm">Mark paid (Zelle)</Button>}
+                        >
+                          <form action={markZellePaidAction.bind(null, property.id)} className="grid gap-3">
+                            <input type="hidden" name="invoiceId" value={invoice.id} />
+                            <label className="grid gap-1 text-sm">
+                              Amount
+                              <Input name="amount" defaultValue={(invoice.totalCents / 100).toFixed(2)} aria-label={`Zelle amount for ${invoice.number}`} />
+                            </label>
+                            <label className="grid gap-1 text-sm">
+                              Note
+                              <Input name="note" aria-label={`Zelle note for ${invoice.number}`} placeholder="Optional reference" />
+                            </label>
+                            <Button type="submit">Confirm Zelle payment</Button>
+                          </form>
+                        </Modal>
+                      ) : null}
+                      {canRecordZelle && invoice.payments.some((payment) => payment.method === "zelle" && payment.status === "SUCCEEDED") ? (
+                        <ConfirmDialog
+                          title="Undo Zelle payment"
+                          body="Reverse this manual Zelle payment? Downloads lock again. A card payment is not changed."
+                          confirmLabel="Undo Zelle payment"
+                          destructive
+                          action={reverseZellePaymentAction.bind(null, property.id)}
+                          hidden={{ invoiceId: invoice.id, note: "Reversed from the listing." }}
+                          trigger={<Button type="button" variant="secondary" size="sm">Undo Zelle payment</Button>}
+                        />
+                      ) : null}
                       {canEdit && canVoidInvoice(invoice) ? (
                         <ConfirmDialog
                           title="Void invoice"

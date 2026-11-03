@@ -39,10 +39,17 @@ export function receiptMessage(input: {
   to: string;
   number: string;
   totalCents: number;
+  baseCents?: number;
+  feeCents?: number;
+  method?: string;
   receiptUrl: string | null;
   galleryUrl: string | null;
 }): MailMessage {
   const lines = [`Payment received for ${input.number} (${formatCents(input.totalCents)}).`];
+  if (input.feeCents && input.feeCents > 0 && input.baseCents !== undefined) {
+    lines.push(`Listing price ${formatCents(input.baseCents)}. Card processing fee ${formatCents(input.feeCents)}.`);
+  }
+  if (input.method === "zelle") lines.push("Paid by Zelle. No card processing fee.");
   if (input.receiptUrl) lines.push(`Stripe receipt: ${input.receiptUrl}`);
   if (input.galleryUrl) lines.push(`Gallery: ${input.galleryUrl}`);
   return {

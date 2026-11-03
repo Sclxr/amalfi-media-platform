@@ -43,6 +43,7 @@ export const prismaCheckoutWriter: CheckoutWriter = {
         invoice: {
           status: invoice.status,
           totalCents: invoice.totalCents,
+          cardFeeCents: invoice.cardFeeCents,
           currency: invoice.currency,
           stripeCheckoutSessionId: invoice.stripeCheckoutSessionId,
         },
@@ -62,11 +63,19 @@ export const prismaCheckoutWriter: CheckoutWriter = {
         where: { id: invoice.id },
         data: { status: "PAID", amountPaidCents: invoice.totalCents, paidAt: new Date() },
       });
+      if (invoice.orderId) {
+        await tx.order.update({
+          where: { id: invoice.orderId },
+          data: { collection: "PAID", cardFeeCents: invoice.cardFeeCents },
+        });
+      }
       await tx.payment.create({
         data: {
           invoiceId: invoice.id,
           status: "SUCCEEDED",
-          amountCents: invoice.totalCents,
+          amountCents: invoice.totalCents + invoice.cardFeeCents,
+          baseCents: invoice.totalCents,
+          feeCents: invoice.cardFeeCents,
           stripePaymentIntentId: event.paymentIntentId,
           stripeChargeId: event.chargeId,
           receiptUrl: event.receiptUrl,
@@ -148,7 +157,7 @@ async function findInvoiceId(event: CheckoutEvent) {
 
 async function settle<T extends string>(
   event: CheckoutEvent,
-  apply: (tx: Prisma.TransactionClient, invoice: { id: string; status: string; totalCents: number; currency: string; stripeCheckoutSessionId: string | null; amountPaidCents: number; amountRefundedCents: number }) => Promise<T>,
+  apply: (tx: Prisma.TransactionClient, invoice: { id: string; orderId: string | null; status: string; totalCents: number; cardFeeCents: number; currency: string; stripeCheckoutSessionId: string | null; amountPaidCents: number; amountRefundedCents: number }) => Promise<T>,
   missing: T = "rejected" as T,
 ): Promise<T | "duplicate"> {
   const invoiceId = await findInvoiceId(event);
@@ -190,7 +199,10 @@ async function sendPaymentReceipt(event: CheckoutEvent) {
       receiptMessage({
         to: invoice.client.email,
         number: invoice.number,
-        totalCents: invoice.totalCents,
+        totalCents: invoice.totalCents + invoice.cardFeeCents,
+        baseCents: invoice.totalCents,
+        feeCents: invoice.cardFeeCents,
+        method: "card",
         receiptUrl: event.receiptUrl,
         galleryUrl: gallery ? `${origin}/portal/galleries/${gallery.id}` : null,
       }),

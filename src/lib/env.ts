@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cardFeeFromEnv } from "@/lib/card-fee";
 import { mediaMaxUploadBytes } from "@/lib/media-limit";
 
 const appEnvSchema = z.enum(["development", "test", "staging", "production"]);
@@ -39,8 +40,20 @@ export const envSchema = z
     SENTRY_DSN: z.string().optional(),
     LOG_LEVEL: z.string().default("info"),
     SEED_ADMIN_PASSWORD: z.string().optional(),
+    CARD_FEE_PERCENT: z.string().default("2.9"),
+    CARD_FEE_FIXED_CENTS: z.string().default("30"),
+    ZELLE_PHONE: z.string().optional(),
   })
   .superRefine((value, ctx) => {
+    try {
+      cardFeeFromEnv({ percent: value.CARD_FEE_PERCENT, fixedCents: value.CARD_FEE_FIXED_CENTS });
+    } catch (error) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["CARD_FEE_PERCENT"],
+        message: error instanceof Error ? error.message : "Card fee settings are invalid.",
+      });
+    }
     const marketingOn = value.EMAIL_MARKETING_ENABLED === "true";
     if (value.APP_ENV !== "production" && marketingOn) {
       ctx.addIssue({
@@ -142,6 +155,9 @@ export type ParsedEnv = z.infer<typeof envSchema> & {
   emailStagingSend: boolean;
   emailDevPreview: boolean;
   mediaMaxUploadBytes: number;
+  cardFeePercentBps: number;
+  cardFeeFixedCents: number;
+  zellePhone?: string;
 };
 
 function pathHasSegment(value: string, segment: string) {
@@ -167,6 +183,7 @@ function blankToUndefined(source: Record<string, string | undefined>) {
 
 export function parseEnv(source: Record<string, string | undefined>): ParsedEnv {
   const parsed = envSchema.parse(blankToUndefined(source));
+  const fees = cardFeeFromEnv({ percent: parsed.CARD_FEE_PERCENT, fixedCents: parsed.CARD_FEE_FIXED_CENTS });
   return {
     ...parsed,
     emailMarketingEnabled: parsed.EMAIL_MARKETING_ENABLED === "true",
@@ -174,5 +191,8 @@ export function parseEnv(source: Record<string, string | undefined>): ParsedEnv 
     emailStagingSend: parsed.EMAIL_STAGING_SEND === "true",
     emailDevPreview: parsed.EMAIL_DEV_PREVIEW === "true",
     mediaMaxUploadBytes: mediaMaxUploadBytes(parsed.MEDIA_MAX_UPLOAD_BYTES),
+    cardFeePercentBps: fees.percentBps,
+    cardFeeFixedCents: fees.fixedCents,
+    zellePhone: parsed.ZELLE_PHONE?.trim() || undefined,
   };
 }

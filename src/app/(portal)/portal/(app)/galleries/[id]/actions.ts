@@ -2,8 +2,19 @@
 
 import { redirect, unstable_rethrow } from "next/navigation";
 import { getActor } from "@/server/auth/guards";
-import { startCheckout } from "@/server/services/billing";
+import { chooseZellePayment, startCheckout } from "@/server/services/billing";
 import { clientGallery } from "@/server/services/galleries";
+
+export async function chooseZelleAction(galleryId: string) {
+  const actor = await getActor();
+  if (!actor?.clientId) redirect("/portal/login?next=/portal/galleries");
+  const gallery = await clientGallery(actor.clientId, galleryId);
+  const back = `/portal/galleries/${galleryId}`;
+  if (!gallery) redirect("/portal/galleries");
+  const result = await chooseZellePayment(actor, gallery.orderId);
+  const notice = "error" in result && result.error ? result.error : "Awaiting Zelle";
+  redirect(`${back}?zelle=1&notice=${encodeURIComponent(notice)}`);
+}
 
 export async function buyGalleryAction(galleryId: string) {
   const actor = await getActor();

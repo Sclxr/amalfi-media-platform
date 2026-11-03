@@ -24,6 +24,7 @@ const FAIL_TYPES = new Set(["checkout.session.async_payment_failed", "payment_in
 export type InvoicePaymentCheck = {
   status: string;
   totalCents: number;
+  cardFeeCents?: number;
   currency: string;
   stripeCheckoutSessionId: string | null;
 };
@@ -41,7 +42,8 @@ export function acceptCheckoutPayment(input: {
   if (input.invoice.status === "PAID") return "ignore";
   if (input.invoice.status !== "OPEN") return "reject";
   if (input.paymentStatus !== "paid") return "reject";
-  if (input.amountCents !== input.invoice.totalCents) return "reject";
+  const dueCents = input.invoice.totalCents + (input.invoice.cardFeeCents ?? 0);
+  if (input.amountCents !== dueCents) return "reject";
   if ((input.currency ?? "").toLowerCase() !== input.invoice.currency.toLowerCase()) return "reject";
   if (!input.invoice.stripeCheckoutSessionId || input.checkoutSessionId !== input.invoice.stripeCheckoutSessionId) return "reject";
   return "pay";
