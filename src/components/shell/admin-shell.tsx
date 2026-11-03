@@ -177,7 +177,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
               {crumbs.join(" / ")}
             </p>
             <div className="ml-auto flex items-center gap-1">
-              <Button type="button" variant="ghost" size="icon" className="text-[#f7f5f0] hover:bg-white/10 sm:w-auto sm:px-3" aria-label="Search" onClick={() => setCommandOpen(true)}>
+              <Button type="button" variant="ghost" size="icon" className="text-[#f7f5f0] hover:bg-white/10 sm:w-auto sm:px-3" aria-label="Open search" onClick={() => setCommandOpen(true)}>
                 <Search />
                 <span className="hidden sm:inline">Search</span>
               </Button>
