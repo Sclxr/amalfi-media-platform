@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { expectNoOverflow, phoneWidths } from "./overflow";
 
 const shots = "/opt/cursor/artifacts/screenshots";
 
@@ -12,6 +13,16 @@ test("admin can sign in and use CRM", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByTestId("overview")).toBeVisible();
   await expect(page.getByTestId("revenue-card")).toContainText("$120.00");
+  for (const viewport of phoneWidths) {
+    await page.setViewportSize(viewport);
+    await page.goto("/admin");
+    await expect(page.getByTestId("overview")).toBeVisible();
+    await expectNoOverflow(page);
+    await page.goto("/admin/listings");
+    await expect(page.getByRole("heading", { name: "Listings" })).toBeVisible();
+    await expectNoOverflow(page);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
 
   await page.goto("/admin/crm/leads");
   await expect(page.getByRole("link", { name: "Maya Ellison" })).toBeVisible();
@@ -61,6 +72,16 @@ test("a client session gets 404 on admin", async ({ page }) => {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: /Hello, Jordan/ })).toBeVisible();
+  for (const viewport of phoneWidths) {
+    await page.setViewportSize(viewport);
+    await page.goto("/portal");
+    await expect(page.getByRole("heading", { name: /Hello, Jordan/ })).toBeVisible();
+    await expectNoOverflow(page);
+    await page.getByRole("link", { name: "Gallery", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Galleries" })).toBeVisible();
+    await expectNoOverflow(page);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
   const response = await page.goto("/admin");
   expect(response?.status()).toBe(404);
 });
