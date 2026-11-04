@@ -5,6 +5,8 @@ const databaseUrl = process.env.DATABASE_URL ?? "postgresql://amalfi:amalfi@127.
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: false,
+  // One worker in CI. The suite shares one login limit and one media directory.
+  workers: process.env.CI ? 1 : undefined,
   retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: "http://127.0.0.1:3000",

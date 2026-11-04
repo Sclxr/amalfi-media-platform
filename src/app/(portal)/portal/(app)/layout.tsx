@@ -8,5 +8,5 @@ export default async function PortalAppLayout({ children }: { children: React.Re
   const actor = await getActor();
   if (!actor) redirect("/portal/login");
   if (actor.role !== "CLIENT") redirect("/admin");
-  return <PortalShell name={actor.name}>{children}</PortalShell>;
+  return <PortalShell name={actor.name} email={actor.email}>{children}</PortalShell>;
 }

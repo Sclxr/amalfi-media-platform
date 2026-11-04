@@ -10,8 +10,8 @@ export function UserMenu({ user }: { user: ShellUser }) {
   const router = useRouter();
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger className="ml-1 flex h-10 max-w-48 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-accent">
-        <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+      <DropdownMenu.Trigger className="ml-1 flex h-12 max-w-48 items-center gap-2 rounded-xl px-2 text-left text-sm text-[#f7f5f0] hover:bg-white/10">
+        <span className="grid size-8 place-items-center rounded-full bg-white/10 text-xs font-semibold text-[#d4bc8c]">
           {user.name.slice(0, 1).toUpperCase()}
         </span>
         <span className="hidden min-w-0 sm:block">

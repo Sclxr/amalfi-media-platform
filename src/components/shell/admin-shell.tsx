@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Menu,
+  MoreHorizontal,
   Package,
   Receipt,
   Search,
@@ -116,28 +117,28 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
       <div className="flex min-h-screen">
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-sidebar px-3 py-4 transition-transform md:static md:translate-x-0",
+            "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 bg-[#111111] px-3 py-4 text-[#f7f5f0] transition-transform md:static md:translate-x-0",
             open ? "translate-x-0" : "-translate-x-full",
           )}
         >
           <div className="flex items-center justify-between px-2">
             <Link href="/admin" className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
+              <span className="grid size-12 place-items-center rounded-xl bg-white/10 text-sm font-semibold tracking-widest text-[#d4bc8c]">
                 A
               </span>
               <span>
-                <span className="block text-sm font-semibold leading-none">Amalfi</span>
-                <span className="mt-1 block text-xs text-muted-foreground">Media</span>
+                <span className="block text-sm font-semibold leading-none tracking-[0.14em]">AMALFI</span>
+                <span className="mt-1 block text-xs text-[#d4bc8c]">MEDIA</span>
               </span>
             </Link>
-            <Button className="md:hidden" variant="ghost" size="icon" aria-label="Close menu" onClick={() => setOpen(false)}>
+            <Button className="text-[#f7f5f0] hover:bg-white/10 md:hidden" variant="ghost" size="icon" aria-label="Close menu" onClick={() => setOpen(false)}>
               <X />
             </Button>
           </div>
           <nav className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto" aria-label="Admin">
             {groups.map((group) => (
               <div key={group.label}>
-                <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.label}</p>
+                <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-[#bdb7ae]">{group.label}</p>
                 <div className="flex flex-col gap-1">
                   {group.items.map((item) => {
                     const active = isActive(pathname, item.href, "exact" in item ? item.exact : false);
@@ -149,8 +150,8 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
                         aria-current={active ? "page" : undefined}
                         onClick={() => setOpen(false)}
                         className={cn(
-                          "flex h-10 items-center gap-3 rounded-md px-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
-                          active && "bg-primary/10 font-medium text-primary",
+                          "flex h-12 items-center gap-3 rounded-xl px-3 text-sm text-[#bdb7ae] hover:bg-white/10 hover:text-white",
+                          active && "bg-white/10 font-medium text-[#d4bc8c]",
                         )}
                       >
                         <Icon className="size-5" strokeWidth={1.75} />
@@ -162,30 +163,29 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
               </div>
             ))}
           </nav>
-          <p className="px-3 pb-2 text-xs text-muted-foreground">Orlando · Central Florida</p>
+          <p className="px-3 pb-2 text-xs text-[#bdb7ae]">Orlando · Central Florida</p>
         </aside>
         {open ? (
           <button className="fixed inset-0 z-30 bg-black/40 md:hidden" aria-label="Close menu" onClick={() => setOpen(false)} />
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur md:px-6">
-            <Button className="md:hidden" variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
+          <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-white/10 bg-[#111111] px-3 text-[#f7f5f0] md:px-6">
+            <Button className="text-[#f7f5f0] hover:bg-white/10 md:hidden" variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
               <Menu />
             </Button>
-            <p className="hidden min-w-0 flex-1 truncate text-sm text-muted-foreground capitalize sm:block">
+            <p className="hidden min-w-0 flex-1 truncate text-sm capitalize text-[#bdb7ae] sm:block">
               {crumbs.join(" / ")}
             </p>
             <div className="ml-auto flex items-center gap-1">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setCommandOpen(true)}>
+              <Button type="button" variant="ghost" size="icon" className="text-[#f7f5f0] hover:bg-white/10 sm:w-auto sm:px-3" aria-label="Open search" onClick={() => setCommandOpen(true)}>
                 <Search />
                 <span className="hidden sm:inline">Search</span>
-                <kbd className="hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">⌘K</kbd>
               </Button>
-              <ThemeToggle />
+              <ThemeToggle className="text-[#f7f5f0] hover:bg-white/10" />
               <UserMenu user={user} />
             </div>
           </header>
-          <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 md:px-6 md:py-8">{children}</main>
+          <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 pb-28 md:px-6 md:py-8 md:pb-8">{children}</main>
         </div>
       </div>
       {commandOpen ? (
@@ -203,7 +203,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-md px-3 py-2 text-sm hover:bg-accent"
+                  className="flex min-h-12 items-center rounded-xl px-3 text-sm hover:bg-accent"
                   onClick={() => setCommandOpen(false)}
                 >
                   {item.label}
@@ -213,6 +213,24 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
           </div>
         </div>
       ) : null}
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-white/10 bg-[#111111] px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-[#bdb7ae] md:hidden" aria-label="Admin mobile">
+        <Link href="/admin/listings" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]", pathname.startsWith("/admin/listings") && "text-[#d4bc8c]")} aria-current={pathname.startsWith("/admin/listings") ? "page" : undefined}>
+          <Home className="size-5" />
+          Listings
+        </Link>
+        <Link href="/admin/orders" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]", pathname.startsWith("/admin/orders") && "text-[#d4bc8c]")} aria-current={pathname.startsWith("/admin/orders") ? "page" : undefined}>
+          <ClipboardList className="size-5" />
+          Orders
+        </Link>
+        <Link href="/admin/crm/leads" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]", (pathname.startsWith("/admin/crm") || pathname.startsWith("/admin/clients")) && "text-[#d4bc8c]")} aria-current={pathname.startsWith("/admin/crm") || pathname.startsWith("/admin/clients") ? "page" : undefined}>
+          <Users className="size-5" />
+          People
+        </Link>
+        <button type="button" className="flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]" onClick={() => setOpen(true)}>
+          <MoreHorizontal className="size-5" />
+          More
+        </button>
+      </nav>
     </div>
   );
 }
