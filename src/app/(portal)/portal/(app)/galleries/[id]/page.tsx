@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { buyGalleryAction, chooseZelleAction } from "@/app/(portal)/portal/(app)/galleries/[id]/actions";
+import { PortalPhotoGrid } from "@/components/portal/photo-grid";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cardProcessingQuote } from "@/lib/card-fee";
 import { formatCents } from "@/lib/money";
 import { getActor } from "@/server/auth/guards";
@@ -37,32 +39,31 @@ export default async function PortalGalleryPage({
       <Link className="text-sm text-primary" href="/portal/galleries">
         Galleries
       </Link>
-      <h1 className="text-3xl font-semibold tracking-tight">{gallery.title}</h1>
-      <p className="text-sm text-muted-foreground">{gallery.property.addressLine1}</p>
+      <h1 className="break-words text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-4xl">{gallery.title}</h1>
+      {gallery.title !== gallery.property.addressLine1 ? (
+        <p className="break-words text-base text-muted-foreground">{gallery.property.addressLine1}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          {gallery.property.city}, {gallery.property.state}
+        </p>
+      )}
       {query.notice ? <p className="rounded-md border border-border px-4 py-3 text-sm">{query.notice}</p> : null}
       {query.cancelled ? <p className="text-sm">Checkout was cancelled. You can buy when you are ready.</p> : null}
       {query.paid && decision.allowed ? <p className="text-sm">Payment received. You can download these photos.</p> : null}
       {query.paid && !decision.allowed ? <p className="text-sm">Payment is processing. Refresh in a moment.</p> : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {gallery.assets.map((asset) => (
-          <figure key={asset.id} className="space-y-2">
-            {/* Watermarked preview only. The original is never used as a thumbnail. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/portal/galleries/${gallery.id}/preview/${asset.id}`}
-              alt={asset.fileName}
-              className="max-h-64 w-full rounded-md border border-border object-contain"
-            />
-            <figcaption className="text-xs text-muted-foreground">{asset.fileName}</figcaption>
-          </figure>
-        ))}
-      </div>
+      <PortalPhotoGrid
+        photos={gallery.assets.map((asset) => ({
+          id: asset.id,
+          fileName: asset.fileName,
+          src: `/portal/galleries/${gallery.id}/preview/${asset.id}`,
+        }))}
+      />
       {decision.allowed ? (
-        <div className="flex gap-4 text-sm">
-          <a className="text-primary" href={`/portal/galleries/${gallery.id}/download`}>
+        <div className="flex flex-wrap gap-2">
+          <a className="inline-flex h-12 items-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground" href={`/portal/galleries/${gallery.id}/download`}>
             Download
           </a>
-          <a className="text-primary" href={`/portal/galleries/${gallery.id}/zip`}>
+          <a className="inline-flex h-12 items-center rounded-xl border border-border bg-surface px-4 text-sm font-medium" href={`/portal/galleries/${gallery.id}/zip`}>
             Download zip
           </a>
         </div>
@@ -70,34 +71,39 @@ export default async function PortalGalleryPage({
         <div className="space-y-3 text-sm">
           <p>Payment required before download.</p>
           {openInvoice && cardQuote ? (
-            <div className="space-y-1">
-              <p>
-                <Link className="text-primary" href={`/portal/invoices/${openInvoice.id}`}>
-                  Invoice {openInvoice.number}
-                </Link>
-              </p>
-              <p>Listing price {formatCents(openInvoice.totalCents)}</p>
-              <p>Card processing fee {formatCents(cardQuote.feeCents)}</p>
-              <p>Card total {formatCents(cardQuote.totalCents)}</p>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Pay for these photos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p>
+                  <Link className="font-medium text-primary" href={`/portal/invoices/${openInvoice.id}`}>
+                    Invoice {openInvoice.number}
+                  </Link>
+                </p>
+                <p>Listing price {formatCents(openInvoice.totalCents)}</p>
+                <p>Card processing fee {formatCents(cardQuote.feeCents)}</p>
+                <p className="text-base font-semibold">Card total {formatCents(cardQuote.totalCents)}</p>
+                <div className="flex flex-wrap gap-2">
+                  {stripe.configured ? (
+                    <form action={buyGalleryAction.bind(null, gallery.id)}>
+                      <Button type="submit">Buy</Button>
+                    </form>
+                  ) : null}
+                  {env.zellePhone ? (
+                    <form action={chooseZelleAction.bind(null, gallery.id)}>
+                      <Button type="submit" variant="secondary">
+                        Pay with Zelle, no card fee
+                      </Button>
+                    </form>
+                  ) : null}
+                </div>
+                {!stripe.configured ? <p>Stripe is not configured.</p> : null}
+              </CardContent>
+            </Card>
           ) : (
             <p className="text-muted-foreground">No open invoice yet.</p>
           )}
-          <div className="flex flex-wrap gap-2">
-            {openInvoice && stripe.configured ? (
-              <form action={buyGalleryAction.bind(null, gallery.id)}>
-                <Button type="submit">Buy</Button>
-              </form>
-            ) : null}
-            {openInvoice && env.zellePhone ? (
-              <form action={chooseZelleAction.bind(null, gallery.id)}>
-                <Button type="submit" variant="secondary">
-                  Pay with Zelle, no card fee
-                </Button>
-              </form>
-            ) : null}
-          </div>
-          {openInvoice && !stripe.configured ? <p>Stripe is not configured.</p> : null}
           {awaitingZelle && env.zellePhone ? (
             <div className="space-y-2 rounded-md border border-border p-4" data-testid="zelle-instructions">
               <p className="font-medium">Pay with Zelle, no card fee</p>

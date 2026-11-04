@@ -1,6 +1,6 @@
 import { PortalOtpForm } from "@/components/forms/portal-otp-form";
 import { portalNext } from "@/lib/invite";
-import { ThemeToggle } from "@/components/shell/theme-toggle";
+import { PortalAuthShell } from "@/components/shell/portal-auth-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Client sign in" };
@@ -12,20 +12,16 @@ export default async function PortalLoginPage({ searchParams }: { searchParams: 
   const registerQuery = new URLSearchParams({ next });
   if (invite) registerQuery.set("invite", invite);
   return (
-    <main className="relative grid min-h-screen place-items-center bg-surface px-4 py-12" data-testid="portal-login">
-      <div className="absolute right-4 top-4">
-        <ThemeToggle />
-      </div>
-      <Card className="w-full max-w-md">
+    <PortalAuthShell testId="portal-login">
+      <Card className="w-full">
         <CardHeader>
-          <p className="text-sm font-medium text-primary">Amalfi Media</p>
-          <CardTitle className="text-2xl">Client portal</CardTitle>
-          <p className="text-sm text-muted-foreground">Orders, galleries, and invoices for your listings.</p>
+          <CardTitle className="text-[1.75rem] leading-tight">Client portal</CardTitle>
+          <p className="text-base text-muted-foreground">Orders, galleries, and invoices for your listings.</p>
         </CardHeader>
         <CardContent>
           <PortalOtpForm next={next} invite={invite} registerHref={`/portal/register?${registerQuery}`} />
         </CardContent>
       </Card>
-    </main>
+    </PortalAuthShell>
   );
 }

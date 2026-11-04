@@ -87,7 +87,7 @@ export function PortalOtpForm({
     return (
       <div className="space-y-4">
         <LoginForm next={next} invite={invite} registerHref={registerHref} />
-        <button type="button" className="text-sm text-primary" onClick={() => { setError(null); setMode("email"); }}>
+        <button type="button" className="inline-flex min-h-12 items-center text-sm text-primary" onClick={() => { setError(null); setMode("email"); }}>
           Email me a code instead
         </button>
       </div>
@@ -113,6 +113,7 @@ export function PortalOtpForm({
             onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
             required
             autoFocus
+            className="text-center text-2xl tracking-[0.4em]"
           />
         </div>
         {error ? (
@@ -124,10 +125,10 @@ export function PortalOtpForm({
           {pending ? "Signing in…" : "Sign in"}
         </Button>
         <div className="flex justify-between text-sm">
-          <button type="button" className="text-primary" disabled={pending} onClick={() => void sendCode()}>
+          <button type="button" className="inline-flex min-h-12 items-center text-primary" disabled={pending} onClick={() => void sendCode()}>
             Resend code
           </button>
-          <button type="button" className="text-primary" onClick={() => { setError(null); setMode("password"); }}>
+          <button type="button" className="inline-flex min-h-12 items-center text-primary" onClick={() => { setError(null); setMode("password"); }}>
             Use password instead
           </button>
         </div>
@@ -166,11 +167,11 @@ export function PortalOtpForm({
         {pending ? "Sending…" : "Email me a code"}
       </Button>
       <div className="flex justify-between text-sm">
-        <button type="button" className="text-primary" onClick={() => { setError(null); setMode("password"); }}>
+        <button type="button" className="inline-flex min-h-12 items-center text-primary" onClick={() => { setError(null); setMode("password"); }}>
           Use password instead
         </button>
         {registerHref ? (
-          <Link className="text-primary" href={registerHref}>
+          <Link className="inline-flex min-h-12 items-center text-primary" href={registerHref}>
             Create an account
           </Link>
         ) : null}

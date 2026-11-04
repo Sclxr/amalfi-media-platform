@@ -86,9 +86,19 @@ test("a client session gets 404 on admin", async ({ page }) => {
     await page.goto("/portal");
     await expect(page.getByRole("heading", { name: /Hello, Jordan/ })).toBeVisible();
     await expectNoOverflow(page);
-    await page.getByRole("link", { name: "Gallery", exact: true }).click();
+    await page.goto("/portal/orders");
+    await expectNoOverflow(page);
+    await page.goto("/portal/invoices");
+    await expectNoOverflow(page);
+    await page.goto("/portal/galleries");
     await expect(page.getByRole("heading", { name: "Galleries" })).toBeVisible();
     await expectNoOverflow(page);
+    const gallery = page.locator("main").getByRole("link").first();
+    if ((await gallery.count()) > 0) {
+      await gallery.click();
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expectNoOverflow(page);
+    }
   }
   await page.setViewportSize({ width: 1280, height: 800 });
   const response = await page.goto("/admin");
