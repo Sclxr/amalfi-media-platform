@@ -36,19 +36,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <CardContent className="space-y-3 text-sm">
           {orders.length === 0 ? <p className="text-muted-foreground">No orders yet.</p> : null}
           {orders.map((order) => (
-            <div key={order.id} data-testid="order-row" className="flex flex-wrap items-center justify-between gap-3">
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <input type="checkbox" data-bulk="order" value={order.id} aria-label={`Select order ${order.number}`} />
-              </label>
-              <div>
-                <Link className="font-medium text-primary" href={`/admin/orders/${order.id}`}>
-                  {order.property.addressLine1}
-                </Link>
-                <p className="text-muted-foreground">
-                  {order.client.firstName} {order.client.lastName} · {formatCents(order.totalCents)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
+            <article key={order.id} data-testid="order-row" className="rounded-2xl border border-border p-4">
+              <Link className="block min-h-12 break-words text-base font-medium text-primary" href={`/admin/orders/${order.id}`}>
+                {order.property.addressLine1}
+              </Link>
+              <p className="text-muted-foreground">
+                {order.client.firstName} {order.client.lastName} · {formatCents(order.totalCents)}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" data-bulk="order" value={order.id} aria-label={`Select order ${order.number}`} />
+                  Select
+                </label>
                 <StatusBadge status={order.status} />
                 <RecordMenu
                   kind="order"
@@ -61,7 +60,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                   returnTo={returnTo}
                 />
               </div>
-            </div>
+            </article>
           ))}
         </CardContent>
       </Card>

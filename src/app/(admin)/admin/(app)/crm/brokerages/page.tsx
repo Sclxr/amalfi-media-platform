@@ -34,8 +34,8 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
         </div>
       </div>
       {notice ? <p className="text-sm">{notice}</p> : null}
-      <form method="get" className="flex gap-3">
-        <Input name="q" defaultValue={q ?? ""} placeholder="Search name or city" aria-label="Search brokerages" />
+      <form method="get" className="flex min-w-0 flex-wrap gap-3">
+        <Input name="q" defaultValue={q ?? ""} placeholder="Search name or city" aria-label="Search brokerages" className="min-w-0 flex-1" />
         <Button type="submit" variant="secondary">
           Search
         </Button>
@@ -43,7 +43,34 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
       {brokerages.length === 0 ? (
         <EmptyState title="No brokerages" body="Add an office so realtors can be grouped." />
       ) : (
-        <div className="overflow-hidden rounded-md border border-border">
+        <>
+        <div className="grid gap-3 md:hidden">
+          {brokerages.map((brokerage) => (
+            <article key={brokerage.id} className="rounded-2xl border border-border bg-card p-4">
+              <Link className="block min-h-12 text-base font-medium text-primary" href={`/admin/crm/brokerages/${brokerage.id}`}>
+                {brokerage.name}
+              </Link>
+              <p className="text-sm text-muted-foreground">{brokerage.city ?? "No city"} · {brokerage._count.leads} realtors · {brokerage._count.clients} clients</p>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" data-bulk="brokerage" value={brokerage.id} aria-label={`Select ${brokerage.name}`} />
+                  Select
+                </label>
+                <RecordMenu
+                  kind="brokerage"
+                  id={brokerage.id}
+                  name={brokerage.name}
+                  archived={Boolean(brokerage.archivedAt)}
+                  canArchive={can(actor, "crm.write")}
+                  canPermanent={can(actor, "records.delete")}
+                  deletable={brokerageRemoval(brokerage._count).canDelete}
+                  returnTo={returnTo}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface text-muted-foreground">
               <tr>
@@ -85,6 +112,7 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

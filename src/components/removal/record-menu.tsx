@@ -53,19 +53,19 @@ export function RecordMenu({
         Actions
       </Button>
       {open ? (
-        <div role="menu" className="absolute right-0 z-30 mt-1 w-52 rounded-md border border-border bg-card p-1 text-sm shadow-lg">
+        <div role="menu" className="absolute right-0 z-40 mt-1 w-52 rounded-xl border border-border bg-card p-1 text-sm shadow-lg">
           {canArchive ? (
             <form action={archive}>
               <input type="hidden" name="kind" value={kind} />
               <input type="hidden" name="id" value={id} />
               <input type="hidden" name="returnTo" value={returnTo} />
-              <button type="submit" role="menuitem" className="block w-full rounded-sm px-3 py-2 text-left hover:bg-accent">
+              <button type="submit" role="menuitem" className="flex min-h-12 w-full items-center rounded-xl px-3 text-left hover:bg-accent">
                 {archived ? "Restore" : "Archive"}
               </button>
             </form>
           ) : null}
           {canPermanent && deletable ? (
-            <button type="button" role="menuitem" className="block w-full rounded-sm px-3 py-2 text-left text-destructive hover:bg-accent" onClick={() => void openDelete()}>
+            <button type="button" role="menuitem" className="flex min-h-12 w-full items-center rounded-xl px-3 text-left text-destructive hover:bg-accent" onClick={() => void openDelete()}>
               Delete permanently
             </button>
           ) : null}
@@ -85,10 +85,10 @@ export function RecordMenu({
             <input type="hidden" name="kind" value={kind} />
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="returnTo" value={returnTo} />
-            <input type="hidden" name="expected" value={name} />
+            <input type="hidden" name="expected" value="DELETE" />
             <label className="text-sm">
-              Type {name} to confirm
-              <Input name="confirm" aria-label="Type the name to confirm" className="mt-1" autoComplete="off" />
+              Type DELETE to confirm
+              <Input name="confirm" aria-label="Type DELETE to confirm" className="mt-1" autoComplete="off" />
             </label>
             <Button type="submit" variant="destructive">
               Delete permanently

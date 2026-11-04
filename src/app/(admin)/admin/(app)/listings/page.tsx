@@ -94,7 +94,7 @@ export default async function ListingsPage({
                 </div>
                 <div className="space-y-3 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-base font-semibold leading-snug">{listing.addressLine1}</h2>
+                    <h2 className="break-words text-base font-semibold leading-snug">{listing.addressLine1}</h2>
                     {listing.status === "NO_SHOOT" ? (
                       <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">No shoot</span>
                     ) : (

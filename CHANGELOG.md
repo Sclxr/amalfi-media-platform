@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 — 2026-11-03
+
+### Changed
+
+- Admin lists of realtors, brokerages, orders, and invoices become cards on a phone, with the actions on the card. Listing tabs stay on screen. The photo viewer fits and closes with Escape. Reordering uses a drag handle. Deleting asks you to type DELETE.
+
 ## 0.19.0 — 2026-11-03
 
 ### Changed

@@ -18,8 +18,17 @@ test("admin can sign in and use CRM", async ({ page }) => {
     await page.goto("/admin");
     await expect(page.getByTestId("overview")).toBeVisible();
     await expectNoOverflow(page);
+    for (const path of ["/admin/listings", "/admin/orders", "/admin/crm/leads", "/admin/crm/brokerages", "/admin/billing"]) {
+      await page.goto(path);
+      await expectNoOverflow(page);
+    }
     await page.goto("/admin/listings");
-    await expect(page.getByRole("heading", { name: "Listings" })).toBeVisible();
+    await page.locator("article a").first().click();
+    await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible();
+    await expectNoOverflow(page);
+    await page.getByRole("tab", { name: "Gallery" }).click();
+    await expectNoOverflow(page);
+    await page.getByRole("tab", { name: "Orders & Billing" }).click();
     await expectNoOverflow(page);
   }
   await page.setViewportSize({ width: 1280, height: 800 });
