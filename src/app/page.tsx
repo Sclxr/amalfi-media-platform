@@ -19,6 +19,11 @@ export default function HomePage() {
         </Link>
       </div>
       <p className="mt-10 text-sm text-muted-foreground">321-246-6018 · eathen@amalfimedia.xyz</p>
+      <p className="mt-4 text-sm">
+        <Link className="underline-offset-4 hover:underline" href="/terms">Terms</Link>
+        {" · "}
+        <Link className="underline-offset-4 hover:underline" href="/privacy">Privacy</Link>
+      </p>
     </main>
   );
 }

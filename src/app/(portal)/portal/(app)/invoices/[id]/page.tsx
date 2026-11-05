@@ -51,9 +51,14 @@ export default async function PortalInvoicePage({
         ) : null,
       )}
       {stripe.configured && invoice.status !== "PAID" ? (
-        <form action={pay}>
-          <Button type="submit">Pay with Stripe</Button>
-        </form>
+        <div className="space-y-3">
+          <form action={pay}>
+            <Button type="submit">Pay with Stripe</Button>
+          </form>
+          <p className="text-sm text-muted-foreground">
+            Paying confirms the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy</Link>.
+          </p>
+        </div>
       ) : null}
     </div>
   );

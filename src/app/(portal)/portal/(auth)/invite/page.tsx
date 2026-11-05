@@ -2,10 +2,17 @@ import Link from "next/link";
 import { PortalOtpForm } from "@/components/forms/portal-otp-form";
 import { PortalAuthShell } from "@/components/shell/portal-auth-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pageShare } from "@/lib/share";
 import { readInvite } from "@/server/services/invites";
 
-export const metadata = { title: "Gallery invite" };
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
+  const token = (await searchParams).token?.trim() ?? "";
+  const invite = token ? await readInvite(token) : null;
+  if (!invite) return pageShare("Gallery invite", "Open a gallery invite from Amalfi Media.");
+  return pageShare(invite.address, `Gallery invite for ${invite.address} from Amalfi Media.`);
+}
 
 export default async function InvitePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const params = await searchParams;

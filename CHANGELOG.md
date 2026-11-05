@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0 — 2026-11-05
+
+### Added
+
+- Public Terms and Privacy pages describe accounts, galleries, Stripe and Zelle payments, downloads, and what the business keeps on file. They are linked from the portal, sign-in, and payment screens. Shared links use an Amalfi title, description, and image, and the favicon is a black and gold mark.
+
 ## 0.21.0 — 2026-11-03
 
 ### Changed
