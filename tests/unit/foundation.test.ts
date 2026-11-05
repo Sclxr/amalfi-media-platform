@@ -204,6 +204,8 @@ describe("staging access gate", () => {
       "/portal/api/auth/sign-in/email-otp",
       "/portal/api/auth/email-otp/send-verification-otp",
       "/api/auth/sign-in/email",
+      "/terms",
+      "/privacy",
     ];
     const closed = ["/admin", "/admin/login", "/admin/settings/api-keys", "/api/bot", "/api/bot/leads"];
     for (const pathname of open) {

@@ -5,13 +5,22 @@ import { PortalPhotoGrid } from "@/components/portal/photo-grid";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cardProcessingQuote } from "@/lib/card-fee";
+import { pageShare } from "@/lib/share";
 import { formatCents } from "@/lib/money";
 import { getActor } from "@/server/auth/guards";
 import { billingStatus } from "@/server/services/billing";
 import { getEnv } from "@/server/env";
 import { clientGallery, downloadDecisionFor } from "@/server/services/galleries";
 
-export const metadata = { title: "Gallery" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const actor = await getActor();
+  const { id } = await params;
+  if (!actor?.clientId) return pageShare("Gallery", "A photo gallery from Amalfi Media.");
+  const gallery = await clientGallery(actor.clientId, id);
+  if (!gallery) return pageShare("Gallery", "A photo gallery from Amalfi Media.");
+  const address = gallery.property.addressLine1;
+  return pageShare(address, `Photos for ${address} from Amalfi Media.`);
+}
 
 export default async function PortalGalleryPage({
   params,
@@ -98,6 +107,9 @@ export default async function PortalGalleryPage({
                     </form>
                   ) : null}
                 </div>
+                <p className="text-muted-foreground">
+                  Paying confirms the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy</Link>.
+                </p>
                 {!stripe.configured ? <p>Stripe is not configured.</p> : null}
               </CardContent>
             </Card>

@@ -9,7 +9,14 @@ export type StagingGateResult =
 
 /** Portal pages, invite links, and the auth routes a realtor needs. Admin stays behind the password. */
 export function stagingBasicAuthBypass(pathname: string) {
-  if (pathname === HEALTH_PATH || pathname === "/unsubscribe" || pathname === "/api/unsubscribe" || pathname === "/api/stripe/webhook") {
+  if (
+    pathname === HEALTH_PATH ||
+    pathname === "/unsubscribe" ||
+    pathname === "/api/unsubscribe" ||
+    pathname === "/api/stripe/webhook" ||
+    pathname === "/terms" ||
+    pathname === "/privacy"
+  ) {
     return true;
   }
   if (pathname === "/portal" || pathname.startsWith("/portal/")) return true;
@@ -28,6 +35,7 @@ function credentialsMatch(provided: string, expected: string): boolean {
  * Staging admin stays closed unless the request presents the configured basic-auth secret.
  * A missing secret fails closed for those routes. Portal, invite, and auth routes stay open
  * so a realtor can sign in; gallery files still require an application session.
+ * Terms and privacy stay open so they can be read without the staging password.
  * STAGING_GATE=off skips this password entirely. App login is unchanged.
  */
 export function stagingGate(input: {

@@ -1,3 +1,4 @@
+import { LegalLinks } from "@/components/legal/legal-links";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 export function PortalAuthShell({ children, testId }: { children: React.ReactNode; testId?: string }) {
@@ -9,7 +10,10 @@ export function PortalAuthShell({ children, testId }: { children: React.ReactNod
         </p>
         <ThemeToggle className="text-[#f7f5f0] hover:bg-white/10" />
       </header>
-      <div className="mx-auto w-full max-w-md px-4 py-10">{children}</div>
+      <div className="mx-auto w-full max-w-md px-4 py-10">
+        {children}
+        <LegalLinks className="mt-6 justify-center" />
+      </div>
     </main>
   );
 }

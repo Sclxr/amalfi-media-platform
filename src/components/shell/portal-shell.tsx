@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { LegalLinks } from "@/components/legal/legal-links";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -63,7 +64,12 @@ export function PortalShell({ name, email, children }: { name: string; email: st
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6 pb-28 md:py-8 md:pb-8">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-6 md:py-8">{children}</main>
+      <footer className="mx-auto max-w-5xl px-4 pb-28 md:pb-10">
+        <div className="border-t border-border pt-2">
+          <LegalLinks />
+        </div>
+      </footer>
       <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-white/10 bg-[#111111] px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-[#bdb7ae] md:hidden" aria-label="Portal">
         <Link href="/portal" className={cn("flex min-h-12 flex-col items-center justify-center text-[11px]", home && "text-[#d4bc8c]")} aria-current={home ? "page" : undefined}>Home</Link>
         <Link href="/portal/galleries" className={cn("flex min-h-12 flex-col items-center justify-center text-[11px]", gallery && "text-[#d4bc8c]")} aria-current={gallery ? "page" : undefined}>Gallery</Link>
@@ -77,7 +83,8 @@ export function PortalShell({ name, email, children }: { name: string; email: st
           <div role="dialog" aria-modal="true" aria-label="Account" className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-card p-5 pb-8 text-foreground" onClick={(event) => event.stopPropagation()}>
             <p className="text-lg font-semibold">{name}</p>
             <p className="mt-1 text-sm text-muted-foreground">{email}</p>
-            <Button className="mt-4 w-full" onClick={() => void signOut()}>Sign out</Button>
+            <LegalLinks className="mt-4" />
+            <Button className="mt-2 w-full" onClick={() => void signOut()}>Sign out</Button>
             <Button className="mt-2 w-full" variant="secondary" onClick={() => setAccountOpen(false)}>Close</Button>
           </div>
         </div>
