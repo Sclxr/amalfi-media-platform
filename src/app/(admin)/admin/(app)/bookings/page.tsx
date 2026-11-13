@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/dates";
 import { getActor } from "@/server/auth/guards";
 import { listCalendar } from "@/server/services/scheduling";
 
-export const metadata = { title: "Bookings" };
+export const metadata = { title: "Shoots" };
 
 export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ view?: string; date?: string }> }) {
   const actor = await getActor();
@@ -18,10 +19,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Bookings</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Shoots</h1>
           <p className="mt-2 text-muted-foreground">{range.label} · Orlando time</p>
         </div>
-        <div className="flex gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Button asChild className="border border-[#d4bc8c] bg-[#111111] text-[#d4bc8c] hover:bg-[#1c1c1c]">
+            <Link href="/admin/bookings/new">New shoot</Link>
+          </Button>
           <Link className="text-primary" href="/admin/bookings?view=day">
             Day
           </Link>

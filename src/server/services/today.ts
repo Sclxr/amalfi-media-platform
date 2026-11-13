@@ -183,7 +183,7 @@ export async function getToday(actor: Actor, now = new Date()) {
     unpaid,
     galleries,
     showMoney: can(actor, "billing.read"),
-    newShootHref: "/admin/listings/new",
+    newShootHref: "/admin/bookings/new",
     sendQuoteHref: quoteTarget ? `/admin/listings/${quoteTarget.propertyId}?tab=billing` : "/admin/listings",
     uploadHref: galleries[0]?.href ?? "/admin/listings",
   };

@@ -5,7 +5,7 @@ import { createListingInviteAction, sendListingInviteAction } from "@/app/(admin
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function InviteLink({ propertyId }: { propertyId: string }) {
+export function InviteLink({ propertyId, copyOnly = false }: { propertyId: string; copyOnly?: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -37,20 +37,42 @@ export function InviteLink({ propertyId }: { propertyId: string }) {
   }
 
   async function copy() {
+    if (copyOnly && !url) {
+      createAndCopy();
+      return;
+    }
     if (!url) return;
     await navigator.clipboard.writeText(url);
     setCopied(true);
   }
 
+  function createAndCopy() {
+    setError(null);
+    startTransition(async () => {
+      const result = await createListingInviteAction(propertyId);
+      if ("error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      if ("url" in result && result.url) {
+        setUrl(result.url);
+        await navigator.clipboard.writeText(result.url);
+        setCopied(true);
+      }
+    });
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" size="sm" onClick={create} disabled={pending}>
-          {pending ? "Working…" : "Create invite link"}
+        <Button type="button" variant="secondary" size="sm" onClick={copyOnly ? copy : create} disabled={pending}>
+          {pending ? "Working…" : copyOnly ? (copied ? "Copied" : "Copy invite link") : "Create invite link"}
         </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={send} disabled={pending}>
-          {pending ? "Working…" : "Send invite by email"}
-        </Button>
+        {copyOnly ? null : (
+          <Button type="button" variant="secondary" size="sm" onClick={send} disabled={pending}>
+            {pending ? "Working…" : "Send invite by email"}
+          </Button>
+        )}
       </div>
       {status ? <p>{status}</p> : null}
       {url ? (

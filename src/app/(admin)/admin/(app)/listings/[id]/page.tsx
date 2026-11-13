@@ -48,7 +48,7 @@ export default async function ListingDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ notice?: string; tab?: string; shoot?: string }>;
+  searchParams: Promise<{ notice?: string; tab?: string; shoot?: string; booked?: string; reused?: string }>;
 }) {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
@@ -131,6 +131,22 @@ export default async function ListingDetailPage({
             : null
         }
       />
+      {query.booked === "1" ? (
+        <section data-testid="shoot-booked" className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5">
+          <h2 className="text-lg font-semibold tracking-tight">Shoot booked</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {query.reused === "1"
+              ? "That email was already on file, so the existing realtor was used. The time is on the calendar and the quote is a draft. Nothing was emailed."
+              : "The time is on the calendar and the quote is a draft. Nothing was emailed."}
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            {canEdit ? <InviteLink propertyId={property.id} copyOnly /> : null}
+            <Button asChild>
+              <Link href={`/admin/listings/${property.id}?tab=gallery#upload`}>Upload photos</Link>
+            </Button>
+          </div>
+        </section>
+      ) : null}
       {query.notice ? <p className="rounded-md border border-border px-4 py-3 text-sm">{query.notice}</p> : null}
       <nav aria-label="Listing sections" role="tablist" className="flex flex-wrap gap-2">
         {TABS.map((item) => (
