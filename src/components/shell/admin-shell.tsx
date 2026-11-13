@@ -117,8 +117,8 @@ function AdminFrame({ user, children }: { user: ShellUser; children: React.React
   const onMoney = pathname.startsWith("/admin/billing");
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen overflow-x-hidden bg-background">
+      <div className="flex min-h-screen min-w-0">
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 bg-[#111111] px-3 py-4 text-[#f7f5f0] transition-transform md:static md:translate-x-0",
@@ -189,7 +189,7 @@ function AdminFrame({ user, children }: { user: ShellUser; children: React.React
               <UserMenu user={user} />
             </div>
           </header>
-          <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 pb-28 md:px-6 md:py-8 md:pb-8">{children}</main>
+          <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-28 md:px-6 md:py-8 md:pb-8">{children}</main>
         </div>
       </div>
       {commandOpen ? (
@@ -217,24 +217,24 @@ function AdminFrame({ user, children }: { user: ShellUser; children: React.React
           </div>
         </div>
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-white/10 bg-[#111111] px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-[#bdb7ae] md:hidden" aria-label="Admin mobile">
-        <Link href="/admin" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px]", onToday && "text-[#d4bc8c]")} aria-current={onToday ? "page" : undefined}>
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid w-full grid-cols-5 border-t border-white/10 bg-[#111111] px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-[#bdb7ae] md:hidden" aria-label="Admin mobile">
+        <Link href="/admin" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onToday && "text-[#d4bc8c]")} aria-current={onToday ? "page" : undefined}>
           <LayoutDashboard className="size-5" />
           Today
         </Link>
-        <Link href="/admin/bookings" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px]", onShoots && "text-[#d4bc8c]")} aria-current={onShoots ? "page" : undefined}>
+        <Link href="/admin/bookings" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onShoots && "text-[#d4bc8c]")} aria-current={onShoots ? "page" : undefined}>
           <Calendar className="size-5" />
           Shoots
         </Link>
-        <Link href="/admin/listings" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px]", onListings && "text-[#d4bc8c]")} aria-current={onListings ? "page" : undefined}>
+        <Link href="/admin/listings" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onListings && "text-[#d4bc8c]")} aria-current={onListings ? "page" : undefined}>
           <Home className="size-5" />
           Listings
         </Link>
-        <Link href="/admin/billing" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px]", onMoney && "text-[#d4bc8c]")} aria-current={onMoney ? "page" : undefined}>
+        <Link href="/admin/billing" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onMoney && "text-[#d4bc8c]")} aria-current={onMoney ? "page" : undefined}>
           <Receipt className="size-5" />
           Money
         </Link>
-        <button type="button" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px]", open && "text-[#d4bc8c]")} onClick={() => setOpen(true)}>
+        <button type="button" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", open && "text-[#d4bc8c]")} onClick={() => setOpen(true)}>
           <MoreHorizontal className="size-5" />
           More
         </button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Camera } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
@@ -36,12 +37,20 @@ function shootWhen(when: Date) {
 
 function Thumb({ src }: { src: string | null }) {
   if (!src) {
-    return <div className="grid h-16 w-20 shrink-0 place-items-center rounded-xl border border-dashed border-border bg-accent text-xs text-muted-foreground">Photo</div>;
+    return (
+      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-accent text-muted-foreground" aria-hidden>
+        <Camera className="size-5" strokeWidth={1.5} />
+      </div>
+    );
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
+    <img src={src} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
   );
+}
+
+function Address({ children }: { children: string }) {
+  return <span className="line-clamp-2 font-medium leading-5 [overflow-wrap:anywhere]">{children}</span>;
 }
 
 export default async function TodayPage() {
@@ -51,7 +60,7 @@ export default async function TodayPage() {
   const today = await getToday(actor, now);
   const first = actor.name.split(" ")[0] || actor.name;
   return (
-    <div data-testid="overview" className="space-y-8">
+    <div data-testid="overview" className="min-w-0 space-y-8">
       <div>
         <p className="text-sm font-medium tracking-wide text-gold">{greeting(now)}</p>
         <h1 className="mt-1 text-[2rem] font-semibold leading-none tracking-tight sm:text-4xl">Today</h1>
@@ -70,18 +79,26 @@ export default async function TodayPage() {
           <Link href={today.uploadHref}>Upload photos</Link>
         </Button>
       </div>
-      <div className="grid gap-4 xl:grid-cols-3">
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="upcoming-shoots">
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-3">
+        <section
+          className={`min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5 ${today.shoots.length === 0 ? "xl:self-start" : ""}`}
+          aria-labelledby="upcoming-shoots"
+        >
           <h2 id="upcoming-shoots" className="text-lg font-semibold tracking-tight">Upcoming shoots</h2>
           {today.shoots.length === 0 ? (
-            <p className="mt-4 text-sm leading-6 text-muted-foreground">Nothing on the calendar yet. New shoot puts the next one here.</p>
+            <div className="mt-3">
+              <p className="text-sm leading-6 text-muted-foreground">Nothing on the calendar yet.</p>
+              <Link href={today.newShootHref} className="mt-2 inline-flex min-h-12 items-center text-sm font-medium text-gold">
+                New shoot
+              </Link>
+            </div>
           ) : (
             <div className="mt-2">
               {today.shoots.map((shoot) => (
                 <Link key={shoot.id} href={shoot.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
                   <Thumb src={shoot.imageSrc} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{shootWhen(shoot.when)} · {shoot.address}</span>
+                    <Address>{`${shootWhen(shoot.when)} · ${shoot.address}`}</Address>
                     <span className="mt-0.5 block truncate text-sm text-muted-foreground">{shoot.who} · {shoot.detail}</span>
                   </span>
                 </Link>
@@ -89,38 +106,38 @@ export default async function TodayPage() {
             </div>
           )}
         </section>
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="unpaid">
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="unpaid">
           <h2 id="unpaid" className="text-lg font-semibold tracking-tight">Unpaid</h2>
           {!today.showMoney ? (
-            <p className="mt-4 text-sm leading-6 text-muted-foreground">Invoice amounts stay with the admin account.</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Invoice amounts stay with the admin account.</p>
           ) : today.unpaid.length === 0 ? (
-            <p className="mt-4 text-sm leading-6 text-muted-foreground">Nothing unpaid. Paid work stays off this list.</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Nothing unpaid. Paid work stays off this list.</p>
           ) : (
             <div className="mt-2">
               {today.unpaid.map((row) => (
                 <Link key={row.id} href={row.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
                   <Thumb src={row.imageSrc} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{row.address}</span>
+                    <Address>{row.address}</Address>
                     <span className="mt-0.5 block text-sm text-muted-foreground">Open invoice</span>
                   </span>
-                  <span className="tabular-nums text-base font-semibold text-gold">{formatCents(row.amountCents)}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums text-base font-semibold text-gold">{formatCents(row.amountCents)}</span>
                 </Link>
               ))}
             </div>
           )}
         </section>
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="galleries-to-send">
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="galleries-to-send">
           <h2 id="galleries-to-send" className="text-lg font-semibold tracking-tight">Galleries to send</h2>
           {today.galleries.length === 0 ? (
-            <p className="mt-4 text-sm leading-6 text-muted-foreground">Every gallery with photos has already been sent.</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Every gallery with photos has already been sent.</p>
           ) : (
             <div className="mt-2">
               {today.galleries.map((gallery) => (
                 <Link key={gallery.id} href={gallery.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
                   <Thumb src={gallery.imageSrc} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{gallery.address}</span>
+                    <Address>{gallery.address}</Address>
                     <span className="mt-0.5 block text-sm text-muted-foreground">{gallery.detail}</span>
                   </span>
                 </Link>

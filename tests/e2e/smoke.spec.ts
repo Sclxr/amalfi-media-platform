@@ -13,7 +13,7 @@ test("admin can sign in and use CRM", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByTestId("overview")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "New shoot" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "New shoot" }).first()).toBeVisible();
   for (const viewport of phoneWidths) {
     await page.setViewportSize(viewport);
     await page.goto("/admin");

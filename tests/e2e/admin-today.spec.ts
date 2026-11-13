@@ -9,7 +9,7 @@ test("today shows the jobs and the seed listing that still needs photos", async 
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "New shoot" })).toHaveAttribute("href", "/admin/listings/new");
+  await expect(page.getByRole("link", { name: "New shoot" }).first()).toHaveAttribute("href", "/admin/listings/new");
   await expect(page.getByRole("link", { name: "Send quote" })).toHaveAttribute("href", /tab=billing/);
   await expect(page.getByRole("link", { name: "Upload photos" })).toHaveAttribute("href", /tab=gallery/);
   await expect(page.getByRole("heading", { name: "Upcoming shoots" })).toBeVisible();
@@ -31,8 +31,18 @@ test("today shows the jobs and the seed listing that still needs photos", async 
   await expect(page.locator("header")).toContainText("1842 Lake Conway Shore");
   await expect(page.locator("header")).not.toContainText("seed-property-hale");
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/admin");
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/admin");
+    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+    const pastTheEdge = await page.evaluate(() => {
+      const edge = document.documentElement.clientWidth;
+      return [...document.querySelectorAll("main a, main p, main span")].some((el) => el.getBoundingClientRect().right > edge + 1);
+    });
+    expect(pastTheEdge).toBe(false);
+  }
   const mobile = page.getByRole("navigation", { name: "Admin mobile" });
   await expect(mobile.getByRole("link", { name: "Today" })).toBeVisible();
   await expect(mobile.getByRole("link", { name: "Shoots" })).toBeVisible();
