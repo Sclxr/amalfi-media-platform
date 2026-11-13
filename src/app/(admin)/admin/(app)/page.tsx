@@ -1,70 +1,151 @@
-import { CalendarClock, ClipboardList, DollarSign, Users } from "lucide-react";
 import Link from "next/link";
-import { OverviewCharts } from "@/components/data/overview-charts";
-import { StatCard } from "@/components/data/stat-card";
-import { StatusBadge } from "@/components/data/status-badge";
-import { Card } from "@/components/ui/card";
-import { formatDate } from "@/lib/dates";
+import { Camera } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
 import { getActor } from "@/server/auth/guards";
-import { getOverview } from "@/server/services/overview";
-import { redirect } from "next/navigation";
+import { getToday } from "@/server/services/today";
 
-export const metadata = { title: "Overview" };
+export const metadata = { title: "Today" };
 
-export default async function OverviewPage() {
+function greeting(now: Date) {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hourCycle: "h23" }).format(now),
+  );
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function easternDate(now: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(now);
+}
+
+function shootWhen(when: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(when);
+}
+
+function Thumb({ src }: { src: string | null }) {
+  if (!src) {
+    return (
+      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-accent text-muted-foreground" aria-hidden>
+        <Camera className="size-5" strokeWidth={1.5} />
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+  );
+}
+
+function Address({ children }: { children: string }) {
+  return <span className="line-clamp-2 font-medium leading-5 [overflow-wrap:anywhere]">{children}</span>;
+}
+
+export default async function TodayPage() {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
-  const overview = await getOverview(actor);
+  const now = new Date();
+  const today = await getToday(actor, now);
+  const first = actor.name.split(" ")[0] || actor.name;
   return (
-    <div data-testid="overview" className="space-y-8">
+    <div data-testid="overview" className="min-w-0 space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Overview</h1>
-        <p className="mt-2 text-muted-foreground">Amalfi Media · Orlando, Central Florida</p>
+        <p className="text-sm font-medium tracking-wide text-gold">{greeting(now)}</p>
+        <h1 className="mt-1 text-[2rem] font-semibold leading-none tracking-tight sm:text-4xl">Today</h1>
+        <p className="mt-3 text-base text-muted-foreground">
+          {easternDate(now)} · {first}
+        </p>
       </div>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Open realtors" value={String(overview.openLeads)} hint="Not converted or closed" icon={Users} />
-        <StatCard label="Follow-ups due" value={String(overview.followUps)} hint="Through today, Eastern time" icon={CalendarClock} />
-        <StatCard label="Active orders" value={String(overview.activeOrders)} hint={`${overview.openInvoices} open invoices`} icon={ClipboardList} />
-        {overview.showRevenue ? (
-          <StatCard
-            testId="revenue-card"
-            label="Collected"
-            value={formatCents(overview.collectedCents ?? 0)}
-            hint="Paid invoices"
-            icon={DollarSign}
-          />
-        ) : null}
-      </section>
-      <OverviewCharts leads={overview.leadsByStatus} orders={overview.ordersByStatus} />
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4">
-          <h2 className="font-semibold">Recent realtors</h2>
-          <Link className="text-sm text-primary" href="/admin/crm/leads">
-            View all
-          </Link>
-        </div>
-        <div className="divide-y divide-border">
-          {overview.recentLeads.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-muted-foreground">No realtors yet.</p>
-          ) : (
-            overview.recentLeads.map((lead) => (
-              <Link key={lead.id} href={`/admin/crm/leads/${lead.id}`} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-surface">
-                <span>
-                  <span className="block font-medium">
-                    {lead.firstName} {lead.lastName}
-                  </span>
-                  <span className="text-sm text-muted-foreground">{lead.brokerage?.name ?? lead.city ?? "No brokerage"}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="hidden text-sm text-muted-foreground sm:inline">{formatDate(lead.updatedAt)}</span>
-                  <StatusBadge status={lead.status} />
-                </span>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button asChild className="border border-[#d4bc8c] bg-[#111111] text-[#d4bc8c] hover:bg-[#1c1c1c]">
+          <Link href={today.newShootHref}>New shoot</Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href={today.sendQuoteHref}>Send quote</Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href={today.uploadHref}>Upload photos</Link>
+        </Button>
+      </div>
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-3">
+        <section
+          className={`min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5 ${today.shoots.length === 0 ? "xl:self-start" : ""}`}
+          aria-labelledby="upcoming-shoots"
+        >
+          <h2 id="upcoming-shoots" className="text-lg font-semibold tracking-tight">Upcoming shoots</h2>
+          {today.shoots.length === 0 ? (
+            <div className="mt-3">
+              <p className="text-sm leading-6 text-muted-foreground">Nothing on the calendar yet.</p>
+              <Link href={today.newShootHref} className="mt-2 inline-flex min-h-12 items-center text-sm font-medium text-gold">
+                New shoot
               </Link>
-            ))
+            </div>
+          ) : (
+            <div className="mt-2">
+              {today.shoots.map((shoot) => (
+                <Link key={shoot.id} href={shoot.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
+                  <Thumb src={shoot.imageSrc} />
+                  <span className="min-w-0 flex-1">
+                    <Address>{`${shootWhen(shoot.when)} · ${shoot.address}`}</Address>
+                    <span className="mt-0.5 block truncate text-sm text-muted-foreground">{shoot.who} · {shoot.detail}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
           )}
-        </div>
-      </Card>
+        </section>
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="unpaid">
+          <h2 id="unpaid" className="text-lg font-semibold tracking-tight">Unpaid</h2>
+          {!today.showMoney ? (
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Invoice amounts stay with the admin account.</p>
+          ) : today.unpaid.length === 0 ? (
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Nothing unpaid. Paid work stays off this list.</p>
+          ) : (
+            <div className="mt-2">
+              {today.unpaid.map((row) => (
+                <Link key={row.id} href={row.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
+                  <Thumb src={row.imageSrc} />
+                  <span className="min-w-0 flex-1">
+                    <Address>{row.address}</Address>
+                    <span className="mt-0.5 block text-sm text-muted-foreground">Open invoice</span>
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums text-base font-semibold text-gold">{formatCents(row.amountCents)}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="galleries-to-send">
+          <h2 id="galleries-to-send" className="text-lg font-semibold tracking-tight">Galleries to send</h2>
+          {today.galleries.length === 0 ? (
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Every gallery with photos has already been sent.</p>
+          ) : (
+            <div className="mt-2">
+              {today.galleries.map((gallery) => (
+                <Link key={gallery.id} href={gallery.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
+                  <Thumb src={gallery.imageSrc} />
+                  <span className="min-w-0 flex-1">
+                    <Address>{gallery.address}</Address>
+                    <span className="mt-0.5 block text-sm text-muted-foreground">{gallery.detail}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

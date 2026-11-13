@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { controlClass } from "@/components/ui/control";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LEAD_STATUSES, type LeadFormValues } from "@/schemas/lead";
@@ -31,7 +32,7 @@ export function LeadForm({
       <Field label="Follow-up date" name="nextFollowUpAt" type="date" defaultValue={defaults?.nextFollowUpAt} />
       <div className="space-y-2">
         <Label htmlFor="status">Status</Label>
-        <select id="status" name="status" defaultValue={defaults?.status ?? "NEW"} className="h-10 w-full rounded-sm border border-border bg-background px-3 text-sm">
+        <select id="status" name="status" defaultValue={defaults?.status ?? "NEW"} className={controlClass}>
           {LEAD_STATUSES.map((status) => (
             <option key={status} value={status}>
               {status.replaceAll("_", " ")}
@@ -41,7 +42,7 @@ export function LeadForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="brokerageId">Brokerage</Label>
-        <select id="brokerageId" name="brokerageId" defaultValue={defaults?.brokerageId ?? ""} className="h-10 w-full rounded-sm border border-border bg-background px-3 text-sm">
+        <select id="brokerageId" name="brokerageId" defaultValue={defaults?.brokerageId ?? ""} className={controlClass}>
           <option value="">None</option>
           {brokerages.map((brokerage) => (
             <option key={brokerage.id} value={brokerage.id}>
@@ -52,7 +53,7 @@ export function LeadForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="sourceId">Source</Label>
-        <select id="sourceId" name="sourceId" defaultValue={defaults?.sourceId ?? ""} className="h-10 w-full rounded-sm border border-border bg-background px-3 text-sm">
+        <select id="sourceId" name="sourceId" defaultValue={defaults?.sourceId ?? ""} className={controlClass}>
           <option value="">None</option>
           {sources.map((source) => (
             <option key={source.id} value={source.id}>

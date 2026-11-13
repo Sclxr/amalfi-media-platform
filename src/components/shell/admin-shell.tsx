@@ -4,6 +4,7 @@ import {
   Building2,
   Calendar,
   ClipboardList,
+  Clock,
   Contact,
   Home,
   KeyRound,
@@ -21,10 +22,12 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { CrumbProvider, useCrumbLabels } from "@/components/shell/crumbs";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { UserMenu } from "@/components/shell/user-menu";
 import { Button } from "@/components/ui/button";
 import type { ShellUser } from "@/lib/actor";
+import { crumbTrail } from "@/lib/crumbs";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -37,33 +40,24 @@ type NavItem = {
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    label: "Work",
+    label: "Today",
     items: [
-      { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+      { href: "/admin", label: "Today", icon: LayoutDashboard, exact: true },
+      { href: "/admin/bookings", label: "Shoots", icon: Calendar },
       { href: "/admin/listings", label: "Listings", icon: Home },
-      { href: "/admin/bookings", label: "Bookings", icon: Calendar },
-      { href: "/admin/orders", label: "Orders", icon: ClipboardList },
+      { href: "/admin/billing", label: "Money", icon: Receipt },
+      { href: "/admin/crm/leads", label: "Realtors", icon: Users },
     ],
   },
   {
-    label: "People",
+    label: "More",
     items: [
-      { href: "/admin/crm/leads", label: "Realtors", icon: Users },
+      { href: "/admin/orders", label: "Orders", icon: ClipboardList },
       { href: "/admin/crm/brokerages", label: "Brokerages", icon: Building2 },
       { href: "/admin/clients", label: "Clients", icon: Contact },
-    ],
-  },
-  {
-    label: "Delivery",
-    items: [{ href: "/admin/billing", label: "Billing", icon: Receipt }],
-  },
-  {
-    label: "Growth",
-    items: [{ href: "/admin/marketing", label: "Marketing", icon: Megaphone }],
-  },
-  {
-    label: "Settings",
-    items: [
+      { href: "/admin/crm/follow-ups", label: "Follow-ups", icon: Clock },
+      { href: "/admin/bookings/availability", label: "Availability", icon: Calendar },
+      { href: "/admin/marketing", label: "Marketing", icon: Megaphone },
       { href: "/admin/settings/catalog", label: "Catalog", icon: Package, permission: "settings.manage" },
       { href: "/admin/settings/api-keys", label: "API keys", icon: KeyRound, permission: "settings.manage" },
     ],
@@ -76,7 +70,16 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 }
 
 export function AdminShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
+  return (
+    <CrumbProvider>
+      <AdminFrame user={user}>{children}</AdminFrame>
+    </CrumbProvider>
+  );
+}
+
+function AdminFrame({ user, children }: { user: ShellUser; children: React.ReactNode }) {
   const pathname = usePathname();
+  const crumbLabels = useCrumbLabels();
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const items = useMemo(
@@ -107,14 +110,15 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const crumbs = pathname
-    .split("/")
-    .filter(Boolean)
-    .map((part) => part.replaceAll("-", " "));
+  const crumbs = crumbTrail(pathname, crumbLabels);
+  const onToday = pathname === "/admin";
+  const onShoots = pathname.startsWith("/admin/bookings");
+  const onListings = pathname.startsWith("/admin/listings");
+  const onMoney = pathname.startsWith("/admin/billing");
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen overflow-x-hidden bg-background">
+      <div className="flex min-h-screen min-w-0">
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 bg-[#111111] px-3 py-4 text-[#f7f5f0] transition-transform md:static md:translate-x-0",
@@ -173,7 +177,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
             <Button className="text-[#f7f5f0] hover:bg-white/10 md:hidden" variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
               <Menu />
             </Button>
-            <p className="hidden min-w-0 flex-1 truncate text-sm capitalize text-[#bdb7ae] sm:block">
+            <p className="hidden min-w-0 flex-1 truncate text-sm text-[#bdb7ae] sm:block">
               {crumbs.join(" / ")}
             </p>
             <div className="ml-auto flex items-center gap-1">
@@ -185,7 +189,7 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
               <UserMenu user={user} />
             </div>
           </header>
-          <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 pb-28 md:px-6 md:py-8 md:pb-8">{children}</main>
+          <main className="mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 py-6 pb-28 md:px-6 md:py-8 md:pb-8">{children}</main>
         </div>
       </div>
       {commandOpen ? (
@@ -213,20 +217,24 @@ export function AdminShell({ user, children }: { user: ShellUser; children: Reac
           </div>
         </div>
       ) : null}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-white/10 bg-[#111111] px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-[#bdb7ae] md:hidden" aria-label="Admin mobile">
-        <Link href="/admin/listings" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]", pathname.startsWith("/admin/listings") && "text-[#d4bc8c]")} aria-current={pathname.startsWith("/admin/listings") ? "page" : undefined}>
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid w-full grid-cols-5 border-t border-white/10 bg-[#111111] px-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-[#bdb7ae] md:hidden" aria-label="Admin mobile">
+        <Link href="/admin" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onToday && "text-[#d4bc8c]")} aria-current={onToday ? "page" : undefined}>
+          <LayoutDashboard className="size-5" />
+          Today
+        </Link>
+        <Link href="/admin/bookings" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onShoots && "text-[#d4bc8c]")} aria-current={onShoots ? "page" : undefined}>
+          <Calendar className="size-5" />
+          Shoots
+        </Link>
+        <Link href="/admin/listings" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onListings && "text-[#d4bc8c]")} aria-current={onListings ? "page" : undefined}>
           <Home className="size-5" />
           Listings
         </Link>
-        <Link href="/admin/orders" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]", pathname.startsWith("/admin/orders") && "text-[#d4bc8c]")} aria-current={pathname.startsWith("/admin/orders") ? "page" : undefined}>
-          <ClipboardList className="size-5" />
-          Orders
+        <Link href="/admin/billing" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", onMoney && "text-[#d4bc8c]")} aria-current={onMoney ? "page" : undefined}>
+          <Receipt className="size-5" />
+          Money
         </Link>
-        <Link href="/admin/crm/leads" className={cn("flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]", (pathname.startsWith("/admin/crm") || pathname.startsWith("/admin/clients")) && "text-[#d4bc8c]")} aria-current={pathname.startsWith("/admin/crm") || pathname.startsWith("/admin/clients") ? "page" : undefined}>
-          <Users className="size-5" />
-          People
-        </Link>
-        <button type="button" className="flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px]" onClick={() => setOpen(true)}>
+        <button type="button" className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[10px]", open && "text-[#d4bc8c]")} onClick={() => setOpen(true)}>
           <MoreHorizontal className="size-5" />
           More
         </button>

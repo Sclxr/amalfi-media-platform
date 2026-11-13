@@ -4,6 +4,7 @@ import { NoteForm } from "@/components/forms/record-form";
 import { StatusBadge } from "@/components/data/status-badge";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
+import { SetCrumb } from "@/components/shell/crumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ export default async function LeadDetailPage({
   const taskAction = createTaskAction.bind(null, lead.id);
   return (
     <div className="space-y-6">
+      <SetCrumb id={lead.id} label={leadName} />
       {lead.deletedAt ? <ArchivedBanner>This realtor is archived. Restore them to put them back on the active list.</ArchivedBanner> : null}
       <div className="flex flex-wrap items-center gap-3">
         <RecordMenu
@@ -154,7 +156,7 @@ export default async function LeadDetailPage({
         <CardContent className="space-y-4">
           <form action={activityAction} className="grid gap-3 border-b border-border pb-4">
             <Label htmlFor="activity-type">Log outreach</Label>
-            <select id="activity-type" name="type" className="h-10 rounded-sm border border-border bg-background px-3 text-sm">
+            <select id="activity-type" name="type" className="h-12 rounded-xl border border-border bg-card px-3 text-base">
               <option value="CALL">Call</option>
               <option value="EMAIL_SENT">Email</option>
               <option value="MEETING">Meeting</option>

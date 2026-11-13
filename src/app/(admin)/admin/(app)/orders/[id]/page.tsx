@@ -4,6 +4,7 @@ import { quoteOrderAction, statusOrderAction } from "@/app/(admin)/admin/(app)/o
 import { StatusBadge } from "@/components/data/status-badge";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
+import { SetCrumb } from "@/components/shell/crumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ export default async function AdminOrderPage({
   const next = nextOrderStatuses(order.status);
   return (
     <div className="space-y-6">
+      <SetCrumb id={order.id} label={order.property.addressLine1} />
       <Link className="text-sm text-primary" href="/admin/orders">
         Orders
       </Link>
@@ -98,7 +100,7 @@ export default async function AdminOrderPage({
               {value === "SCHEDULED" ? (
                 <label className="text-sm">
                   Start
-                  <input name="startLocal" type="datetime-local" required className="mt-1 block h-10 rounded-sm border border-border bg-background px-3" />
+                  <input name="startLocal" type="datetime-local" required className="mt-1 block h-12 rounded-xl border border-border bg-card px-3 text-base" />
                 </label>
               ) : null}
               <Button type="submit" variant="secondary">

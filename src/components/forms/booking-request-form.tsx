@@ -34,7 +34,7 @@ export function BookingRequestForm({
       </div>
       <label className="space-y-2 text-sm">
         <span>Property type</span>
-        <select name="propertyType" className="h-10 w-full rounded-sm border border-border bg-background px-3" defaultValue="SINGLE_FAMILY">
+        <select name="propertyType" className="h-12 w-full rounded-xl border border-border bg-card px-3 text-base" defaultValue="SINGLE_FAMILY">
           <option value="SINGLE_FAMILY">Single family</option>
           <option value="CONDO">Condo</option>
           <option value="TOWNHOUSE">Townhouse</option>
@@ -44,7 +44,7 @@ export function BookingRequestForm({
       </label>
       <label className="space-y-2 text-sm">
         <span>Package</span>
-        <select name="packageId" className="h-10 w-full rounded-sm border border-border bg-background px-3" required defaultValue={packages[0]?.id}>
+        <select name="packageId" className="h-12 w-full rounded-xl border border-border bg-card px-3 text-base" required defaultValue={packages[0]?.id}>
           {packages.map((pkg) => (
             <option key={pkg.id} value={pkg.id}>
               {pkg.name} · {formatCents(pkg.priceCents)}

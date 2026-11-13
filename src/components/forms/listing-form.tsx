@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createListingAction, type ListingState } from "@/app/(admin)/admin/(app)/listings/actions";
 import { Button } from "@/components/ui/button";
+import { controlClass } from "@/components/ui/control";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -30,7 +31,7 @@ export function ListingForm({
       ) : (
         <label className="space-y-2 text-sm">
           <span>Realtor</span>
-          <select name="leadId" required className="h-10 w-full rounded-sm border border-border bg-background px-3">
+          <select name="leadId" required className={controlClass}>
             <option value="">Choose a realtor</option>
             {realtors.map((realtor) => (
               <option key={realtor.id} value={realtor.id}>
@@ -57,7 +58,7 @@ export function ListingForm({
       </div>
       <label className="space-y-2 text-sm">
         <span>Property type</span>
-        <select name="propertyType" defaultValue="SINGLE_FAMILY" className="h-10 w-full rounded-sm border border-border bg-background px-3">
+        <select name="propertyType" defaultValue="SINGLE_FAMILY" className={controlClass}>
           <option value="SINGLE_FAMILY">Single family</option>
           <option value="CONDO">Condo</option>
           <option value="TOWNHOUSE">Townhouse</option>
