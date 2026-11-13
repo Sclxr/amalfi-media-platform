@@ -71,16 +71,16 @@ export default async function TodayPage() {
         </Button>
       </div>
       <div className="grid gap-4 xl:grid-cols-3">
-        <section className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="upcoming-shoots">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="upcoming-shoots">
           <h2 id="upcoming-shoots" className="text-lg font-semibold tracking-tight">Upcoming shoots</h2>
           {today.shoots.length === 0 ? (
             <p className="mt-4 text-sm leading-6 text-muted-foreground">Nothing on the calendar yet. New shoot puts the next one here.</p>
           ) : (
             <div className="mt-2">
               {today.shoots.map((shoot) => (
-                <Link key={shoot.id} href={shoot.href} className="flex items-center gap-3 border-t border-border py-3 first:border-t-0">
+                <Link key={shoot.id} href={shoot.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
                   <Thumb src={shoot.imageSrc} />
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{shootWhen(shoot.when)} · {shoot.address}</span>
                     <span className="mt-0.5 block truncate text-sm text-muted-foreground">{shoot.who} · {shoot.detail}</span>
                   </span>
@@ -89,7 +89,7 @@ export default async function TodayPage() {
             </div>
           )}
         </section>
-        <section className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="unpaid">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="unpaid">
           <h2 id="unpaid" className="text-lg font-semibold tracking-tight">Unpaid</h2>
           {!today.showMoney ? (
             <p className="mt-4 text-sm leading-6 text-muted-foreground">Invoice amounts stay with the admin account.</p>
@@ -98,7 +98,7 @@ export default async function TodayPage() {
           ) : (
             <div className="mt-2">
               {today.unpaid.map((row) => (
-                <Link key={row.id} href={row.href} className="flex items-center gap-3 border-t border-border py-3 first:border-t-0">
+                <Link key={row.id} href={row.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
                   <Thumb src={row.imageSrc} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{row.address}</span>
@@ -110,16 +110,16 @@ export default async function TodayPage() {
             </div>
           )}
         </section>
-        <section className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="galleries-to-send">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow)]" aria-labelledby="galleries-to-send">
           <h2 id="galleries-to-send" className="text-lg font-semibold tracking-tight">Galleries to send</h2>
           {today.galleries.length === 0 ? (
             <p className="mt-4 text-sm leading-6 text-muted-foreground">Every gallery with photos has already been sent.</p>
           ) : (
             <div className="mt-2">
               {today.galleries.map((gallery) => (
-                <Link key={gallery.id} href={gallery.href} className="flex items-center gap-3 border-t border-border py-3 first:border-t-0">
+                <Link key={gallery.id} href={gallery.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
                   <Thumb src={gallery.imageSrc} />
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{gallery.address}</span>
                     <span className="mt-0.5 block text-sm text-muted-foreground">{gallery.detail}</span>
                   </span>
