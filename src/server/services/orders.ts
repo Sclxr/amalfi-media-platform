@@ -5,7 +5,7 @@ import { can } from "@/lib/permissions";
 import { parseDollarsToCents } from "@/lib/money";
 import { orderPriceLock, orderPriceTotals, parsePriceRows } from "@/lib/order-price";
 import { nextOrderStatuses, type OrderStatus as StatusName } from "@/lib/order-status";
-import { quoteTotals, slotDecision, travelFeeForZip, zonedDateTime } from "@/lib/scheduling";
+import { quoteTotals, slotDecision, travelFeeForZip, zonedDateTime, zonedParts } from "@/lib/scheduling";
 import { prisma } from "@/server/db/prisma";
 import { writeAudit } from "@/server/audit";
 
@@ -262,6 +262,8 @@ export async function changeOrderStatus(actor: Actor, orderId: string, toStatus:
     if (open) return { error: "Price every quote item before marking the order quoted." as const };
   }
   let startAt: Date | null = null;
+  const openBooking = order.bookings.find((booking) => booking.status !== "CANCELLED" && !booking.cancelledAt);
+  const durationMin = openBooking?.durationMin ?? 60;
   if (toStatus === "SCHEDULED") {
     startAt = startLocal ? zonedDateTime(startLocal) : null;
     if (!startAt) return { error: "Choose a start time in Orlando local time." as const };
@@ -269,17 +271,20 @@ export async function changeOrderStatus(actor: Actor, orderId: string, toStatus:
       prisma.availabilityRule.findMany(),
       prisma.blackoutDate.findMany(),
     ]);
-    const booking = order.bookings[0];
     const decision = slotDecision({
       start: startAt,
-      durationMin: booking?.durationMin ?? 60,
+      durationMin,
       rules,
       blackouts: blackouts.map((blackout) => ({ date: blackout.date.toISOString().slice(0, 10) })),
     });
     if (!decision.ok) return { error: decision.reason };
   }
   await prisma.$transaction(async (tx) => {
-    await tx.order.update({ where: { id: orderId }, data: { status: toStatus as OrderStatus } });
+    const preferred = startAt ? new Date(`${zonedParts(startAt).date}T00:00:00.000Z`) : undefined;
+    await tx.order.update({
+      where: { id: orderId },
+      data: { status: toStatus as OrderStatus, ...(preferred ? { preferredDate: preferred } : {}) },
+    });
     await tx.orderStatusHistory.create({
       data: {
         orderId,
@@ -290,12 +295,22 @@ export async function changeOrderStatus(actor: Actor, orderId: string, toStatus:
       },
     });
     if (toStatus === "SCHEDULED" && startAt) {
-      const booking = order.bookings[0];
-      const endAt = new Date(startAt.getTime() + (booking?.durationMin ?? 60) * 60 * 1000);
-      if (booking) {
+      const endAt = new Date(startAt.getTime() + durationMin * 60 * 1000);
+      if (openBooking) {
         await tx.booking.update({
-          where: { id: booking.id },
+          where: { id: openBooking.id },
           data: { status: "SCHEDULED", startAt, endAt },
+        });
+      } else {
+        await tx.booking.create({
+          data: {
+            orderId,
+            status: "SCHEDULED",
+            startAt,
+            endAt,
+            durationMin,
+            travelFeeCents: order.travelFeeCents,
+          },
         });
       }
     }

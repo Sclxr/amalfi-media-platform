@@ -18,7 +18,7 @@ const env = getEnv();
 const ADMIN_SESSION_SECONDS = 60 * 60 * 12;
 const CLIENT_SESSION_SECONDS = 60 * 60 * 24 * 7;
 /** Production and staging stay at 5. Local and CI suites sign in more than that. */
-const LOGIN_ATTEMPT_MAX = env.APP_ENV === "production" || env.APP_ENV === "staging" ? 5 : 30;
+const LOGIN_ATTEMPT_MAX = env.APP_ENV === "production" || env.APP_ENV === "staging" ? 5 : 80;
 
 function clientIp(headers: Headers | undefined): string {
   const forwarded = headers?.get("x-forwarded-for");

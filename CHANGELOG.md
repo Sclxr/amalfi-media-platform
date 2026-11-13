@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.0 — 2026-11-13
+
+### Added
+
+- New shoot is one page. Save creates the realtor when needed, the listing, the scheduled time, and a draft quote. Today, Shoots, and an empty calendar open that page. Marking a shoot scheduled records the time even when no appointment existed yet.
+
 ## 0.23.0 — 2026-11-13
 
 ### Changed
