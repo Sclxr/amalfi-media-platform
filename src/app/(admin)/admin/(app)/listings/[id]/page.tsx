@@ -38,9 +38,9 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-function blank(value: string | number | null | undefined) {
-  if (value === null || value === undefined || value === "") return "Not set";
-  return String(value);
+function detail(value: number | null | undefined, label: string) {
+  if (value === null || value === undefined) return null;
+  return `${value} ${label}`;
 }
 
 export default async function ListingDetailPage({
@@ -72,6 +72,8 @@ export default async function ListingDetailPage({
   const current = property.orders.find((order) => order.id === card.orderId) ?? null;
   const currentGallery = current ? property.galleries.find((gallery) => gallery.orderId === current.id) : null;
   const currentInvoice = current?.invoices[0];
+  const propertyFacts = [detail(property.beds, "beds"), detail(property.bathsHalf, "half baths"), detail(property.sqft, "sq ft")].filter(Boolean);
+  const missingDetails = property.beds == null || property.bathsHalf == null || property.sqft == null || !property.accessNotes?.trim();
 
   return (
     <div className="space-y-6">
@@ -175,8 +177,11 @@ export default async function ListingDetailPage({
               <p>{property.addressLine1}{property.addressLine2 ? `, ${property.addressLine2}` : ""}</p>
               <p>{property.city}, {property.state} {property.zip}</p>
               <p>{propertyTypeLabel(property.propertyType)}</p>
-              <p>{blank(property.beds)} beds · {blank(property.bathsHalf)} half baths · {blank(property.sqft)} sq ft</p>
-              <p>Access notes: {blank(property.accessNotes)}</p>
+              {propertyFacts.length > 0 ? <p>{propertyFacts.join(" · ")}</p> : null}
+              {property.accessNotes?.trim() ? <p>Access notes: {property.accessNotes}</p> : null}
+              {canEdit && missingDetails ? (
+                <p><a className="text-muted-foreground underline-offset-4 hover:underline" href="#listing-edit">Add details</a></p>
+              ) : null}
             </CardContent>
           </Card>
           <Card>
@@ -186,8 +191,8 @@ export default async function ListingDetailPage({
             <CardContent className="space-y-2 text-sm">
               <p>{card.realtorName}</p>
               <p>{property.lead?.email ?? property.client.email}</p>
-              <p>{blank(property.lead?.phone ?? property.client.phone)}</p>
-              <p>{blank(property.lead?.brokerage?.name)}</p>
+              {property.lead?.phone?.trim() || property.client.phone?.trim() ? <p>{property.lead?.phone?.trim() || property.client.phone}</p> : null}
+              {property.lead?.brokerage?.name ? <p>{property.lead.brokerage.name}</p> : null}
             </CardContent>
           </Card>
           <Card>

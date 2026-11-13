@@ -33,7 +33,13 @@ export function ShootForm({
   const [state, action, pending] = useActionState(bookShootAction, empty);
   const value = (name: string, fallback = "") => (name in state.values ? state.values[name] : fallback);
   const [query, setQuery] = useState("");
-  const [mode, setMode] = useState(value("realtorMode", "existing") === "new" ? "new" : "existing");
+  const [mode, setMode] = useState(
+    state.values.realtorMode === "new" || state.values.realtorMode === "existing"
+      ? state.values.realtorMode
+      : realtors.length > 0
+        ? "existing"
+        : "new",
+  );
   const [priceMode, setPriceMode] = useState(value("priceMode", "package") === "custom" ? "custom" : "package");
   const [leadId, setLeadId] = useState(value("leadId"));
   const matches = useMemo(() => {
@@ -46,7 +52,7 @@ export function ShootForm({
   const selected = realtors.find((realtor) => realtor.id === leadId);
 
   return (
-    <form action={action} data-testid="new-shoot" className="min-w-0 space-y-4 pb-36 md:pb-0">
+    <form action={action} data-testid="new-shoot" className="min-w-0 space-y-4 pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-0">
       {state.errors.form ? <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">{state.errors.form}</p> : null}
       <input type="hidden" name="realtorMode" value={mode} />
       <input type="hidden" name="leadId" value={mode === "existing" ? leadId : ""} />

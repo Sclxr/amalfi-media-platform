@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Camera } from "lucide-react";
 import { deliverListingAction, updateListingAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { StatusBadge } from "@/components/data/status-badge";
 import { Button } from "@/components/ui/button";
@@ -63,8 +64,8 @@ export function ListingHeader({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={coverSrc} alt="" className="h-16 w-24 shrink-0 rounded-md border border-border object-cover" />
         ) : (
-          <div className="grid h-16 w-24 shrink-0 place-items-center rounded-md border border-dashed border-border text-xs text-muted-foreground">
-            No cover
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-accent text-muted-foreground" aria-hidden>
+            <Camera className="size-5" strokeWidth={1.5} />
           </div>
         )}
         <div className="min-w-0">
@@ -93,7 +94,7 @@ export function ListingHeader({
       <div className="flex flex-wrap items-center gap-2">
         {menu}
         {canEdit ? (
-          <Modal title="Edit listing" description="Moving the realtor also moves gallery access to that realtor." trigger={<Button type="button" variant="secondary">Edit listing</Button>}>
+          <Modal title="Edit listing" description="Moving the realtor also moves gallery access to that realtor." trigger={<Button id="listing-edit" type="button" variant="secondary">Edit listing</Button>}>
             <form action={save} className="grid gap-3">
               <label className="space-y-2 text-sm">
                 <span>Realtor</span>
