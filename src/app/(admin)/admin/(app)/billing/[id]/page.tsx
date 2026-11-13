@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { checkoutAction } from "@/app/(admin)/admin/(app)/billing/actions";
+import { SetCrumb } from "@/components/shell/crumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
@@ -26,6 +27,7 @@ export default async function InvoiceDetailPage({
   const pay = checkoutAction.bind(null, invoice.id);
   return (
     <div className="space-y-6">
+      <SetCrumb id={invoice.id} label={invoice.number} />
       <Link className="text-sm text-primary" href="/admin/billing">
         Billing
       </Link>

@@ -12,7 +12,8 @@ test("admin can sign in and use CRM", async ({ page }) => {
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByTestId("overview")).toBeVisible();
-  await expect(page.getByTestId("revenue-card")).toContainText("$120.00");
+  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "New shoot" })).toBeVisible();
   for (const viewport of phoneWidths) {
     await page.setViewportSize(viewport);
     await page.goto("/admin");

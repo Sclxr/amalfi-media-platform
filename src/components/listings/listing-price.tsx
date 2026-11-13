@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 
-const selectClass = "h-10 w-full rounded-sm border border-border bg-background px-3 text-sm";
+const selectClass = "h-12 w-full rounded-xl border border-border bg-card px-3 text-base text-foreground";
 
 export function ListingPrice({
   propertyId,

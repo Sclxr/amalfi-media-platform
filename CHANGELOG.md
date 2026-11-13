@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.0 — 2026-11-13
+
+### Changed
+
+- Admin home is Today: upcoming shoots, unpaid listings, and galleries that still need to be sent, with New shoot, Send quote, and Upload photos. The sidebar and phone bar follow those jobs. Breadcrumbs use the listing address or the person's name. Status labels stay in plain words.
+
 ## 0.22.0 — 2026-11-05
 
 ### Added

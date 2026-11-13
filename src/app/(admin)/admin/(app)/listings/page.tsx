@@ -47,7 +47,7 @@ export default async function ListingsPage({
           name="status"
           defaultValue={params.status ?? ""}
           aria-label="Status"
-          className="h-10 rounded-sm border border-border bg-background px-3 text-sm"
+          className="h-12 rounded-xl border border-border bg-card px-3 text-base"
         >
           <option value="">All statuses</option>
           {LISTING_STATUSES.map((status) => (

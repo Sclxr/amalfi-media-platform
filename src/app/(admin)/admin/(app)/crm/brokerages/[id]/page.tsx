@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { StatusBadge } from "@/components/data/status-badge";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
+import { SetCrumb } from "@/components/shell/crumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { can } from "@/lib/permissions";
@@ -27,6 +28,7 @@ export default async function BrokeragePage({
   if (!brokerage) notFound();
   return (
     <div className="space-y-6">
+      <SetCrumb id={brokerage.id} label={brokerage.name} />
       {query.notice === "duplicate" ? (
         <p className="rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
           A brokerage with that name already exists. Showing the existing record.

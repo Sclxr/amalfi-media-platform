@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
 import { InviteLink } from "@/components/listings/invite-link";
 import { ListingHeader } from "@/components/listings/listing-header";
+import { SetCrumb } from "@/components/shell/crumbs";
 import { ListingPrice } from "@/components/listings/listing-price";
 import { ArchivedBanner } from "@/components/removal/archive-view";
 import { RecordMenu } from "@/components/removal/record-menu";
@@ -74,6 +75,7 @@ export default async function ListingDetailPage({
 
   return (
     <div className="space-y-6">
+      <SetCrumb id={property.id} label={property.addressLine1} />
       <Link className="text-sm text-primary" href="/admin/listings">
         Listings
       </Link>
@@ -195,7 +197,7 @@ export default async function ListingDetailPage({
                           {value === "SCHEDULED" ? (
                             <label className="text-sm">
                               Start
-                              <input name="startLocal" type="datetime-local" required aria-label="Start" className="mt-1 block h-10 rounded-sm border border-border bg-background px-3" />
+                              <input name="startLocal" type="datetime-local" required aria-label="Start" className="mt-1 block h-12 rounded-xl border border-border bg-card px-3 text-base" />
                             </label>
                           ) : null}
                           {value === "CANCELLED" ? null : (
@@ -306,7 +308,7 @@ export default async function ListingDetailPage({
                       <input type="hidden" name="bookingId" value={booking.id} />
                       <label className="text-sm">
                         New time
-                        <input name="startLocal" type="datetime-local" required aria-label={`New time for order ${order.number}`} className="mt-1 block h-10 rounded-sm border border-border bg-background px-3" />
+                        <input name="startLocal" type="datetime-local" required aria-label={`New time for order ${order.number}`} className="mt-1 block h-12 rounded-xl border border-border bg-card px-3 text-base" />
                       </label>
                       <Button type="submit" variant="secondary" size="sm">
                         Change time
