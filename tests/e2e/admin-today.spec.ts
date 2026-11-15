@@ -9,7 +9,7 @@ test("today shows the jobs and the seed listing that still needs photos", async 
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "New shoot" }).first()).toHaveAttribute("href", "/admin/listings/new");
+  await expect(page.getByRole("link", { name: "New shoot" }).first()).toHaveAttribute("href", "/admin/bookings/new");
   await expect(page.getByRole("link", { name: "Send quote" })).toHaveAttribute("href", /tab=billing/);
   await expect(page.getByRole("link", { name: "Upload photos" })).toHaveAttribute("href", /tab=gallery/);
   await expect(page.getByRole("heading", { name: "Upcoming shoots" })).toBeVisible();

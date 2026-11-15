@@ -121,7 +121,7 @@ function AdminFrame({ user, children }: { user: ShellUser; children: React.React
       <div className="flex min-h-screen min-w-0">
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 bg-[#111111] px-3 py-4 text-[#f7f5f0] transition-transform md:static md:translate-x-0",
+            "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-white/10 bg-[#111111] px-3 py-4 text-[#f7f5f0] md:static md:translate-x-0",
             open ? "translate-x-0" : "-translate-x-full",
           )}
         >

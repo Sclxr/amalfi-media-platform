@@ -61,6 +61,38 @@ export function slotDecision(input: {
   return { ok: true };
 }
 
+function roundUpToHalfHour(date: Date) {
+  const ms = 30 * 60 * 1000;
+  return new Date(Math.ceil(date.getTime() / ms) * ms);
+}
+
+/** Next datetime-local value in business time that fits the working hours. */
+export function nextOpenSlot(input: {
+  now: Date;
+  durationMin: number;
+  rules: AvailabilityRuleInput[];
+  blackouts: BlackoutInput[];
+  timeZone?: string;
+}): string | null {
+  const cursor = roundUpToHalfHour(input.now);
+  for (let step = 0; step < 21 * 48; step += 1) {
+    const start = new Date(cursor.getTime() + step * 30 * 60 * 1000);
+    const decision = slotDecision({
+      start,
+      durationMin: input.durationMin,
+      rules: input.rules,
+      blackouts: input.blackouts,
+      timeZone: input.timeZone,
+    });
+    if (!decision.ok) continue;
+    const parts = zonedParts(start, input.timeZone);
+    const hour = String(Math.floor(parts.minutes / 60)).padStart(2, "0");
+    const minute = String(parts.minutes % 60).padStart(2, "0");
+    return `${parts.date}T${hour}:${minute}`;
+  }
+  return null;
+}
+
 export type ServiceAreaInput = {
   name: string;
   zipCodes: string[];
