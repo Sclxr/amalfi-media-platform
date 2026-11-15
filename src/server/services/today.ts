@@ -20,6 +20,10 @@ export type TodayMoney = {
   amountCents: number;
   href: string;
   imageSrc: string | null;
+  email: string;
+  sentAt: string | null;
+  sentTo: string | null;
+  status: string;
 };
 
 export type TodayGallery = {
@@ -80,6 +84,7 @@ export async function getToday(actor: Actor, now = new Date()) {
           orderBy: { createdAt: "desc" },
           take: 6,
           include: {
+            client: { select: { email: true } },
             order: {
               include: {
                 property: { select: { id: true, addressLine1: true, coverAssetId: true } },
@@ -143,6 +148,10 @@ export async function getToday(actor: Actor, now = new Date()) {
         amountCents: Math.max(0, invoice.totalCents - invoice.amountPaidCents),
         href: `/admin/listings/${property.id}?tab=billing`,
         imageSrc: coverSrc(property.id, property.coverAssetId),
+        email: invoice.client.email ?? "",
+        sentAt: invoice.quoteSentAt?.toISOString() ?? null,
+        sentTo: invoice.quoteSentTo,
+        status: invoice.status,
       },
     ];
   });
@@ -166,25 +175,13 @@ export async function getToday(actor: Actor, now = new Date()) {
       })),
   ].slice(0, 6);
 
-  const quoteTarget = await (can(actor, "orders.read")
-    ? prisma.order.findFirst({
-        where: {
-          archivedAt: null,
-          property: { archivedAt: null },
-          OR: [{ totalCents: 0 }, { items: { some: { unitPriceCents: null } } }],
-        },
-        orderBy: { updatedAt: "desc" },
-        select: { propertyId: true },
-      })
-    : Promise.resolve(null));
-
   return {
     shoots,
     unpaid,
     galleries,
     showMoney: can(actor, "billing.read"),
+    canMarkZelle: actor.role === "ADMIN",
     newShootHref: "/admin/bookings/new",
-    sendQuoteHref: quoteTarget ? `/admin/listings/${quoteTarget.propertyId}?tab=billing` : "/admin/listings",
     uploadHref: galleries[0]?.href ?? "/admin/listings",
   };
 }

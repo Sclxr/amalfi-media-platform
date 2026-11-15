@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.25.0 — 2026-11-15
+
+### Added
+
+- Send quote is one step from Today, the listing, and a booked shoot. The email shows the listing total, the card total, and Zelle with no fee, and it opens the existing pay screen. A quote is marked sent only after Send. Today’s unpaid rows can resend that quote or mark Zelle paid, with undo.
+
 ## 0.24.0 — 2026-11-13
 
 ### Added

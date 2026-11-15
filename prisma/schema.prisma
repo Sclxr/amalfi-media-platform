@@ -798,6 +798,9 @@ model Invoice {
   dueAt                   DateTime?
   issuedAt                DateTime?
   paidAt                  DateTime?
+  /// Set when an admin clicks Send quote. Null until then.
+  quoteSentAt             DateTime?
+  quoteSentTo             String?
   stripeCheckoutSessionId String?       @unique
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt

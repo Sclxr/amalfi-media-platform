@@ -60,7 +60,13 @@ export async function sendTransactional(message: MailMessage): Promise<MailResul
           Authorization: `Bearer ${env.RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ from: env.EMAIL_FROM, to: [message.to], subject: message.subject, text: message.text }),
+        body: JSON.stringify({
+          from: env.EMAIL_FROM,
+          to: [message.to],
+          subject: message.subject,
+          text: message.text,
+          ...(message.html ? { html: message.html } : {}),
+        }),
       });
       if (!response.ok) {
         logger.error({ status: response.status, to: message.to }, "resend rejected the email");
@@ -74,7 +80,13 @@ export async function sendTransactional(message: MailMessage): Promise<MailResul
       secure: Number(env.SMTP_PORT) === 465,
       auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD ?? "" } : undefined,
     });
-    await transport.sendMail({ from: env.EMAIL_FROM, to: message.to, subject: message.subject, text: message.text });
+    await transport.sendMail({
+      from: env.EMAIL_FROM,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      ...(message.html ? { html: message.html } : {}),
+    });
     return { delivered: true, mode };
   } catch (error) {
     logger.error({ err: error, to: message.to }, "transactional email failed");

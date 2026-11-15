@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Camera } from "lucide-react";
 import { redirect } from "next/navigation";
+import { QuoteSheet } from "@/components/quotes/quote-sheet";
+import { UnpaidList } from "@/components/today/unpaid-list";
 import { Button } from "@/components/ui/button";
-import { formatCents } from "@/lib/money";
 import { getActor } from "@/server/auth/guards";
+import { listQuoteChoices } from "@/server/services/quotes";
 import { getToday } from "@/server/services/today";
 
 export const metadata = { title: "Today" };
@@ -57,7 +59,7 @@ export default async function TodayPage() {
   const actor = await getActor();
   if (!actor) redirect("/admin/login");
   const now = new Date();
-  const today = await getToday(actor, now);
+  const [today, quotes] = await Promise.all([getToday(actor, now), listQuoteChoices(actor)]);
   const first = actor.name.split(" ")[0] || actor.name;
   return (
     <div data-testid="overview" className="min-w-0 space-y-8">
@@ -72,9 +74,14 @@ export default async function TodayPage() {
         <Button asChild className="border border-[#d4bc8c] bg-[#111111] text-[#d4bc8c] hover:bg-[#1c1c1c]">
           <Link href={today.newShootHref}>New shoot</Link>
         </Button>
-        <Button asChild variant="secondary">
-          <Link href={today.sendQuoteHref}>Send quote</Link>
-        </Button>
+        <QuoteSheet
+          choices={quotes}
+          trigger={
+            <Button type="button" variant="secondary">
+              Send quote
+            </Button>
+          }
+        />
         <Button asChild variant="secondary">
           <Link href={today.uploadHref}>Upload photos</Link>
         </Button>
@@ -110,21 +117,8 @@ export default async function TodayPage() {
           <h2 id="unpaid" className="text-lg font-semibold tracking-tight">Unpaid</h2>
           {!today.showMoney ? (
             <p className="mt-3 text-sm leading-6 text-muted-foreground">Invoice amounts stay with the admin account.</p>
-          ) : today.unpaid.length === 0 ? (
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">Nothing unpaid. Paid work stays off this list.</p>
           ) : (
-            <div className="mt-2">
-              {today.unpaid.map((row) => (
-                <Link key={row.id} href={row.href} className="flex min-w-0 items-center gap-3 border-t border-border py-3 first:border-t-0">
-                  <Thumb src={row.imageSrc} />
-                  <span className="min-w-0 flex-1">
-                    <Address>{row.address}</Address>
-                    <span className="mt-0.5 block text-sm text-muted-foreground">Open invoice</span>
-                  </span>
-                  <span className="shrink-0 whitespace-nowrap tabular-nums text-base font-semibold text-gold">{formatCents(row.amountCents)}</span>
-                </Link>
-              ))}
-            </div>
+            <UnpaidList rows={today.unpaid} choices={quotes} canMarkZelle={today.canMarkZelle} />
           )}
         </section>
         <section className="min-w-0 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow)] sm:p-5" aria-labelledby="galleries-to-send">

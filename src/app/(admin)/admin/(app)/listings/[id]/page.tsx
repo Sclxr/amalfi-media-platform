@@ -4,6 +4,7 @@ import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, ma
 import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
 import { InviteLink } from "@/components/listings/invite-link";
+import { QuoteSheet } from "@/components/quotes/quote-sheet";
 import { ListingHeader } from "@/components/listings/listing-header";
 import { SetCrumb } from "@/components/shell/crumbs";
 import { ListingPrice } from "@/components/listings/listing-price";
@@ -26,6 +27,7 @@ import { getActor } from "@/server/auth/guards";
 import { billingStatus } from "@/server/services/billing";
 import { listActivePackages } from "@/server/services/catalog";
 import { getListing, listRealtorOptions } from "@/server/services/listings";
+import { quoteChoiceForProperty } from "@/server/services/quotes";
 
 export const metadata = { title: "Listing" };
 
@@ -72,6 +74,16 @@ export default async function ListingDetailPage({
   const current = property.orders.find((order) => order.id === card.orderId) ?? null;
   const currentGallery = current ? property.galleries.find((gallery) => gallery.orderId === current.id) : null;
   const currentInvoice = current?.invoices[0];
+  const quote = canEdit ? await quoteChoiceForProperty(actor, property.id) : null;
+  const sentWhen = currentInvoice?.quoteSentAt
+    ? new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(currentInvoice.quoteSentAt)
+    : null;
   const propertyFacts = [detail(property.beds, "beds"), detail(property.bathsHalf, "half baths"), detail(property.sqft, "sq ft")].filter(Boolean);
   const missingDetails = property.beds == null || property.bathsHalf == null || property.sqft == null || !property.accessNotes?.trim();
 
@@ -143,6 +155,13 @@ export default async function ListingDetailPage({
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             {canEdit ? <InviteLink propertyId={property.id} copyOnly /> : null}
+            {quote ? (
+              <QuoteSheet
+                choices={[quote]}
+                presetId={quote.invoiceId}
+                trigger={<Button type="button">{quote.sentAt ? "Resend quote" : "Send quote"}</Button>}
+              />
+            ) : null}
             <Button asChild>
               <Link href={`/admin/listings/${property.id}?tab=gallery#upload`}>Upload photos</Link>
             </Button>
@@ -242,13 +261,25 @@ export default async function ListingDetailPage({
             <CardContent className="space-y-2 text-sm">
               <p>{currentGallery ? (currentGallery.status === "PUBLISHED" ? "Published for the client." : currentGallery.status === "ARCHIVED" ? "Archived" : "Draft") : "No gallery yet."}</p>
               {currentInvoice ? (
-                <p>
-                  <Link className="text-primary" href={`/admin/billing/${currentInvoice.id}`}>
-                    {currentInvoice.number}
-                  </Link>{" "}
-                  · <StatusBadge status={currentInvoice.status} />
-                  {canSeeMoney ? ` · ${formatCents(currentInvoice.totalCents)}` : ""}
-                </p>
+                <>
+                  <p>
+                    <Link className="text-primary" href={`/admin/billing/${currentInvoice.id}`}>
+                      {currentInvoice.number}
+                    </Link>{" "}
+                    · <StatusBadge status={currentInvoice.status} />
+                    {canSeeMoney ? ` · ${formatCents(currentInvoice.totalCents)}` : ""}
+                  </p>
+                  {sentWhen && currentInvoice.quoteSentTo ? (
+                    <p data-testid="quote-sent">Sent to {currentInvoice.quoteSentTo} at {sentWhen}</p>
+                  ) : null}
+                  {quote ? (
+                    <QuoteSheet
+                      choices={[quote]}
+                      presetId={quote.invoiceId}
+                      trigger={<Button type="button" variant="secondary" size="sm">{quote.sentAt ? "Resend quote" : "Send quote"}</Button>}
+                    />
+                  ) : null}
+                </>
               ) : (
                 <p className="text-muted-foreground">No invoice</p>
               )}
