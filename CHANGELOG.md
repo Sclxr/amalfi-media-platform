@@ -5,6 +5,7 @@
 ### Changed
 
 - A listing leads with its photo, address, realtor, and status, and one next action: upload, deliver, send or resend the quote, mark Zelle paid, or view downloads. Invite, edit, and the other steps sit in Actions. Price is a summary with one Edit price sheet. List checkboxes stay hidden until Select. A realtor page shows the timeline and listings, with notes and follow-ups in sheets. Billing lists the property address first.
+- Listing cards use a camera mark when there is no cover, a round actions control on the photo, and one status pill. The extra line is the shoot date, the unpaid total, or Paid. A listing without a cover keeps a small thumbnail beside the title. On a phone the next action and Actions share one row.
 
 ## 0.25.0 — 2026-11-15
 

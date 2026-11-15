@@ -110,27 +110,27 @@ export function ListingActions({
 
   const primary =
     next === "upload" ? (
-      <Button asChild data-testid="listing-next" className={gold}>
+      <Button asChild data-testid="listing-next" className={`${gold} w-full sm:w-auto`}>
         <Link href={uploadHref}>{label}</Link>
       </Button>
     ) : next === "downloads" ? (
-      <Button asChild data-testid="listing-next" className={gold}>
+      <Button asChild data-testid="listing-next" className={`${gold} w-full sm:w-auto`}>
         <Link href={downloadHref}>{label}</Link>
       </Button>
     ) : next === "schedule" ? (
-      <Button asChild data-testid="listing-next" className={gold}>
+      <Button asChild data-testid="listing-next" className={`${gold} w-full sm:w-auto`}>
         <Link href={scheduleHref}>{label}</Link>
       </Button>
     ) : next === "deliver" ? (
-      <Button type="button" data-testid="listing-next" className={gold} onClick={() => setDeliverOpen(true)}>
+      <Button type="button" data-testid="listing-next" className={`${gold} w-full sm:w-auto`} onClick={() => setDeliverOpen(true)}>
         {label}
       </Button>
     ) : next === "mark-zelle" ? (
-      <Button type="button" data-testid="listing-next" className={gold} onClick={() => setZelleOpen(true)}>
+      <Button type="button" data-testid="listing-next" className={`${gold} w-full sm:w-auto`} onClick={() => setZelleOpen(true)}>
         {label}
       </Button>
     ) : next === "send-quote" || next === "resend-quote" ? (
-      <Button type="button" data-testid="listing-next" className={gold} onClick={() => setQuoteOpen(true)}>
+      <Button type="button" data-testid="listing-next" className={`${gold} w-full sm:w-auto`} onClick={() => setQuoteOpen(true)}>
         {label}
       </Button>
     ) : null;
@@ -147,8 +147,8 @@ export function ListingActions({
 
   return (
     <div id="listing-edit" className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:items-end">
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-      {primary}
+      <div className="flex w-full items-center gap-2 sm:w-auto">
+      {primary ? <div className="min-w-0 flex-1 sm:flex-none">{primary}</div> : null}
       <RecordMenu
         kind="listing"
         id={propertyId}
@@ -158,6 +158,7 @@ export function ListingActions({
         canPermanent={removal.canPermanent}
         deletable={removal.deletable}
         returnTo="/admin/listings"
+        appearance="responsive"
         extra={(close) => (
           <>
             {canEdit ? (

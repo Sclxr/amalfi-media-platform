@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listingNextAction, listingNextLabel, selectChrome, type ListingNextInput } from "@/lib/listing-next";
+import { listingCardNote, listingNextAction, listingNextLabel, selectChrome, type ListingNextInput } from "@/lib/listing-next";
 
 const base = (patch: Partial<ListingNextInput>): ListingNextInput => ({
   status: "SCHEDULED",
@@ -66,6 +66,29 @@ describe("listing next action", () => {
 
   it("treats a published gallery as delivered even if the order is still scheduled", () => {
     expect(listingNextAction(base({ status: "SCHEDULED", readyPhotos: 2, published: true, canSendQuote: true }))).toBe("send-quote");
+  });
+});
+
+describe("listing card note", () => {
+  const when = new Date("2026-11-20T14:00:00.000Z");
+
+  it("shows the shoot date while the listing is scheduled", () => {
+    expect(listingCardNote({ status: "SCHEDULED", shootDate: when, paid: false, amountCents: 12000, showAmount: true }).text).toBe("Nov 20, 2026");
+  });
+
+  it("shows the unpaid total in place of a second status", () => {
+    expect(listingCardNote({ status: "DELIVERED", shootDate: when, paid: false, amountCents: 12000, showAmount: true })).toEqual({
+      kind: "unpaid",
+      text: "Unpaid $120.00",
+    });
+    expect(listingCardNote({ status: "DELIVERED", shootDate: when, paid: false, amountCents: 12000, showAmount: false }).text).toBe("Unpaid");
+  });
+
+  it("shows Paid once the invoice is paid", () => {
+    expect(listingCardNote({ status: "DELIVERED", shootDate: when, paid: true, amountCents: 12000, showAmount: true })).toEqual({
+      kind: "paid",
+      text: "Paid",
+    });
   });
 });
 

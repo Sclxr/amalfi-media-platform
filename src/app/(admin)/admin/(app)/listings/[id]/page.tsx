@@ -269,7 +269,17 @@ export default async function ListingDetailPage({
               <CardTitle>Delivery and payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p>{currentGallery ? (currentGallery.status === "PUBLISHED" ? "Published for the client." : currentGallery.status === "ARCHIVED" ? "Archived" : "Draft") : "No gallery yet."}</p>
+              <p>
+                {currentGallery
+                  ? currentGallery.status === "PUBLISHED"
+                    ? "Published for the client."
+                    : currentGallery.status === "ARCHIVED"
+                      ? "Gallery archived."
+                      : "Gallery draft. Not shared yet."
+                  : current && (current.status === "DELIVERED" || current.status === "ARCHIVED" || current.status === "READY_FOR_DELIVERY")
+                    ? "Delivered. Photos have not been added to a gallery."
+                    : "No gallery yet."}
+              </p>
               {currentInvoice ? (
                 <>
                   <p>

@@ -1,4 +1,6 @@
+import { formatDate } from "@/lib/dates";
 import type { ListingStatus } from "@/lib/listing";
+import { formatCents } from "@/lib/money";
 
 export const LISTING_NEXT_ACTIONS = [
   "schedule",
@@ -64,6 +66,27 @@ export function listingNextLabel(action: ListingNextAction): string {
     case "downloads":
       return "View downloads";
   }
+}
+
+export type ListingCardNote = { kind: "date" | "unpaid" | "paid" | "none"; text: string };
+
+/** The line under a listing card. The status pill already names the state. */
+export function listingCardNote(input: {
+  status: ListingStatus;
+  shootDate: Date | null;
+  paid: boolean;
+  amountCents: number;
+  showAmount: boolean;
+}): ListingCardNote {
+  if (input.status === "SCHEDULED") {
+    return { kind: "date", text: input.shootDate ? formatDate(input.shootDate) : "Date not set" };
+  }
+  if (input.paid) return { kind: "paid", text: "Paid" };
+  if (input.amountCents > 0) {
+    return { kind: "unpaid", text: input.showAmount ? `Unpaid ${formatCents(input.amountCents)}` : "Unpaid" };
+  }
+  if (input.shootDate) return { kind: "date", text: formatDate(input.shootDate) };
+  return { kind: "none", text: "" };
 }
 
 /** Bulk checkboxes and the archive bar stay hidden until Select is on. */

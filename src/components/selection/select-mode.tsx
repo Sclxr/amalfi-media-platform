@@ -82,11 +82,11 @@ export function SelectMode({
   );
 }
 
-export function SelectBox({ kind, id, label }: { kind: string; id: string; label: string }) {
+export function SelectBox({ kind, id, label, overlay = false }: { kind: string; id: string; label: string; overlay?: boolean }) {
   const select = useContext(SelectContext);
   if (!select?.on || !selectChrome(true, 0).checksVisible) return null;
   return (
-    <label className="flex min-h-12 items-center gap-2 text-sm">
+    <label className={overlay ? "grid size-12 place-items-center rounded-full border border-border bg-card shadow-sm" : "flex min-h-12 items-center gap-2 text-sm"}>
       <input
         type="checkbox"
         data-bulk={kind}

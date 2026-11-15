@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
+import { MoreHorizontal } from "lucide-react";
 import { archiveRecordAction, bulkArchiveAction, deleteRecordAction, previewRemovalAction, restoreRecordAction } from "@/app/(admin)/admin/(app)/removal/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ export function RecordMenu({
   returnTo,
   label,
   extra,
+  appearance = "text",
 }: {
   kind: string;
   id: string;
@@ -28,6 +30,7 @@ export function RecordMenu({
   returnTo: string;
   label?: string;
   extra?: (close: () => void) => ReactNode;
+  appearance?: "text" | "icon" | "responsive";
 }) {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -52,11 +55,36 @@ export function RecordMenu({
   function close() {
     setOpen(false);
   }
+  const menuLabel = label ?? `Actions for ${name}`;
+  function iconButton(size: string) {
+    return (
+      <button
+        type="button"
+        className={`grid ${size} shrink-0 place-items-center rounded-full border border-border bg-card text-foreground shadow-sm`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={menuLabel}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <MoreHorizontal className="size-5" aria-hidden />
+      </button>
+    );
+  }
+  const textButton = (
+    <Button type="button" variant="secondary" size="sm" aria-haspopup="menu" aria-expanded={open} aria-label={menuLabel} onClick={() => setOpen((value) => !value)}>
+      Actions
+    </Button>
+  );
   return (
     <div className="relative">
-      <Button type="button" variant="secondary" size="sm" aria-haspopup="menu" aria-expanded={open} aria-label={label ?? `Actions for ${name}`} onClick={() => setOpen((value) => !value)}>
-        Actions
-      </Button>
+      {appearance === "icon" ? iconButton("size-10") : null}
+      {appearance === "text" ? textButton : null}
+      {appearance === "responsive" ? (
+        <>
+          <span className="sm:hidden">{iconButton("size-12")}</span>
+          <span className="hidden sm:inline-flex">{textButton}</span>
+        </>
+      ) : null}
       {open ? (
         <div role="menu" className="absolute right-0 z-40 mt-1 w-56 rounded-xl border border-border bg-card p-1 text-sm shadow-lg">
           {extra ? extra(close) : null}

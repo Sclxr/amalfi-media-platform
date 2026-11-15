@@ -83,6 +83,8 @@ export type ListingCard = {
   status: ListingStatus;
   statusLabel: string;
   shootDate: Date | null;
+  amountCents: number;
+  paid: boolean;
   hasCover: boolean;
   archived: boolean;
   deletable: boolean;
@@ -114,7 +116,11 @@ function toCard(property: ListingRecord, now = new Date()): ListingCard {
   }));
   const order = pickListingOrder(orders);
   const cover = pickCover(galleries, property.coverAssetId);
-  const invoice = order ? property.orders.find((item) => item.id === order.id)?.invoices[0] : undefined;
+  const source = order ? property.orders.find((item) => item.id === order.id) : undefined;
+  const liveInvoices = source?.invoices.filter((item) => item.status !== "VOID") ?? [];
+  const paidInvoice = liveInvoices.find((item) => item.status === "PAID" || (item.totalCents > 0 && item.amountPaidCents >= item.totalCents));
+  const pricedInvoice = paidInvoice ?? liveInvoices.find((item) => item.totalCents > 0) ?? liveInvoices[0];
+  const amountCents = pricedInvoice?.totalCents ?? source?.totalCents ?? 0;
   const galleryForOrder = order
     ? property.galleries.find((gallery) => gallery.orderId === order.id) ?? property.galleries[0]
     : property.galleries[0];
@@ -129,12 +135,14 @@ function toCard(property: ListingRecord, now = new Date()): ListingCard {
     status: listingStatus(order),
     statusLabel: listingStatusLabel(listingStatus(order)),
     shootDate: pickShootDate(order, now),
+    amountCents,
+    paid: Boolean(paidInvoice),
     hasCover: Boolean(cover),
     archived: Boolean(property.archivedAt),
     deletable: !hasFinancialHistory(property.orders.flatMap((item) => item.invoices)),
     orderId: order?.id ?? null,
     galleryId: galleryForOrder?.id ?? cover?.galleryId ?? null,
-    invoiceId: invoice?.id ?? null,
+    invoiceId: pricedInvoice?.id ?? null,
   };
 }
 

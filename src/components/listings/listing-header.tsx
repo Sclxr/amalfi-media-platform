@@ -25,13 +25,15 @@ export function ListingHeader({
       {coverSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={coverSrc} alt="" className="h-44 w-full rounded-2xl border border-border object-cover sm:h-64" />
-      ) : (
-        <div className="grid h-44 w-full place-items-center rounded-2xl bg-accent text-muted-foreground sm:h-56" aria-hidden>
-          <Camera className="size-8" strokeWidth={1.5} />
-        </div>
-      )}
-      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
+      ) : null}
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 gap-4">
+          {coverSrc ? null : (
+            <div className="grid size-16 shrink-0 place-items-center rounded-xl bg-accent text-muted-foreground" aria-hidden>
+              <Camera className="size-5" strokeWidth={1.5} />
+            </div>
+          )}
+          <div className="min-w-0">
           <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">{addressLine1}</h1>
           <p className="mt-1 text-muted-foreground">{cityLine}</p>
           <p className="mt-2 text-sm">
@@ -51,6 +53,7 @@ export function ListingHeader({
               <StatusBadge status={status} />
             )}
             <span className="text-muted-foreground">Shoot date: {shootLabel}</span>
+          </div>
           </div>
         </div>
         {actions}
