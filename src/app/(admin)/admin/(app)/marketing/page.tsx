@@ -8,7 +8,8 @@ import { redirect } from "next/navigation";
 import { listCampaigns } from "@/server/services/campaigns";
 import { StatusBadge } from "@/components/data/status-badge";
 import { ArchiveView } from "@/components/removal/archive-view";
-import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { RecordMenu } from "@/components/removal/record-menu";
+import { SelectBox, SelectMode } from "@/components/selection/select-mode";
 import { can } from "@/lib/permissions";
 import { campaignRemoval } from "@/lib/removal";
 
@@ -63,7 +64,6 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
       </Card>
       <div className="flex flex-wrap items-center gap-3">
         <ArchiveView href="/admin/marketing" view={params.view} />
-        {can(actor, "marketing.draft") ? <BulkBar kind="campaign" returnTo={returnTo} canArchive /> : null}
       </div>
       {params.notice ? <p className="text-sm">{params.notice}</p> : null}
       <Card>
@@ -71,12 +71,11 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
           <CardTitle>Campaigns</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <SelectMode kind="campaign" returnTo={returnTo} canArchive={can(actor, "marketing.draft")}>
           {campaigns.length === 0 ? <p className="text-sm text-muted-foreground">No campaigns yet.</p> : null}
           {campaigns.map((campaign) => (
             <div key={campaign.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <label className="text-xs">
-                <input type="checkbox" data-bulk="campaign" value={campaign.id} aria-label={`Select ${campaign.name}`} />
-              </label>
+              <SelectBox kind="campaign" id={campaign.id} label={`Select ${campaign.name}`} />
               <Link className="font-medium text-primary" href={`/admin/marketing/campaigns/${campaign.id}`}>
                 {campaign.name}
               </Link>
@@ -95,6 +94,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
               </div>
             </div>
           ))}
+          </SelectMode>
         </CardContent>
       </Card>
     </div>

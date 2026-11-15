@@ -7,6 +7,7 @@ import { RecordMenu } from "@/components/removal/record-menu";
 import { SetCrumb } from "@/components/shell/crumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Modal } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +36,7 @@ export default async function LeadDetailPage({
   const lead = await getLead(actor, id);
   if (!lead) notFound();
   const tab = query.tab === "listings" ? "listings" : "details";
-  const listings = tab === "listings" && can(actor, "orders.read") ? await listListings(actor, { leadId: lead.id }) : [];
+  const listings = can(actor, "orders.read") ? await listListings(actor, { leadId: lead.id }) : [];
   const removal = can(actor, "crm.write") || can(actor, "records.delete") ? await previewRemoval(actor, "lead", lead.id) : null;
   const leadName = `${lead.firstName ?? ""} ${lead.lastName ?? ""}`.trim() || "Realtor";
   const noteAction = addNoteAction.bind(null, lead.id);
@@ -72,9 +73,44 @@ export default async function LeadDetailPage({
           </h1>
           <p className="mt-2 text-muted-foreground">{lead.email}</p>
         </div>
-        <Button asChild variant="secondary">
-          <Link href={`/admin/crm/leads/${lead.id}/edit`}>Edit</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Modal title="Add note" trigger={<Button type="button">Add note</Button>}>
+            <NoteForm action={noteAction} />
+          </Modal>
+          <Modal title="Add follow-up" description="A follow-up shows on the follow-up list." trigger={<Button type="button" variant="secondary">Add follow-up</Button>}>
+            <form action={taskAction} className="grid gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="dueAt">Due</Label>
+                <Input id="dueAt" name="dueAt" type="date" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-note">Follow-up</Label>
+                <Input id="task-note" name="note" required placeholder="Call about the intro package" />
+              </div>
+              <Button type="submit" className="border border-[#d4bc8c] bg-[#111111] text-[#d4bc8c] hover:bg-[#1c1c1c]">
+                Save follow-up
+              </Button>
+            </form>
+          </Modal>
+          <Modal title="Log activity" trigger={<Button type="button" variant="secondary">Log activity</Button>}>
+            <form action={activityAction} className="grid gap-3">
+              <Label htmlFor="activity-type">What happened</Label>
+              <select id="activity-type" name="type" className="h-12 rounded-xl border border-border bg-card px-3 text-base">
+                <option value="CALL">Call</option>
+                <option value="EMAIL_SENT">Email</option>
+                <option value="MEETING">Meeting</option>
+                <option value="NOTE">Note</option>
+              </select>
+              <Textarea name="summary" aria-label="Activity summary" placeholder="What happened" required />
+              <Button type="submit" variant="secondary">
+                Save activity
+              </Button>
+            </form>
+          </Modal>
+          <Button asChild variant="secondary">
+            <Link href={`/admin/crm/leads/${lead.id}/edit`}>Edit</Link>
+          </Button>
+        </div>
       </div>
       <div className="flex gap-2 text-sm">
         <Link
@@ -124,62 +160,50 @@ export default async function LeadDetailPage({
         </div>
       ) : (
       <>
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-            <Info label="Status" value={<StatusBadge status={lead.status} />} />
-            <Info label="Phone" value={lead.phone ?? "—"} />
-            <Info label="City" value={lead.city ?? "—"} />
-            <Info label="Brokerage" value={lead.brokerage?.name ?? "—"} />
-            <Info label="Source" value={lead.source?.name ?? "—"} />
-            <Info label="Follow-up" value={formatDate(lead.nextFollowUpAt)} />
-            <Info label="Tags" value={lead.tags.length ? lead.tags.join(", ") : "—"} />
-            <Info label="Owner" value={lead.owner?.name ?? "—"} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Note</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <NoteForm action={noteAction} />
-          </CardContent>
-        </Card>
-      </div>
       <Card>
         <CardHeader>
-          <CardTitle>Activity</CardTitle>
+          <CardTitle>Details</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+          <Info label="Status" value={<StatusBadge status={lead.status} />} />
+          <Info label="Phone" value={lead.phone ?? "—"} />
+          <Info label="City" value={lead.city ?? "—"} />
+          <Info label="Brokerage" value={lead.brokerage?.name ?? "—"} />
+          <Info label="Source" value={lead.source?.name ?? "—"} />
+          <Info label="Follow-up" value={formatDate(lead.nextFollowUpAt)} />
+          <Info label="Tags" value={lead.tags.length ? lead.tags.join(", ") : "—"} />
+          <Info label="Owner" value={lead.owner?.name ?? "—"} />
+        </CardContent>
+      </Card>
+      {can(actor, "orders.read") ? (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-tight">Listings</h2>
+            {can(actor, "orders.write") ? (
+              <Button asChild variant="secondary">
+                <Link href={`/admin/listings/new?leadId=${lead.id}`}>Add listing</Link>
+              </Button>
+            ) : null}
+          </div>
+          {listings.length === 0 ? <p className="text-sm text-muted-foreground">No listings for this realtor yet.</p> : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {listings.map((listing) => (
+              <Link key={listing.id} href={`/admin/listings/${listing.id}`} className="rounded-2xl border border-border p-4">
+                <p className="font-medium">{listing.addressLine1}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {listing.statusLabel}
+                  {listing.shootDate ? ` · ${formatDate(listing.shootDate)}` : ""}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form action={activityAction} className="grid gap-3 border-b border-border pb-4">
-            <Label htmlFor="activity-type">Log outreach</Label>
-            <select id="activity-type" name="type" className="h-12 rounded-xl border border-border bg-card px-3 text-base">
-              <option value="CALL">Call</option>
-              <option value="EMAIL_SENT">Email</option>
-              <option value="MEETING">Meeting</option>
-              <option value="NOTE">Note</option>
-            </select>
-            <Textarea name="summary" aria-label="Activity summary" placeholder="What happened" required />
-            <Button type="submit" variant="secondary">
-              Save activity
-            </Button>
-          </form>
-          <form action={taskAction} className="grid gap-3 border-b border-border pb-4 md:grid-cols-[160px_1fr_auto]">
-            <div className="space-y-2">
-              <Label htmlFor="dueAt">Task due</Label>
-              <Input id="dueAt" name="dueAt" type="date" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-note">Task</Label>
-              <Input id="task-note" name="note" required placeholder="Call about the intro package" />
-            </div>
-            <Button className="self-end" type="submit" variant="secondary">
-              Add task
-            </Button>
-          </form>
           {lead.activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">No notes yet.</p>
           ) : (

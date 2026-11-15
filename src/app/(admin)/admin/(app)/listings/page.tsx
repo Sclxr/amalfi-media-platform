@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StatusBadge } from "@/components/data/status-badge";
 import { ArchiveView } from "@/components/removal/archive-view";
-import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { RecordMenu } from "@/components/removal/record-menu";
+import { SelectBox, SelectMode } from "@/components/selection/select-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LISTING_STATUSES, listingStatusLabel } from "@/lib/listing";
@@ -32,7 +33,6 @@ export default async function ListingsPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ArchiveView href="/admin/listings" view={params.view} />
-          {can(actor, "orders.write") ? <BulkBar kind="listing" returnTo={returnTo} canArchive /> : null}
           {can(actor, "orders.write") ? (
             <Button asChild>
               <Link href="/admin/listings/new">Add listing</Link>
@@ -63,14 +63,13 @@ export default async function ListingsPage({
       {listings.length === 0 ? (
         <p className="text-sm text-muted-foreground">No listings match.</p>
       ) : (
+        <SelectMode kind="listing" returnTo={returnTo} canArchive={can(actor, "orders.write")}>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {listings.map((listing) => (
-            <article key={listing.id} className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="flex items-center justify-between gap-2 px-4 pt-3">
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input type="checkbox" data-bulk="listing" value={listing.id} aria-label={`Select ${listing.addressLine1}`} />
-                  Select
-                </label>
+            <article key={listing.id} className="overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="flex items-center gap-2 px-4 pt-3">
+                <SelectBox kind="listing" id={listing.id} label={`Select ${listing.addressLine1}`} />
+                <div className="ml-auto">
                 <RecordMenu
                   kind="listing"
                   id={listing.id}
@@ -81,6 +80,7 @@ export default async function ListingsPage({
                   deletable={listing.deletable}
                   returnTo={returnTo}
                 />
+                </div>
               </div>
               <Link href={`/admin/listings/${listing.id}`} className="block">
                 <div className="relative h-40 bg-accent">
@@ -120,6 +120,7 @@ export default async function ListingsPage({
             </article>
           ))}
         </div>
+        </SelectMode>
       )}
     </div>
   );

@@ -23,7 +23,8 @@ test("new shoot is one save, and an empty form explains what is missing", async 
   await page.getByLabel("ZIP").fill("32801");
   await page.getByRole("button", { name: "Save shoot" }).click();
   await expect(page.getByTestId("shoot-booked")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Copy invite link" })).toBeVisible();
-  await expect(page.getByTestId("shoot-booked").getByRole("link", { name: "Upload photos" })).toBeVisible();
+  await expect(page.getByTestId("listing-next")).toHaveText("Upload photos");
+  await page.getByRole("button", { name: /Actions for/ }).click();
+  await expect(page.getByRole("menuitem", { name: "Copy invite link" })).toBeVisible();
   await expect(page.getByText("Nothing was emailed.")).toBeVisible();
 });

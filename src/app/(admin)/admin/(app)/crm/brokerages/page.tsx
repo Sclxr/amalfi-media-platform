@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/data/empty-state";
 import { ArchiveView } from "@/components/removal/archive-view";
-import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { RecordMenu } from "@/components/removal/record-menu";
+import { SelectBox, SelectMode } from "@/components/selection/select-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { can } from "@/lib/permissions";
@@ -27,7 +28,6 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ArchiveView href="/admin/crm/brokerages" view={view} />
-          {can(actor, "crm.write") ? <BulkBar kind="brokerage" returnTo={returnTo} canArchive /> : null}
           <Button asChild>
             <Link href="/admin/crm/brokerages/new">Add brokerage</Link>
           </Button>
@@ -43,7 +43,7 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
       {brokerages.length === 0 ? (
         <EmptyState title="No brokerages" body="Add an office so realtors can be grouped." />
       ) : (
-        <>
+        <SelectMode kind="brokerage" returnTo={returnTo} canArchive={can(actor, "crm.write")}>
         <div className="grid gap-3 md:hidden">
           {brokerages.map((brokerage) => (
             <article key={brokerage.id} className="rounded-2xl border border-border bg-card p-4">
@@ -52,10 +52,7 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
               </Link>
               <p className="text-sm text-muted-foreground">{brokerage.city ?? "No city"} · {brokerage._count.leads} realtors · {brokerage._count.clients} clients</p>
               <div className="mt-3 flex items-center justify-between gap-3">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" data-bulk="brokerage" value={brokerage.id} aria-label={`Select ${brokerage.name}`} />
-                  Select
-                </label>
+                <SelectBox kind="brokerage" id={brokerage.id} label={`Select ${brokerage.name}`} />
                 <RecordMenu
                   kind="brokerage"
                   id={brokerage.id}
@@ -93,9 +90,7 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
                   <td className="px-4 py-3 tabular-nums">{brokerage._count.leads}</td>
                   <td className="px-4 py-3 tabular-nums">{brokerage._count.clients}</td>
                   <td className="px-4 py-3">
-                    <label className="mr-2 text-xs">
-                      <input type="checkbox" data-bulk="brokerage" value={brokerage.id} aria-label={`Select ${brokerage.name}`} />
-                    </label>
+                    <SelectBox kind="brokerage" id={brokerage.id} label={`Select ${brokerage.name}`} />
                     <RecordMenu
                       kind="brokerage"
                       id={brokerage.id}
@@ -112,7 +107,7 @@ export default async function BrokeragesPage({ searchParams }: { searchParams: P
             </tbody>
           </table>
         </div>
-        </>
+        </SelectMode>
       )}
     </div>
   );

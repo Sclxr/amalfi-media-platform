@@ -27,7 +27,7 @@ export async function listInvoices(actor: Actor) {
   if (!can(actor, "billing.read")) throw new Error("Forbidden");
   return prisma.invoice.findMany({
     orderBy: { createdAt: "desc" },
-    include: { client: true, payments: true },
+    include: { client: true, payments: true, order: { include: { property: { select: { addressLine1: true } } } } },
   });
 }
 

@@ -3,13 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { createListingInvoiceAction, listingQuoteAction, listingStatusAction, markZellePaidAction, rescheduleListingBookingAction, reverseZellePaymentAction, voidListingInvoiceAction } from "@/app/(admin)/admin/(app)/listings/actions";
 import { StatusBadge } from "@/components/data/status-badge";
 import { GalleryManager } from "@/components/listings/gallery-manager";
-import { InviteLink } from "@/components/listings/invite-link";
-import { QuoteSheet } from "@/components/quotes/quote-sheet";
+import { ListingActions } from "@/components/listings/listing-actions";
 import { ListingHeader } from "@/components/listings/listing-header";
 import { SetCrumb } from "@/components/shell/crumbs";
 import { ListingPrice } from "@/components/listings/listing-price";
 import { ArchivedBanner } from "@/components/removal/archive-view";
-import { RecordMenu } from "@/components/removal/record-menu";
 import { ConfirmDialog, DialogClose, Modal } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +17,7 @@ import { canVoidInvoice } from "@/lib/invoice-void";
 import { orderPriceLock } from "@/lib/order-price";
 import { hasFinancialHistory } from "@/lib/removal";
 import { canMarkOrderDelivered, pickUploadOrder, propertyTypeLabel } from "@/lib/listing";
+import { listingNextAction } from "@/lib/listing-next";
 import { formatCents } from "@/lib/money";
 import { adminOrderLabel, nextOrderStatuses, type OrderStatus } from "@/lib/order-status";
 import { can } from "@/lib/permissions";
@@ -84,6 +83,24 @@ export default async function ListingDetailPage({
         minute: "2-digit",
       }).format(currentInvoice.quoteSentAt)
     : null;
+  const orderGalleries = current ? property.galleries.filter((gallery) => gallery.orderId === current.id) : property.galleries;
+  const readyPhotos = orderGalleries.reduce(
+    (count, gallery) => count + gallery.assets.filter((asset) => asset.kind === "PHOTO" && asset.status === "READY").length,
+    0,
+  );
+  const published = orderGalleries.some((gallery) => gallery.status === "PUBLISHED");
+  const paid = Boolean(
+    currentInvoice && (currentInvoice.status === "PAID" || (currentInvoice.totalCents > 0 && currentInvoice.amountPaidCents >= currentInvoice.totalCents)),
+  );
+  const next = listingNextAction({
+    status: card.status,
+    readyPhotos,
+    published,
+    paid,
+    canSendQuote: Boolean(quote) && canEdit,
+    quoteSent: Boolean(currentInvoice?.quoteSentAt),
+    canMarkZelle: canRecordZelle && currentInvoice?.status === "OPEN" && !paid,
+  });
   const propertyFacts = [detail(property.beds, "beds"), detail(property.bathsHalf, "half baths"), detail(property.sqft, "sq ft")].filter(Boolean);
   const missingDetails = property.beds == null || property.bathsHalf == null || property.sqft == null || !property.accessNotes?.trim();
 
@@ -95,54 +112,60 @@ export default async function ListingDetailPage({
       </Link>
       {property.archivedAt ? <ArchivedBanner>This listing is archived. Restore it to put it back on the active list.</ArchivedBanner> : null}
       <ListingHeader
-        propertyId={property.id}
         addressLine1={property.addressLine1}
         cityLine={`${property.city}, ${property.state} ${property.zip}`}
         realtor={property.lead ? { id: property.lead.id, name: card.realtorName } : null}
         status={card.status}
         shootLabel={card.shootDate ? formatDateTime(card.shootDate) : "Not scheduled"}
         coverSrc={card.hasCover ? `/admin/listings/${property.id}/cover` : null}
-        canEdit={canEdit}
-        canMedia={canMedia}
-        menu={
-          <RecordMenu
-            kind="listing"
-            id={property.id}
-            name={property.addressLine1}
-            archived={Boolean(property.archivedAt)}
-            canArchive={canEdit}
-            canPermanent={can(actor, "records.delete")}
-            deletable={!hasFinancialHistory(property.orders.flatMap((order) => order.invoices))}
-            returnTo="/admin/listings"
+        actions={
+          <ListingActions
+            propertyId={property.id}
+            address={property.addressLine1}
+            next={next}
+            canEdit={canEdit}
+            canMedia={canMedia}
+            quote={quote}
+            delivery={
+              deliverGallery && shoot
+                ? {
+                    galleryId: deliverGallery.id,
+                    title: deliverGallery.title,
+                    statusLabel: deliverGallery.status === "PUBLISHED" ? "Published" : deliverGallery.status === "ARCHIVED" ? "Archived" : "Draft",
+                    canMarkDelivered: canMarkOrderDelivered(shoot.status),
+                    orderLabel: `Order ${shoot.number} · ${adminOrderLabel(shoot.status)}`,
+                  }
+                : null
+            }
+            zelle={
+              canRecordZelle && currentInvoice && currentInvoice.status === "OPEN"
+                ? { invoiceId: currentInvoice.id, amount: (currentInvoice.totalCents / 100).toFixed(2), number: currentInvoice.number }
+                : null
+            }
+            editor={{
+              leadId: property.leadId ?? "",
+              addressLine1: property.addressLine1,
+              addressLine2: property.addressLine2 ?? "",
+              city: property.city,
+              state: property.state,
+              zip: property.zip,
+              propertyType: property.propertyType,
+              sqft: property.sqft?.toString() ?? "",
+              beds: property.beds?.toString() ?? "",
+              bathsHalf: property.bathsHalf?.toString() ?? "",
+              accessNotes: property.accessNotes ?? "",
+            }}
+            realtors={realtors.map((realtor) => ({
+              id: realtor.id,
+              name: `${realtor.firstName ?? ""} ${realtor.lastName ?? ""}`.trim() || realtor.email || "Realtor",
+            }))}
+            removal={{
+              archived: Boolean(property.archivedAt),
+              canArchive: canEdit,
+              canPermanent: can(actor, "records.delete"),
+              deletable: !hasFinancialHistory(property.orders.flatMap((order) => order.invoices)),
+            }}
           />
-        }
-        realtors={realtors.map((realtor) => ({
-          id: realtor.id,
-          name: `${realtor.firstName ?? ""} ${realtor.lastName ?? ""}`.trim() || realtor.email || "Realtor",
-        }))}
-        editor={{
-          leadId: property.leadId ?? "",
-          addressLine1: property.addressLine1,
-          addressLine2: property.addressLine2 ?? "",
-          city: property.city,
-          state: property.state,
-          zip: property.zip,
-          propertyType: property.propertyType,
-          sqft: property.sqft?.toString() ?? "",
-          beds: property.beds?.toString() ?? "",
-          bathsHalf: property.bathsHalf?.toString() ?? "",
-          accessNotes: property.accessNotes ?? "",
-        }}
-        delivery={
-          deliverGallery && shoot
-            ? {
-                galleryId: deliverGallery.id,
-                title: deliverGallery.title,
-                statusLabel: deliverGallery.status === "PUBLISHED" ? "Published" : deliverGallery.status === "ARCHIVED" ? "Archived" : "Draft",
-                canMarkDelivered: canMarkOrderDelivered(shoot.status),
-                orderLabel: `Order ${shoot.number} · ${adminOrderLabel(shoot.status)}`,
-              }
-            : null
         }
       />
       {query.booked === "1" ? (
@@ -153,19 +176,6 @@ export default async function ListingDetailPage({
               ? "That email was already on file, so the existing realtor was used. The time is on the calendar and the quote is a draft. Nothing was emailed."
               : "The time is on the calendar and the quote is a draft. Nothing was emailed."}
           </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-            {canEdit ? <InviteLink propertyId={property.id} copyOnly /> : null}
-            {quote ? (
-              <QuoteSheet
-                choices={[quote]}
-                presetId={quote.invoiceId}
-                trigger={<Button type="button">{quote.sentAt ? "Resend quote" : "Send quote"}</Button>}
-              />
-            ) : null}
-            <Button asChild>
-              <Link href={`/admin/listings/${property.id}?tab=gallery#upload`}>Upload photos</Link>
-            </Button>
-          </div>
         </section>
       ) : null}
       {query.notice ? <p className="rounded-md border border-border px-4 py-3 text-sm">{query.notice}</p> : null}
@@ -214,7 +224,7 @@ export default async function ListingDetailPage({
               {property.lead?.brokerage?.name ? <p>{property.lead.brokerage.name}</p> : null}
             </CardContent>
           </Card>
-          <Card>
+          <Card id="schedule">
             <CardHeader>
               <CardTitle>This shoot</CardTitle>
             </CardHeader>
@@ -272,13 +282,6 @@ export default async function ListingDetailPage({
                   {sentWhen && currentInvoice.quoteSentTo ? (
                     <p data-testid="quote-sent">Sent to {currentInvoice.quoteSentTo} at {sentWhen}</p>
                   ) : null}
-                  {quote ? (
-                    <QuoteSheet
-                      choices={[quote]}
-                      presetId={quote.invoiceId}
-                      trigger={<Button type="button" variant="secondary" size="sm">{quote.sentAt ? "Resend quote" : "Send quote"}</Button>}
-                    />
-                  ) : null}
                 </>
               ) : (
                 <p className="text-muted-foreground">No invoice</p>
@@ -286,7 +289,6 @@ export default async function ListingDetailPage({
               <Link className="text-primary" href={`/admin/listings/${property.id}?tab=billing`}>
                 Orders and billing
               </Link>
-              {canEdit ? <InviteLink propertyId={property.id} /> : null}
             </CardContent>
           </Card>
         </div>
@@ -414,17 +416,33 @@ export default async function ListingDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  {order.items.length === 0 ? <p className="text-muted-foreground">No price yet.</p> : null}
-                  {order.items.map((item) => (
-                    <p key={item.id}>
-                      {item.label}
-                      {item.quantity > 1 ? ` × ${item.quantity}` : ""}
-                      {canSeeMoney ? ` · ${item.unitPriceCents === null ? "Quote" : formatCents(item.unitPriceCents)}` : ""}
-                    </p>
-                  ))}
-                  {canEdit && priceLock === null ? (
-                    <ListingPrice propertyId={property.id} orderId={order.id} orderNumber={order.number} packages={packages} />
-                  ) : null}
+                  {canEdit ? (
+                    <ListingPrice
+                      propertyId={property.id}
+                      orderId={order.id}
+                      orderNumber={order.number}
+                      packages={packages}
+                      totalCents={order.totalCents}
+                      lines={order.items.map((item) => ({
+                        id: item.id,
+                        label: item.label,
+                        quantity: item.quantity,
+                        unitPriceCents: item.unitPriceCents,
+                      }))}
+                      locked={priceLock !== null}
+                    />
+                  ) : (
+                    <>
+                      {order.items.length === 0 ? <p className="text-muted-foreground">No price yet.</p> : null}
+                      {order.items.map((item) => (
+                        <p key={item.id}>
+                          {item.label}
+                          {item.quantity > 1 ? ` × ${item.quantity}` : ""}
+                          {canSeeMoney ? ` · ${item.unitPriceCents === null ? "Quote" : formatCents(item.unitPriceCents)}` : ""}
+                        </p>
+                      ))}
+                    </>
+                  )}
                   {canEdit && priceLock === "Void the open invoice before changing the price." ? (
                     <p className="text-muted-foreground">{priceLock}</p>
                   ) : null}

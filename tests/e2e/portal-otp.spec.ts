@@ -114,7 +114,8 @@ test("an invite code attaches the existing client and does not create another", 
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await expect(page.getByText("Published for the client.").first()).toBeVisible();
   await page.getByRole("tab", { name: "Overview" }).click();
-  await page.getByRole("button", { name: "Create invite link" }).click();
+  await page.getByRole("button", { name: `Actions for ${address}` }).click();
+  await page.getByRole("menuitem", { name: "Copy invite link" }).click();
   await expect(page.getByLabel("Invite link")).toBeVisible();
   const inviteUrl = await page.getByLabel("Invite link").inputValue();
 

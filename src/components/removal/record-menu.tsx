@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { archiveRecordAction, bulkArchiveAction, deleteRecordAction, previewRemovalAction, restoreRecordAction } from "@/app/(admin)/admin/(app)/removal/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ export function RecordMenu({
   deletable,
   returnTo,
   label,
+  extra,
 }: {
   kind: string;
   id: string;
@@ -26,6 +27,7 @@ export function RecordMenu({
   deletable: boolean;
   returnTo: string;
   label?: string;
+  extra?: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -46,14 +48,18 @@ export function RecordMenu({
     setDeleteOpen(true);
   }
 
-  if (!canArchive && !canPermanent) return null;
+  if (!canArchive && !canPermanent && !extra) return null;
+  function close() {
+    setOpen(false);
+  }
   return (
     <div className="relative">
       <Button type="button" variant="secondary" size="sm" aria-haspopup="menu" aria-expanded={open} aria-label={label ?? `Actions for ${name}`} onClick={() => setOpen((value) => !value)}>
         Actions
       </Button>
       {open ? (
-        <div role="menu" className="absolute right-0 z-40 mt-1 w-52 rounded-xl border border-border bg-card p-1 text-sm shadow-lg">
+        <div role="menu" className="absolute right-0 z-40 mt-1 w-56 rounded-xl border border-border bg-card p-1 text-sm shadow-lg">
+          {extra ? extra(close) : null}
           {canArchive ? (
             <form action={archive}>
               <input type="hidden" name="kind" value={kind} />

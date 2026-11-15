@@ -45,6 +45,7 @@ test("Zelle stays locked until an admin marks it paid", async ({ page, browser }
   await expect(page.getByText("Published for the client.").first()).toBeVisible();
 
   await page.getByRole("tab", { name: "Orders & Billing" }).click();
+  await page.getByRole("button", { name: "Edit price" }).click();
   await page.getByLabel(/^Package for order/).selectOption({ label: "Introductory photography · $120.00" });
   await page.getByRole("button", { name: "Use package" }).click();
   await expect(page.getByText("Price saved.")).toBeVisible();
