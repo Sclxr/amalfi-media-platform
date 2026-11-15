@@ -140,6 +140,7 @@ export async function sendQuote(actor: Actor, invoiceId: string, note: string, t
     cardTotalCents: choice.cardTotalCents,
     note,
     payUrl,
+    appUrl: origin,
   });
   const mail = await sendTransactional(message);
   if (mail.mode === "skip" || (mail.mode === "send" && !mail.delivered)) {

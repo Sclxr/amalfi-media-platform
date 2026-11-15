@@ -69,6 +69,7 @@ export function quoteMessage(input: {
   cardTotalCents: number;
   note?: string;
   payUrl: string;
+  appUrl: string;
 }): MailMessage {
   const name = input.name.trim() || "there";
   const note = input.note?.trim();
@@ -81,6 +82,11 @@ export function quoteMessage(input: {
     `Card total: ${formatCents(input.cardTotalCents)} (includes a ${formatCents(input.cardFeeCents)} card fee).`,
     `Zelle: ${formatCents(input.totalCents)}. No card fee.`,
     `Review and pay: ${input.payUrl}`,
+    "",
+    "Amalfi Media · Orlando, FL",
+    "Reply to this email with questions.",
+    `Terms: ${input.appUrl}/terms`,
+    `Privacy: ${input.appUrl}/privacy`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -123,6 +129,13 @@ export function quoteMessage(input: {
           <p class="ink" style="margin:0 0 4px;font-size:16px;">Card total <strong style="color:#b8956c;">${formatCents(input.cardTotalCents)}</strong> <span class="muted" style="color:#6f6a62;">including a ${formatCents(input.cardFeeCents)} card fee</span></p>
           <p class="ink" style="margin:0 0 20px;font-size:16px;">Zelle <strong>${formatCents(input.totalCents)}</strong> <span class="muted" style="color:#6f6a62;">no card fee</span></p>
           <a href="${escapeHtml(input.payUrl)}" style="display:inline-block;background:#111111;color:#d4bc8c;text-decoration:none;font-family:Georgia,serif;font-size:16px;padding:14px 22px;border-radius:12px;">Review and pay</a>
+        </td></tr>
+        <tr><td class="muted" style="padding:16px 8px 0;text-align:center;font-family:Georgia,serif;font-size:13px;line-height:1.6;color:#6f6a62;">
+          Amalfi Media · Orlando, FL<br>
+          Reply to this email with questions.<br>
+          <a href="${escapeHtml(input.appUrl)}/terms" style="color:#b8956c;">Terms</a>
+          ·
+          <a href="${escapeHtml(input.appUrl)}/privacy" style="color:#b8956c;">Privacy</a>
         </td></tr>
       </table>
     </td></tr>

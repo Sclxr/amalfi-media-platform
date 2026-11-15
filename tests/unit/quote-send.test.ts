@@ -31,11 +31,17 @@ describe("quote email", () => {
       cardTotalCents: 12389,
       note: "Saturday works.",
       payUrl: "https://app.example/portal/login?next=%2Fportal%2Finvoices%2F1",
+      appUrl: "https://app.example",
     });
     expect(message.subject).toContain("1842 Lake Conway Shore");
     expect(message.text).toContain("Card total: $123.89");
     expect(message.text).toContain("Zelle: $120.00");
     expect(message.text).toContain("Saturday works.");
+    expect(message.text).toContain("Amalfi Media · Orlando, FL");
+    expect(message.text).toContain("Reply to this email with questions.");
+    expect(message.html).toContain("https://app.example/terms");
+    expect(message.html).toContain("https://app.example/privacy");
+    expect(message.html).not.toContain("unsubscribe");
     expect(message.html).toContain("prefers-color-scheme: dark");
     expect(message.html).toContain("#111111");
     expect(message.html).toContain("#d4bc8c");

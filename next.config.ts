@@ -31,6 +31,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // The N badge is a development overlay. Production builds do not include it.
+  devIndicators: false,
   // The app is served from its own host (app.amalfimedia.xyz). There is no
   // basePath and no assetPrefix: pages live at /admin and /portal, and Next
   // assets stay at /_next on that host. The public site at amalfimedia.xyz is
