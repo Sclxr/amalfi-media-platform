@@ -51,9 +51,12 @@ test("an admin can copy an invite and a new account claims that gallery", async 
   await expect(page.getByText("Published for the client.")).toBeVisible();
 
   await page.getByRole("tab", { name: "Overview" }).click();
-  await page.getByRole("button", { name: "Send invite by email" }).click();
+  const actions = page.locator("#listing-edit").getByRole("button", { name: `Actions for ${address}` });
+  await actions.click();
+  await page.getByRole("menuitem", { name: "Send invite by email" }).click();
   await expect(page.getByText("Invite logged only (staging/not allowlisted)")).toBeVisible();
-  await page.getByRole("button", { name: "Create invite link" }).click();
+  await actions.click();
+  await page.getByRole("menuitem", { name: "Copy invite link" }).click();
   await expect(page.getByLabel("Invite link")).toBeVisible();
   const inviteUrl = await page.getByLabel("Invite link").inputValue();
   expect(inviteUrl).toContain("/portal/invite?token=");

@@ -126,6 +126,7 @@ test("a new client claims a gallery, pays, and downloads", async ({ page, browse
   await other.close();
 
   await page.getByRole("tab", { name: "Orders & Billing" }).click();
+  await page.getByRole("button", { name: "Edit price" }).click();
   await page.getByLabel(/^Package for order/).selectOption({ label: "Introductory photography · $120.00" });
   await page.getByRole("button", { name: "Use package" }).click();
   await expect(page.getByText("Price saved.")).toBeVisible();

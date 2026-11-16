@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { trustedAction } from "@/app/(admin)/admin/(app)/billing/actions";
 import { ArchiveView } from "@/components/removal/archive-view";
-import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { RecordMenu } from "@/components/removal/record-menu";
+import { SelectBox, SelectMode } from "@/components/selection/select-mode";
 import { Button } from "@/components/ui/button";
 import { can } from "@/lib/permissions";
 import { clientRemoval } from "@/lib/removal";
@@ -27,15 +28,13 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <ArchiveView href="/admin/clients" view={params.view} />
-        {can(actor, "crm.write") ? <BulkBar kind="client" returnTo={returnTo} canArchive /> : null}
       </div>
       {params.notice ? <p className="text-sm">{params.notice}</p> : null}
+      <SelectMode kind="client" returnTo={returnTo} canArchive={can(actor, "crm.write")}>
       <div className="space-y-3">
         {clients.map((client) => (
           <div key={client.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <label className="text-xs">
-              <input type="checkbox" data-bulk="client" value={client.id} aria-label={`Select ${client.firstName} ${client.lastName}`} />
-            </label>
+            <SelectBox kind="client" id={client.id} label={`Select ${client.firstName} ${client.lastName}`} />
             <RecordMenu
               kind="client"
               id={client.id}
@@ -65,6 +64,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
           </div>
         ))}
       </div>
+      </SelectMode>
     </div>
   );
 }

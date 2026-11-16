@@ -35,7 +35,8 @@ test("a new listing accepts a photo, opens it, and publishes it", async ({ page 
   await page.getByRole("button", { name: "Create listing" }).click();
   await expect(page.getByRole("heading", { name: address })).toBeVisible();
   await expect(page.getByLabel("Street")).toHaveCount(0);
-  await page.getByRole("button", { name: "Edit listing" }).click();
+  await page.locator("#listing-edit").getByRole("button", { name: `Actions for ${address}` }).click();
+  await page.getByRole("menuitem", { name: "Edit listing" }).click();
   await expect(page.getByRole("dialog", { name: "Edit listing" }).getByLabel("Street")).toBeVisible();
   await page.keyboard.press("Escape");
 

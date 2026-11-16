@@ -43,6 +43,7 @@ test("admin can sign in and use CRM", async ({ page }) => {
   await page.getByLabel("City").fill("Orlando");
   await page.getByRole("button", { name: "Create realtor" }).click();
   await expect(page.getByRole("heading", { name: "Casey Nguyen" })).toBeVisible();
+  await page.getByRole("button", { name: "Add note" }).click();
   await page.getByLabel("Add a note").fill("Asked about the introductory package.");
   await page.getByRole("button", { name: "Save note" }).click();
   await expect(page.getByText("Asked about the introductory package.").first()).toBeVisible();

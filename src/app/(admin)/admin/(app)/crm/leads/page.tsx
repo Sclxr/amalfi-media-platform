@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/data/empty-state";
 import { ArchiveView } from "@/components/removal/archive-view";
-import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { RecordMenu } from "@/components/removal/record-menu";
+import { SelectBox, SelectMode } from "@/components/selection/select-mode";
 import { StatusBadge } from "@/components/data/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +51,6 @@ export default async function LeadsPage({
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <ArchiveView href="/admin/crm/leads" view={params.view} />
-        {can(actor, "crm.write") ? <BulkBar kind="lead" returnTo={returnTo} canArchive /> : null}
       </div>
       {params.notice ? <p className="text-sm">{params.notice}</p> : null}
       <form className="grid gap-3 md:grid-cols-[1fr_180px_220px_auto]" method="get">
@@ -78,7 +78,7 @@ export default async function LeadsPage({
       {leads.length === 0 ? (
         <EmptyState title="No realtors match" body="Try another search, or add a realtor to the pipeline." />
       ) : (
-        <>
+        <SelectMode kind="lead" returnTo={returnTo} canArchive={can(actor, "crm.write")}>
         <div className="grid gap-3 md:hidden" data-testid="lead-table">
           {leads.map((lead) => (
             <article key={lead.id} className="rounded-2xl border border-border bg-card p-4">
@@ -91,11 +91,9 @@ export default async function LeadsPage({
                 <StatusBadge status={lead.status} />
                 <span className="text-sm text-muted-foreground">{formatDate(lead.nextFollowUpAt)}</span>
               </div>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" data-bulk="lead" value={lead.id} aria-label={`Select ${lead.firstName} ${lead.lastName}`} />
-                  Select
-                </label>
+              <div className="mt-3 flex items-center gap-3">
+                <SelectBox kind="lead" id={lead.id} label={`Select ${lead.firstName} ${lead.lastName}`} />
+                <div className="ml-auto">
                 <RecordMenu
                   kind="lead"
                   id={lead.id}
@@ -112,6 +110,7 @@ export default async function LeadsPage({
                   }
                   returnTo={returnTo}
                 />
+                </div>
               </div>
             </article>
           ))}
@@ -144,9 +143,7 @@ export default async function LeadsPage({
                   <td className="px-4 py-3">{lead.city ?? "—"}</td>
                   <td className="px-4 py-3 tabular-nums">{formatDate(lead.nextFollowUpAt)}</td>
                   <td className="px-4 py-3">
-                    <label className="mr-2 text-xs">
-                      <input type="checkbox" data-bulk="lead" value={lead.id} aria-label={`Select ${lead.firstName} ${lead.lastName}`} />
-                    </label>
+                    <SelectBox kind="lead" id={lead.id} label={`Select ${lead.firstName} ${lead.lastName}`} />
                     <RecordMenu
                       kind="lead"
                       id={lead.id}
@@ -169,7 +166,7 @@ export default async function LeadsPage({
             </tbody>
           </table>
         </div>
-        </>
+        </SelectMode>
       )}
     </div>
   );

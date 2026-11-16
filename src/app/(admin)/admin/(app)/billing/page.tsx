@@ -32,16 +32,20 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           <CardTitle>Invoices</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {invoices.map((invoice) => (
-            <article key={invoice.id} className="rounded-2xl border border-border p-4">
-              <Link className="flex min-h-12 items-center text-base font-medium text-primary" href={`/admin/billing/${invoice.id}`}>
-                {invoice.number}
-              </Link>
-              <p>
-                {formatCents(invoice.totalCents)} · <StatusBadge status={invoice.status} />
-              </p>
-            </article>
-          ))}
+          {invoices.map((invoice) => {
+            const address = invoice.order?.property?.addressLine1;
+            return (
+              <article key={invoice.id} className="rounded-2xl border border-border p-4">
+                <Link className="block min-h-12" href={`/admin/billing/${invoice.id}`}>
+                  <span className="block break-words text-base font-medium text-primary">{address ?? `${invoice.client.firstName} ${invoice.client.lastName}`}</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{invoice.number}</span>
+                </Link>
+                <p className="mt-2">
+                  {formatCents(invoice.totalCents)} · <StatusBadge status={invoice.status} />
+                </p>
+              </article>
+            );
+          })}
         </CardContent>
       </Card>
       <form action={createInvoiceAction} className="flex flex-wrap items-end gap-3">

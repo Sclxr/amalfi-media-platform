@@ -36,6 +36,7 @@ test("a listing order can take the intro package, a custom price, or line items"
 
   await page.getByRole("tab", { name: "Orders & Billing" }).click();
   await expect(page.getByText("No price yet.")).toBeVisible();
+  await page.getByRole("button", { name: "Edit price" }).click();
   await expect(page.getByRole("button", { name: "Use package" })).toBeVisible();
   const viewports = [
     { name: "desktop", width: 1280, height: 800 },
@@ -52,7 +53,8 @@ test("a listing order can take the intro package, a custom price, or line items"
   await page.setViewportSize({ width: 1280, height: 800 });
   await setTheme(page, "light");
 
-  await page.getByLabel(/^Package for order/).selectOption({ label: "Introductory photography · $120.00" });
+  await page.getByRole("button", { name: "Edit price" }).click();
+  await page.getByRole("dialog", { name: "Edit price" }).getByLabel(/^Package for order/).selectOption({ label: "Introductory photography · $120.00" });
   await page.getByRole("button", { name: "Use package" }).click();
   await expect(page.getByText("Price saved.")).toBeVisible();
   await expect(page.getByRole("heading", { name: /\$120\.00/ })).toBeVisible();
@@ -74,6 +76,8 @@ test("a listing order can take the intro package, a custom price, or line items"
   await page.getByRole("button", { name: "Void" }).click();
   await page.getByRole("dialog", { name: "Void invoice" }).getByRole("button", { name: "Void invoice" }).click();
   await expect(page.getByText("Invoice voided.")).toBeVisible();
+  await page.getByRole("button", { name: "Edit price" }).click();
+  await page.getByRole("button", { name: "Custom amount" }).click();
   await page.getByLabel(/^Custom description for order/).fill("Twilight shoot");
   await page.getByLabel(/^Custom price for order/).fill("80.00");
   await page.getByRole("button", { name: "Save custom price" }).click();
@@ -86,6 +90,8 @@ test("a listing order can take the intro package, a custom price, or line items"
   await page.getByRole("dialog", { name: "Void invoice" }).getByRole("button", { name: "Void invoice" }).click();
   await expect(page.getByText("Invoice voided.")).toBeVisible();
 
+  await page.getByRole("button", { name: "Edit price" }).click();
+  await page.getByRole("button", { name: "Line items" }).click();
   await page.getByLabel(/^Line 1 description for order/).fill("Photos");
   await page.getByLabel(/^Line 1 quantity for order/).fill("1");
   await page.getByLabel(/^Line 1 amount for order/).fill("100.00");

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Camera } from "lucide-react";
 import { StatusBadge } from "@/components/data/status-badge";
 import { ArchiveView } from "@/components/removal/archive-view";
-import { BulkBar, RecordMenu } from "@/components/removal/record-menu";
+import { RecordMenu } from "@/components/removal/record-menu";
+import { SelectBox, SelectMode } from "@/components/selection/select-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LISTING_STATUSES, listingStatusLabel } from "@/lib/listing";
-import { formatDate } from "@/lib/dates";
+import { listingCardNote } from "@/lib/listing-next";
 import { can } from "@/lib/permissions";
 import { getActor } from "@/server/auth/guards";
 import { listListings } from "@/server/services/listings";
@@ -23,6 +25,7 @@ export default async function ListingsPage({
   const params = await searchParams;
   const listings = await listListings(actor, params);
   const returnTo = params.view === "archived" ? "/admin/listings?view=archived" : "/admin/listings";
+  const showAmount = can(actor, "billing.read");
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -32,7 +35,6 @@ export default async function ListingsPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ArchiveView href="/admin/listings" view={params.view} />
-          {can(actor, "orders.write") ? <BulkBar kind="listing" returnTo={returnTo} canArchive /> : null}
           {can(actor, "orders.write") ? (
             <Button asChild>
               <Link href="/admin/listings/new">Add listing</Link>
@@ -63,36 +65,31 @@ export default async function ListingsPage({
       {listings.length === 0 ? (
         <p className="text-sm text-muted-foreground">No listings match.</p>
       ) : (
+        <SelectMode kind="listing" returnTo={returnTo} canArchive={can(actor, "orders.write")}>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {listings.map((listing) => (
-            <article key={listing.id} className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="flex items-center justify-between gap-2 px-4 pt-3">
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input type="checkbox" data-bulk="listing" value={listing.id} aria-label={`Select ${listing.addressLine1}`} />
-                  Select
-                </label>
-                <RecordMenu
-                  kind="listing"
-                  id={listing.id}
-                  name={listing.addressLine1}
-                  archived={listing.archived}
-                  canArchive={can(actor, "orders.write")}
-                  canPermanent={can(actor, "records.delete")}
-                  deletable={listing.deletable}
-                  returnTo={returnTo}
-                />
-              </div>
+          {listings.map((listing) => {
+            const note = listingCardNote({
+              status: listing.status,
+              shootDate: listing.shootDate,
+              paid: listing.paid,
+              amountCents: listing.amountCents,
+              showAmount,
+            });
+            return (
+            <article key={listing.id} className="relative rounded-2xl border border-border bg-card">
               <Link href={`/admin/listings/${listing.id}`} className="block">
-                <div className="relative h-40 bg-accent">
+                <div className="relative h-40 overflow-hidden rounded-t-2xl bg-accent">
                   {listing.hasCover ? (
                     // Staff preview of the stored file. next/image would re-process it.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={`/admin/listings/${listing.id}/cover`} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="grid h-full place-items-center text-sm text-muted-foreground">No cover photo</div>
+                    <div className="grid h-full place-items-center text-muted-foreground" aria-hidden>
+                      <Camera className="size-8" strokeWidth={1.5} />
+                    </div>
                   )}
                 </div>
-                <div className="space-y-3 p-4">
+                <div className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="break-words text-base font-semibold leading-snug">{listing.addressLine1}</h2>
                     {listing.status === "NO_SHOOT" ? (
@@ -111,15 +108,32 @@ export default async function ListingsPage({
                       <span className="text-muted-foreground">Unassigned</span>
                     )}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {listing.statusLabel}
-                    {listing.shootDate ? ` · ${formatDate(listing.shootDate)}` : ""}
-                  </p>
+                  {note.kind === "none" ? null : (
+                    <p className={note.kind === "unpaid" ? "text-sm font-medium text-gold" : "text-sm text-muted-foreground"}>{note.text}</p>
+                  )}
                 </div>
               </Link>
+              <div className="absolute left-2 top-2 z-10">
+                <SelectBox kind="listing" id={listing.id} label={`Select ${listing.addressLine1}`} overlay />
+              </div>
+              <div className="absolute right-2 top-2 z-10">
+                <RecordMenu
+                  appearance="icon"
+                  kind="listing"
+                  id={listing.id}
+                  name={listing.addressLine1}
+                  archived={listing.archived}
+                  canArchive={can(actor, "orders.write")}
+                  canPermanent={can(actor, "records.delete")}
+                  deletable={listing.deletable}
+                  returnTo={returnTo}
+                />
+              </div>
             </article>
-          ))}
+            );
+          })}
         </div>
+        </SelectMode>
       )}
     </div>
   );

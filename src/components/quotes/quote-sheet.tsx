@@ -50,13 +50,22 @@ export function QuoteSheet({
   trigger,
   presetId,
   onSent,
+  open: openProp,
+  onOpenChange,
 }: {
   choices: QuoteChoice[];
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
   presetId?: string | null;
   onSent?: (result: QuoteSent) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = openProp ?? uncontrolledOpen;
+  function setOpen(next: boolean) {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  }
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<string | null>(presetId ?? null);
   const [note, setNote] = useState("");
@@ -118,7 +127,7 @@ export function QuoteSheet({
         }
       }}
     >
-      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Dialog.Content className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-50 flex max-h-[calc(100dvh-4.25rem-env(safe-area-inset-bottom)-0.75rem)] flex-col overflow-hidden rounded-t-2xl border border-border bg-card text-card-foreground shadow-lg md:bottom-auto md:left-1/2 md:top-1/2 md:max-h-[min(85vh,36rem)] md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl">
