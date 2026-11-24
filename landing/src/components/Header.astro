@@ -1,0 +1,52 @@
+---
+import { site } from "../site.config";
+import { isProduction } from "../mode";
+---
+<header class="site">
+  <div class="wrap hd">
+    <a class="logo" href="/">AMALFI<span>·</span>MEDIA</a>
+    <nav class="nav" aria-label="Primary">
+      <details class="menu">
+        <summary>Services</summary>
+        <div class="menu-panel">
+          <a href="/services/photography/">Photography</a>
+          <a href="/services/drone/">Drone</a>
+          <a href="/services/video/">Video</a>
+        </div>
+      </details>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="/pricing/">Pricing</a>
+      <a href="/about/">About</a>
+      <a href="/faq/">FAQ</a>
+    </nav>
+    <div class="hd-right">
+      <a class="desk" href={site.portalUrl}>Client login</a>
+      {site.phone.confirmed && site.phone.dial ? (
+        <a class="desk" href={`tel:${site.phone.dial}`}>{site.phone.display}</a>
+      ) : isProduction ? null : (
+        <span class="desk phone-note" title="Phone number is a placeholder">{site.phone.display}</span>
+      )}
+      <a class="btn btn-gold desk" href="/book/">Book a shoot</a>
+      <button class="burger" type="button" aria-expanded="false" aria-controls="mobile-nav" id="menu-button">Menu</button>
+    </div>
+  </div>
+  <nav id="mobile-nav" class="mobile-nav wrap" aria-label="Mobile">
+    <a href="/services/photography/">Photography</a>
+    <a href="/services/drone/">Drone</a>
+    <a href="/services/video/">Video</a>
+    <a href="/portfolio/">Portfolio</a>
+    <a href="/pricing/">Pricing</a>
+    <a href="/about/">About</a>
+    <a href="/faq/">FAQ</a>
+    <a href={site.portalUrl}>Client login</a>
+    <a href="/book/">Book a shoot</a>
+  </nav>
+</header>
+<script>
+  const button = document.getElementById("menu-button");
+  const nav = document.getElementById("mobile-nav");
+  button?.addEventListener("click", () => {
+    const open = nav?.classList.toggle("open");
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+</script>

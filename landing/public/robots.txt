@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://amalfimedia.xyz/sitemap-index.xml

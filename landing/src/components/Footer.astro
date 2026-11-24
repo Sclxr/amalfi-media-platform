@@ -1,0 +1,34 @@
+---
+import { site } from "../site.config";
+import { isProduction } from "../mode";
+const year = new Date().getFullYear();
+---
+<footer class="site">
+  <div class="wrap foot">
+    <div>
+      <p class="logo">AMALFI<span>·</span>MEDIA</p>
+      <p>{site.description}</p>
+      <p><a href={`mailto:${site.email}`}>{site.email}</a></p>
+      {site.phone.confirmed && site.phone.dial ? (
+        <p><a href={`tel:${site.phone.dial}`}>{site.phone.display}</a></p>
+      ) : isProduction ? null : (
+        <p>{site.phone.display} (placeholder)</p>
+      )}
+    </div>
+    <div>
+      <a href="/services/photography/">Photography</a>
+      <a href="/services/drone/">Drone</a>
+      <a href="/services/video/">Video</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="/pricing/">Pricing</a>
+      <a href="/book/">Book a shoot</a>
+    </div>
+    <div>
+      <a href="/about/">About</a>
+      <a href="/faq/">FAQ</a>
+      <a href={site.portalUrl}>Client portal</a>
+      {site.socials.length === 0 ? (isProduction ? null : <p>Social links are not published yet.</p>) : site.socials.map((item) => <a href={item.href}>{item.label}</a>)}
+    </div>
+  </div>
+  <div class="wrap"><p>© {year} Amalfi Media.</p></div>
+</footer>

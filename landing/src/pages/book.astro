@@ -1,0 +1,17 @@
+---
+import Base from "../layouts/Base.astro";
+import BookForm from "../components/BookForm.astro";
+import { site } from "../site.config";
+---
+<Base title="Book a Real Estate Shoot | Amalfi Media" description="Request photography, drone, or video for an Orlando listing." path="/book/">
+  <section class="page-hero wrap">
+    <p class="eyebrow">Book</p>
+    <h1 class="display">Tell us about the <span class="gold">listing</span></h1>
+    <p class="lead">This form emails {site.email}. Already a client? <a href={site.portalUrl}>Open the client portal</a>.</p>
+  </section>
+  <section class="sec sec-light">
+    <div class="wrap">
+      <BookForm />
+    </div>
+  </section>
+</Base>
