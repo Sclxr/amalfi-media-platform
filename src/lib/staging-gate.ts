@@ -14,6 +14,8 @@ export function stagingBasicAuthBypass(pathname: string) {
     pathname === "/unsubscribe" ||
     pathname === "/api/unsubscribe" ||
     pathname === "/api/stripe/webhook" ||
+    pathname === "/api/bot" ||
+    pathname.startsWith("/api/bot/") ||
     pathname === "/terms" ||
     pathname === "/privacy"
   ) {

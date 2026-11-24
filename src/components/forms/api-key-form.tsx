@@ -17,6 +17,9 @@ export function ApiKeyForm() {
       <fieldset className="space-y-2 text-sm">
         <legend className="font-medium">Scopes</legend>
         <label className="flex items-center gap-2">
+          <input type="checkbox" name="leads:read" defaultChecked /> Look up realtors
+        </label>
+        <label className="flex items-center gap-2">
           <input type="checkbox" name="leads:write" defaultChecked /> Create realtors
         </label>
         <label className="flex items-center gap-2">

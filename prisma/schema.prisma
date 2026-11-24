@@ -352,6 +352,15 @@ model ApiClient {
   auditLogs  AuditLog[]
 }
 
+/// Per-key request counters for the bot API. One row per window so several app processes share the limit.
+model ApiRateBucket {
+  clientId String
+  bucket   String
+  count    Int    @default(0)
+
+  @@id([clientId, bucket])
+}
+
 // ---------- CRM ----------
 
 model Brokerage {

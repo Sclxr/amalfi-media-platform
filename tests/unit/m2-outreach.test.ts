@@ -112,7 +112,7 @@ describe("campaign approval and the marketing kill switch", () => {
 
 describe("marketing bot keys", () => {
   it("issues draft scopes and refuses a send scope", () => {
-    expect(assertDraftOnlyScopes(["leads:write", "campaigns:draft"])).toEqual(["leads:write", "campaigns:draft"]);
+    expect(assertDraftOnlyScopes(["leads:read", "leads:write", "campaigns:draft"])).toEqual(["leads:read", "leads:write", "campaigns:draft"]);
     expect(() => assertDraftOnlyScopes(["campaigns:send"])).toThrow(/draft-only/);
     expect(botAllows(["leads:write", "campaigns:send"], "campaigns:send")).toBe(false);
     const key = generateApiKey();

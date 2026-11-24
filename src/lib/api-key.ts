@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 /** Scopes a marketing bot may be given. Sending is intentionally absent. */
-export const BOT_SCOPES = ["leads:write", "notes:write", "campaigns:draft"] as const;
+export const BOT_SCOPES = ["leads:read", "leads:write", "notes:write", "campaigns:draft"] as const;
 export type BotScope = (typeof BOT_SCOPES)[number];
 
 export function assertDraftOnlyScopes(scopes: readonly string[]): BotScope[] {

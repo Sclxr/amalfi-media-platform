@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.27.0 — 2026-11-24
+
+### Added
+
+- The lead bot can file a brokerage, source, tags, a note, and a stable external id, and it can look leads up. A suppressed or do-not-contact email is skipped. Soft-deleted matches stay hidden. Bot routes are limited per key and are allowed through the staging password. Unsubscribe marks the matching realtor do-not-contact. The bot still cannot send.
+
 ## 0.26.0 — 2026-11-15
 
 ### Changed

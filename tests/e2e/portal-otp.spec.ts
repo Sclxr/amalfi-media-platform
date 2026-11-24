@@ -30,10 +30,10 @@ async function setTheme(page: Page, theme: "light" | "dark") {
 
 test("portal bypasses the staging password and admin does not", () => {
   const base = { appEnv: "staging", basicAuth: "preview:secret", authorizationHeader: null };
-  for (const pathname of ["/portal/login", "/portal/invite", "/portal/galleries/abc/download", "/portal/api/auth/sign-in/email-otp", "/api/auth/sign-in/email"]) {
+  for (const pathname of ["/portal/login", "/portal/invite", "/portal/galleries/abc/download", "/portal/api/auth/sign-in/email-otp", "/api/auth/sign-in/email", "/api/bot", "/api/bot/leads"]) {
     expect(stagingGate({ ...base, pathname }).action, pathname).toBe("allow");
   }
-  for (const pathname of ["/admin", "/admin/login", "/api/bot"]) {
+  for (const pathname of ["/admin", "/admin/login"]) {
     expect(stagingGate({ ...base, pathname }).action, pathname).toBe("challenge");
   }
 });
