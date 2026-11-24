@@ -37,6 +37,8 @@ export const site = {
     introNoted: 120,
   },
   claims: {
+    /** Set true only after deciding each flag below. False flags are omitted, not printed as "not confirmed". */
+    reviewed: false,
     turnaround24h: false,
     faaPart107: false,
     insured: false,
@@ -55,4 +57,29 @@ export const site = {
 
 export function money(amount: number) {
   return `$${amount}`;
+}
+
+/** Facts that must be confirmed before a production build. Empty optional sections are listed separately and omitted. */
+export function productionPlaceholders() {
+  const blockers: string[] = [];
+  if (!site.phone.confirmed || !site.phone.dial) {
+    blockers.push("phone: set display, set dial to E.164, and set confirmed: true");
+  }
+  if (!site.prices.confirmed) {
+    blockers.push("prices.confirmed is false (basic, complete, photo, drone, video)");
+  }
+  if (!site.areas.confirmed) {
+    blockers.push("areas.confirmed is false (service-area cities)");
+  }
+  if (!site.claims.reviewed) {
+    blockers.push("claims.reviewed is false (24-hour turnaround, FAA Part 107, insured)");
+  }
+
+  const omitted: string[] = [];
+  if (site.testimonials.length === 0) omitted.push("testimonials (section hidden)");
+  if (!site.about.headshot) omitted.push("about.headshot (block hidden)");
+  if (!site.about.bio) omitted.push("about.bio (block hidden)");
+  if (site.socials.length === 0) omitted.push("socials (line hidden)");
+  if (!site.prices.confirmed) omitted.push("intro $120 note (hidden until prices are confirmed)");
+  return { blockers, omitted };
 }

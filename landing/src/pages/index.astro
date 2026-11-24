@@ -2,6 +2,7 @@
 import { Picture } from "astro:assets";
 import Base from "../layouts/Base.astro";
 import { money, site } from "../site.config";
+import { isProduction } from "../mode";
 import { shots } from "../data/gallery";
 import hero from "../assets/hero-2400.webp";
 import photo from "../assets/svc-photo.webp";
@@ -24,7 +25,7 @@ const services = [
       <ul class="ticks">
         <li><span class="dot"></span>Photo, drone, and video</li>
         <li><span class="dot"></span>Pay per listing</li>
-        <li><span class="dot"></span>{site.claims.turnaround24h ? "24-hour turnaround" : "Turnaround time to confirm"}</li>
+        {site.claims.turnaround24h || !isProduction ? <li><span class="dot"></span>{site.claims.turnaround24h ? "24-hour turnaround" : "Turnaround time to confirm"}</li> : null}
       </ul>
       <div class="ctas">
         <a class="btn btn-gold" href="/book/">Book a shoot</a>
@@ -32,8 +33,8 @@ const services = [
       </div>
       <div class="areas">
         <strong>Serving</strong>
-        {site.areas.cities.map((city) => <span>{city}</span>)}
-        {site.areas.confirmed ? null : <span class="badge">Cities to confirm</span>}
+        {(site.areas.confirmed || !isProduction) ? site.areas.cities.map((city) => <span>{city}</span>) : <span>Orlando</span>}
+        {site.areas.confirmed || isProduction ? null : <span class="badge">Cities to confirm</span>}
       </div>
     </div>
   </section>
@@ -56,7 +57,7 @@ const services = [
               <p>{item.copy}</p>
               <ul>{item.points.map((point) => <li>{point}</li>)}</ul>
               <div class="ft">
-                <span class="price">{money(item.price)} <span class="badge">Placeholder</span></span>
+                <span class="price">{money(item.price)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</span>
                 <a href={item.href}>Details</a>
               </div>
             </div>
@@ -107,12 +108,12 @@ const services = [
     <div class="wrap">
       <div class="sec-head">
         <h2 class="display">Packages</h2>
-        <p class="dark-copy">Prices below are the amounts on the current site. They are not confirmed for this redesign.</p>
+        {site.prices.confirmed || isProduction ? null : <p class="dark-copy">Prices below are the amounts on the current site. They are not confirmed for this redesign.</p>}
       </div>
       <div class="packages">
         <article class="package">
           <h3>Basic</h3>
-          <p class="price">{money(site.prices.basic)} <span class="badge">Placeholder</span></p>
+          <p class="price">{money(site.prices.basic)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</p>
           <p>Photos from the ground and the sky.</p>
           <ul><li>Listing photos</li><li>Drone photos</li></ul>
           <a class="btn btn-gold" href="/book/">Book basic</a>
@@ -120,16 +121,18 @@ const services = [
         <article class="package popular">
           <p class="badge">Most popular</p>
           <h3>Complete</h3>
-          <p class="price">{money(site.prices.complete)} <span class="badge">Placeholder</span></p>
+          <p class="price">{money(site.prices.complete)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</p>
           <p>Photo, drone, and a walkthrough video.</p>
           <ul><li>Listing photos</li><li>Drone photos</li><li>Walkthrough video</li></ul>
           <a class="btn btn-gold" href="/book/">Book complete</a>
         </article>
       </div>
-      <div class="band">
-        <span>An intro amount of {money(site.prices.introNoted)} was noted and is not a published package yet.</span>
-        <a href="/pricing/">Full pricing</a>
-      </div>
+      {isProduction ? null : (
+        <div class="band">
+          <span>An intro amount of {money(site.prices.introNoted)} was noted and is not a published package yet.</span>
+          <a href="/pricing/">Full pricing</a>
+        </div>
+      )}
     </div>
   </section>
 
@@ -137,42 +140,46 @@ const services = [
     <div class="wrap">
       <div class="sec-head">
         <h2 class="display">Service <span class="gold">area</span></h2>
-        <p>Orlando is the home market. The surrounding list is a draft until it is confirmed.</p>
+        <p>{site.areas.confirmed || isProduction ? "Where the shoots are." : "Orlando is the home market. The surrounding list is a draft until it is confirmed."}</p>
       </div>
       <div class="area-list">
         {site.areas.cities.map((city) => <span>{city}</span>)}
       </div>
-      {site.areas.confirmed ? null : <p class="placeholder">Placeholder: confirm which cities to publish. No map is shown until an address or service area is confirmed.</p>}
+      {site.areas.confirmed || isProduction ? null : <p class="placeholder">Placeholder: confirm which cities to publish. No map is shown until an address or service area is confirmed.</p>}
     </div>
   </section>
 
-  <section class="sec">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 class="display">Clients</h2>
-      </div>
-      {site.testimonials.length === 0 ? (
-        <p class="placeholder">No testimonials yet. Add approved quotes, with names and brokerages, in the site config. None are invented here.</p>
-      ) : (
-        <div class="cards">
-          {site.testimonials.map((item) => (
-            <blockquote class="panel"><p>{item.quote}</p><footer>{item.name}, {item.brokerage}</footer></blockquote>
-          ))}
+  {site.testimonials.length === 0 && isProduction ? null : (
+    <section class="sec">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2 class="display">Clients</h2>
         </div>
-      )}
-    </div>
-  </section>
+        {site.testimonials.length === 0 ? (
+          <p class="placeholder">No testimonials yet. Add approved quotes, with names and brokerages, in the site config. None are invented here.</p>
+        ) : (
+          <div class="cards">
+            {site.testimonials.map((item) => (
+              <blockquote class="panel"><p>{item.quote}</p><footer>{item.name}, {item.brokerage}</footer></blockquote>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )}
 
   <section class="sec sec-light">
     <div class="wrap portal">
       <div>
         <h2 class="display">Amalfi <span class="gold">Media</span></h2>
-        {site.about.bio ? <p>{site.about.bio}</p> : <p class="placeholder">Headshot and bio are not published yet.</p>}
-        <p>
-          {site.claims.faaPart107 ? "FAA Part 107" : "FAA Part 107: not confirmed"}
-          {" · "}
-          {site.claims.insured ? "Insured" : "Insurance: not confirmed"}
-        </p>
+        {site.about.bio ? <p>{site.about.bio}</p> : isProduction ? null : <p class="placeholder">Headshot and bio are not published yet.</p>}
+        {site.claims.faaPart107 || site.claims.insured || !isProduction ? (
+          <p>
+            {site.claims.faaPart107 ? "FAA Part 107" : isProduction ? null : "FAA Part 107: not confirmed"}
+            {site.claims.faaPart107 && site.claims.insured ? " · " : null}
+            {site.claims.insured ? "Insured" : isProduction ? null : " · Insurance: not confirmed"}
+          </p>
+        ) : null}
       </div>
       <a class="btn btn-gold" href="/about/">About</a>
     </div>
@@ -182,7 +189,9 @@ const services = [
     <div class="wrap">
       <div class="sec-head"><h2 class="display">Questions</h2></div>
       <div class="faq">
-        <details><summary>How fast are files delivered?</summary><p>A 24-hour turnaround is written on the current site and is not confirmed for this page.</p></details>
+        {site.claims.turnaround24h || !isProduction ? (
+          <details><summary>How fast are files delivered?</summary><p>{site.claims.turnaround24h ? "Edited files are delivered within 24 hours." : "A 24-hour turnaround is written on the current site and is not confirmed for this page."}</p></details>
+        ) : null}
         <details><summary>How should the home be prepared?</summary><p>Lights on, personal items put away, and access notes shared before the shoot.</p></details>
         <details><summary>What if the weather changes?</summary><p>We will contact you and move the shoot.</p></details>
         <details><summary>How do you pay?</summary><p>The listing is billed per package. Payment details are confirmed when the shoot is booked.</p></details>

@@ -1,35 +1,36 @@
 ---
 import Base from "../layouts/Base.astro";
 import { money, site } from "../site.config";
+import { isProduction } from "../mode";
 ---
 <Base title="Real Estate Media Pricing | Amalfi Media" description="Placeholder listing packages and individual prices for Amalfi Media. Amounts are not confirmed." path="/pricing/">
   <section class="page-hero wrap">
     <p class="eyebrow">Pricing</p>
     <h1 class="display">Packages, <span class="gold">clearly marked</span></h1>
-    <p class="lead">These amounts are copied from the current website so nothing new is invented. They are placeholders until confirmed.</p>
+    {site.prices.confirmed || isProduction ? <p class="lead">Listing packages and single services.</p> : <p class="lead">These amounts are copied from the current website so nothing new is invented. They are placeholders until confirmed.</p>}
   </section>
   <section class="sec sec-light">
     <div class="wrap">
       <div class="packages">
         <article class="package">
           <h2>Basic</h2>
-          <p class="price">{money(site.prices.basic)} <span class="badge">Placeholder</span></p>
+          <p class="price">{money(site.prices.basic)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</p>
           <ul><li>Listing photos</li><li>Drone photos</li></ul>
           <a class="btn btn-gold" href="/book/">Book basic</a>
         </article>
         <article class="package popular">
           <h2>Complete</h2>
-          <p class="price">{money(site.prices.complete)} <span class="badge">Placeholder</span></p>
+          <p class="price">{money(site.prices.complete)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</p>
           <ul><li>Listing photos</li><li>Drone photos</li><li>Walkthrough video</li></ul>
           <a class="btn btn-gold" href="/book/">Book complete</a>
         </article>
       </div>
       <div class="alacarte">
-        <article><h3>Photos</h3><p class="price">{money(site.prices.photo)}</p><span class="badge">Placeholder</span></article>
-        <article><h3>Drone</h3><p class="price">{money(site.prices.drone)}</p><span class="badge">Placeholder</span></article>
-        <article><h3>Video</h3><p class="price">{money(site.prices.video)}</p><span class="badge">Placeholder</span></article>
+        <article><h3>Photos</h3><p class="price">{money(site.prices.photo)}</p>{site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</article>
+        <article><h3>Drone</h3><p class="price">{money(site.prices.drone)}</p>{site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</article>
+        <article><h3>Video</h3><p class="price">{money(site.prices.video)}</p>{site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</article>
       </div>
-      <p class="placeholder">Intro figure of {money(site.prices.introNoted)} is noted and unresolved. It is not offered as a package on this page.</p>
+      {isProduction ? null : <p class="placeholder">Intro figure of {money(site.prices.introNoted)} is noted and unresolved. It is not offered as a package on this page.</p>}
     </div>
   </section>
 </Base>

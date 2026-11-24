@@ -1,5 +1,6 @@
 ---
 import { site } from "../site.config";
+import { isProduction } from "../mode";
 ---
 <header class="site">
   <div class="wrap hd">
@@ -20,7 +21,11 @@ import { site } from "../site.config";
     </nav>
     <div class="hd-right">
       <a class="desk" href={site.portalUrl}>Client login</a>
-      <span class="desk phone-note" title={site.phone.confirmed ? undefined : "Phone number is a placeholder"}>{site.phone.display}</span>
+      {site.phone.confirmed && site.phone.dial ? (
+        <a class="desk" href={`tel:${site.phone.dial}`}>{site.phone.display}</a>
+      ) : isProduction ? null : (
+        <span class="desk phone-note" title="Phone number is a placeholder">{site.phone.display}</span>
+      )}
       <a class="btn btn-gold desk" href="/book/">Book a shoot</a>
       <button class="burger" type="button" aria-expanded="false" aria-controls="mobile-nav" id="menu-button">Menu</button>
     </div>

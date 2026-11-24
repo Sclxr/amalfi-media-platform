@@ -1,5 +1,6 @@
 ---
 import { site } from "../site.config";
+import { isProduction } from "../mode";
 const year = new Date().getFullYear();
 ---
 <footer class="site">
@@ -8,7 +9,11 @@ const year = new Date().getFullYear();
       <p class="logo">AMALFI<span>·</span>MEDIA</p>
       <p>{site.description}</p>
       <p><a href={`mailto:${site.email}`}>{site.email}</a></p>
-      <p>{site.phone.confirmed ? site.phone.display : `${site.phone.display} (placeholder)`}</p>
+      {site.phone.confirmed && site.phone.dial ? (
+        <p><a href={`tel:${site.phone.dial}`}>{site.phone.display}</a></p>
+      ) : isProduction ? null : (
+        <p>{site.phone.display} (placeholder)</p>
+      )}
     </div>
     <div>
       <a href="/services/photography/">Photography</a>
@@ -22,7 +27,7 @@ const year = new Date().getFullYear();
       <a href="/about/">About</a>
       <a href="/faq/">FAQ</a>
       <a href={site.portalUrl}>Client portal</a>
-      {site.socials.length === 0 ? <p>Social links are not published yet.</p> : site.socials.map((item) => <a href={item.href}>{item.label}</a>)}
+      {site.socials.length === 0 ? (isProduction ? null : <p>Social links are not published yet.</p>) : site.socials.map((item) => <a href={item.href}>{item.label}</a>)}
     </div>
   </div>
   <div class="wrap"><p>© {year} Amalfi Media.</p></div>

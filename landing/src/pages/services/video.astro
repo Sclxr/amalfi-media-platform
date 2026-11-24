@@ -2,6 +2,7 @@
 import { Picture } from "astro:assets";
 import Base from "../../layouts/Base.astro";
 import { money, site } from "../../site.config";
+import { isProduction } from "../../mode";
 import video from "../../assets/svc-video.webp";
 ---
 <Base title="Orlando Real Estate Walkthrough Video | Amalfi Media" description="Walkthrough video for Orlando listings, including a vertical cut for social." path="/services/video/">
@@ -15,7 +16,7 @@ import video from "../../assets/svc-video.webp";
       <article class="card">
         <div class="media"><Picture src={video} formats={["avif", "webp"]} fallbackFormat="webp" widths={[640, 1000]} alt="A camera on a stabilizer, ready for a walkthrough" /></div>
         <div class="bd">
-          <h3>{money(site.prices.video)} <span class="badge">Placeholder</span></h3>
+          <h3>{money(site.prices.video)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</h3>
           <ul>
             <li>Edited walkthrough</li>
             <li>A vertical cut for social posts</li>

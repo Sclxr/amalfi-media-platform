@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:prod": "PUBLIC_SITE_MODE=production node --experimental-strip-types scripts/check-placeholders.ts && PUBLIC_SITE_MODE=production astro build",
     "preview": "astro preview",
     "check:links": "node scripts/check-links.mjs"
   },

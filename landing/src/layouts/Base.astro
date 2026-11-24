@@ -73,5 +73,16 @@ const jsonLd = {
       )}
       <a class="btn btn-gold" href="/book/">Book a shoot</a>
     </div>
+    <script>
+      const bar = document.querySelector(".sticky");
+      const hero = document.querySelector(".hero");
+      const updateBar = () => {
+        if (!bar) return;
+        const pastHero = !hero || window.scrollY > hero.getBoundingClientRect().bottom + window.scrollY - 24;
+        bar.classList.toggle("is-visible", pastHero);
+      };
+      updateBar();
+      window.addEventListener("scroll", updateBar, { passive: true });
+    </script>
   </body>
 </html>

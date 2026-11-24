@@ -10,11 +10,22 @@ pnpm install
 pnpm build
 ```
 
+`pnpm build` is the preview build. It keeps the placeholder notes so the draft can be reviewed.
+
+`pnpm build:prod` is the build that may be uploaded. It stops, and prints the list, while any of these are still unconfirmed in `src/site.config.ts`:
+
+- `phone.confirmed` and `phone.dial`
+- `prices.confirmed`
+- `areas.confirmed`
+- `claims.reviewed` (24-hour turnaround, FAA Part 107, and insured)
+
+A production build never prints “not confirmed”, “(placeholder)”, or “cities to confirm”. Testimonials, the headshot, the bio, and social links are left out of that HTML when they are empty, instead of showing a placeholder. Those empty sections are listed by the check and do not, by themselves, stop the build.
+
 The site is written to `landing/dist`. `pnpm preview` serves that folder locally.
 
 ## What is still a placeholder
 
-Open `src/site.config.ts`. Prices, the phone number, service-area cities, testimonials, the headshot and bio, social links, and the FAA / insured / 24-hour claims are marked unconfirmed. The pages render those as placeholders. Do not publish them as facts until the flags in that file are set.
+Open `src/site.config.ts`. Prices, the phone number, service-area cities, testimonials, the headshot and bio, social links, and the FAA / insured / 24-hour claims are marked unconfirmed. The preview pages render those as placeholders. Do not upload a preview build. Use `pnpm build:prod` only after the flags above are set.
 
 The client portal link defaults to `https://staging.amalfimedia.xyz/portal`.
 
