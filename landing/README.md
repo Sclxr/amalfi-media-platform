@@ -10,7 +10,9 @@ pnpm install
 pnpm build
 ```
 
-`pnpm build` is the preview build. It keeps the placeholder notes so the draft can be reviewed.
+`pnpm build` is the preview build. It keeps the placeholder notes so the draft can be reviewed, and every preview page includes `<meta name="robots" content="noindex, nofollow">`. A production build does not.
+
+The package manager is pinned to pnpm 9.15.0 in `package.json`. Corepack uses that pin. Do not let it download a newer pnpm: pnpm 12 ignores `pnpm.onlyBuiltDependencies` and refuses `@types/node` in this lockfile because of its minimum release age. `sharp` is a direct dependency so the image step can resolve it under pnpm. If the image step fails, `pnpm build` deletes `dist` and exits with an error instead of leaving HTML and server files behind.
 
 `pnpm build:prod` is the build that may be uploaded. It stops, and prints the list, while any of these are still unconfirmed in `src/site.config.ts`:
 
@@ -22,6 +24,14 @@ pnpm build
 A production build never prints “not confirmed”, “(placeholder)”, or “cities to confirm”. Testimonials, the headshot, the bio, and social links are left out of that HTML when they are empty, instead of showing a placeholder. Those empty sections are listed by the check and do not, by themselves, stop the build.
 
 The site is written to `landing/dist`. `pnpm preview` serves that folder locally.
+
+## Preview on test.amalfimedia.xyz
+
+Run this on the VPS from a checkout of `develop` at `/opt/amalfi`, after this change is merged. It is the preview build (draft notes and `noindex`). It does not touch the live site. The Docker build has to succeed before anything is copied, and the web root is emptied first.
+
+```bash
+cd /opt/amalfi && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v /opt/amalfi/landing:/app -w /app node:22-alpine sh -c 'corepack enable && rm -rf node_modules dist && pnpm install --frozen-lockfile && pnpm build' && sudo mkdir -p /var/www/test.amalfimedia.xyz && sudo find /var/www/test.amalfimedia.xyz -mindepth 1 -delete && sudo cp -a /opt/amalfi/landing/dist/. /var/www/test.amalfimedia.xyz/
+```
 
 ## What is still a placeholder
 
