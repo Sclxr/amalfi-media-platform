@@ -2,10 +2,11 @@
   "name": "amalfi-landing",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
-    "build:prod": "PUBLIC_SITE_MODE=production node --experimental-strip-types scripts/check-placeholders.ts && PUBLIC_SITE_MODE=production astro build",
+    "build": "node scripts/build-static.mjs",
+    "build:prod": "PUBLIC_SITE_MODE=production node --experimental-strip-types scripts/check-placeholders.ts && PUBLIC_SITE_MODE=production node scripts/build-static.mjs",
     "preview": "astro preview",
     "check:links": "node scripts/check-links.mjs"
   },
@@ -16,6 +17,7 @@
     "@astrojs/sitemap": "^3.6.0",
     "@fontsource/big-shoulders-display": "^5.2.8",
     "@fontsource/manrope": "^5.2.8",
-    "astro": "^5.15.9"
+    "astro": "^5.15.9",
+    "sharp": "0.34.5"
   }
 }
