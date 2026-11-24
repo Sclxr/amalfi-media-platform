@@ -44,7 +44,7 @@ Login is limited to 5 attempts per 15 minutes per account and IP in process memo
 
 ## Marketing email
 
-`marketingSendDecision()` returns blocked unless `APP_ENV` is `production` and `EMAIL_MARKETING_ENABLED` is true. `parseEnv()` also refuses to boot a non-production process when the flag is true. There is no campaign sender yet. The gate is what a later sender must call.
+`marketingSendDecision()` returns blocked unless `APP_ENV` is `production` and `EMAIL_MARKETING_ENABLED` is true. `parseEnv()` also refuses to boot a non-production process when the flag is true. There is no campaign sender yet. The gate is what a later sender must call. The lead bot API is draft-only: it can file and look up realtors and save a campaign draft, and it cannot send. See `docs/BOT_API.md`.
 
 ## Staging isolation
 

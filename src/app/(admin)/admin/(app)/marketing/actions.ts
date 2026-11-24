@@ -90,7 +90,7 @@ export async function suppressAction(_prev: MarketingState, formData: FormData):
 
 export async function issueKeyAction(_prev: MarketingState, formData: FormData): Promise<MarketingState> {
   const actor = await actorOrLogin();
-  const scopes = ["leads:write", "notes:write", "campaigns:draft"].filter((scope) => formData.get(scope) === "on");
+  const scopes = ["leads:read", "leads:write", "notes:write", "campaigns:draft"].filter((scope) => formData.get(scope) === "on");
   try {
     const issued = await issueApiKey(actor, { name: String(formData.get("name") ?? ""), scopes });
     return { token: issued.token };

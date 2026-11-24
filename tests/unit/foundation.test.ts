@@ -206,8 +206,11 @@ describe("staging access gate", () => {
       "/api/auth/sign-in/email",
       "/terms",
       "/privacy",
+      "/api/bot",
+      "/api/bot/leads",
+      "/api/stripe/webhook",
     ];
-    const closed = ["/admin", "/admin/login", "/admin/settings/api-keys", "/api/bot", "/api/bot/leads"];
+    const closed = ["/admin", "/admin/login", "/admin/settings/api-keys", "/api/authorize"];
     for (const pathname of open) {
       expect(stagingBasicAuthBypass(pathname), pathname).toBe(true);
       expect(
