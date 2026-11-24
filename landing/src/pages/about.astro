@@ -1,0 +1,28 @@
+---
+import Base from "../layouts/Base.astro";
+import { site } from "../site.config";
+---
+<Base title="About Amalfi Media" description="Amalfi Media photographs Orlando listings. Bio, headshot, and credentials are published only when confirmed." path="/about/">
+  <section class="page-hero wrap">
+    <p class="eyebrow">About</p>
+    <h1 class="display">Orlando listing <span class="gold">media</span></h1>
+  </section>
+  <section class="sec sec-light">
+    <div class="wrap cards">
+      <article class="panel">
+        <h2>Portrait</h2>
+        {site.about.headshot ? <img src={site.about.headshot} alt="" /> : <p class="placeholder">Headshot not provided.</p>}
+        {site.about.bio ? <p>{site.about.bio}</p> : <p class="placeholder">Bio not provided. Add it in the site config before publishing a personal story.</p>}
+      </article>
+      <article class="panel">
+        <h2>Credentials</h2>
+        <ul>
+          <li>{site.claims.faaPart107 ? "FAA Part 107 pilot" : "FAA Part 107: not confirmed"}</li>
+          <li>{site.claims.insured ? "Insured" : "Insurance: not confirmed"}</li>
+          <li>{site.claims.turnaround24h ? "24-hour delivery" : "24-hour turnaround: not confirmed"}</li>
+        </ul>
+        <p><a href={`mailto:${site.email}`}>{site.email}</a></p>
+      </article>
+    </div>
+  </section>
+</Base>

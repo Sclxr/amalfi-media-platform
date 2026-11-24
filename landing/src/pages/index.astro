@@ -1,0 +1,200 @@
+---
+import { Picture } from "astro:assets";
+import Base from "../layouts/Base.astro";
+import { money, site } from "../site.config";
+import { shots } from "../data/gallery";
+import hero from "../assets/hero-2400.webp";
+import photo from "../assets/svc-photo.webp";
+import drone from "../assets/svc-drone.webp";
+import video from "../assets/svc-video.webp";
+
+const services = [
+  { href: "/services/photography/", tag: "Photo", title: "Listing photography", copy: "Bright interiors and exteriors, edited for the listing.", image: photo, alt: "Bright kitchen with white cabinets and a large island", price: site.prices.photo, points: ["Interior and exterior photos", "Edited for the listing"] },
+  { href: "/services/drone/", tag: "Drone", title: "Drone aerials", copy: "The lot, the water, and the neighborhood from above.", image: drone, alt: "Aerial view of homes beside water and trees", price: site.prices.drone, points: ["Aerial stills", "Lot and neighborhood context"] },
+  { href: "/services/video/", tag: "Video", title: "Walkthrough video", copy: "A short tour of the home, cut for the listing and for social.", image: video, alt: "A camera on a stabilizer, ready for a walkthrough", price: site.prices.video, points: ["Walkthrough edit", "A vertical cut for social"] },
+];
+---
+<Base title="Orlando Real Estate Photography, Drone, and Video | Amalfi Media" description="Photography, drone aerials, and walkthrough video for Orlando real estate listings." path="/">
+  <section class="hero">
+    <Picture src={hero} formats={["avif", "webp"]} fallbackFormat="webp" widths={[800, 1200, 1800]} alt="A house at dusk with warm light in the windows and a landscaped front walk" loading="eager" fetchpriority="high" />
+    <div class="wrap hero-in">
+      <p class="eyebrow">Orlando real estate media</p>
+      <h1 class="display">Make every listing <span class="gold">look sold.</span></h1>
+      <p class="lead">Photography, drone, and walkthrough video for Central Florida agents. Book the shoot, then get the files in your client portal.</p>
+      <ul class="ticks">
+        <li><span class="dot"></span>Photo, drone, and video</li>
+        <li><span class="dot"></span>Pay per listing</li>
+        <li><span class="dot"></span>{site.claims.turnaround24h ? "24-hour turnaround" : "Turnaround time to confirm"}</li>
+      </ul>
+      <div class="ctas">
+        <a class="btn btn-gold" href="/book/">Book a shoot</a>
+        <a class="btn btn-ghost" href="/pricing/">See packages</a>
+      </div>
+      <div class="areas">
+        <strong>Serving</strong>
+        {site.areas.cities.map((city) => <span>{city}</span>)}
+        {site.areas.confirmed ? null : <span class="badge">Cities to confirm</span>}
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-light" id="services">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="display">Every angle.<br /><span class="gold">One shoot.</span></h2>
+        <p>What a listing needs for the MLS and for social, captured in one visit.</p>
+      </div>
+      <div class="cards">
+        {services.map((item) => (
+          <article class="card">
+            <div class="media">
+              <Picture src={item.image} formats={["avif", "webp"]} fallbackFormat="webp" widths={[480, 800]} alt={item.alt} loading="lazy" />
+              <span class="tag">{item.tag}</span>
+            </div>
+            <div class="bd">
+              <h3>{item.title}</h3>
+              <p>{item.copy}</p>
+              <ul>{item.points.map((point) => <li>{point}</li>)}</ul>
+              <div class="ft">
+                <span class="price">{money(item.price)} <span class="badge">Placeholder</span></span>
+                <a href={item.href}>Details</a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="display">Booked online.<br /><span class="gold">Delivered to you.</span></h2>
+        <p class="dark-copy">Share the address and the package. We confirm the time, shoot the home, and deliver the files.</p>
+      </div>
+      <div class="steps">
+        <article class="step"><div class="n">01</div><h3>Book online</h3><p>Add the property address and choose a package.</p></article>
+        <article class="step"><div class="n">02</div><h3>Pick a date</h3><p>Choose a day. We confirm by email.</p></article>
+        <article class="step"><div class="n">03</div><h3>Shoot day</h3><p>We photograph the home and leave the seller room to live.</p></article>
+        <article class="step hl"><div class="n">04</div><h3>Delivery</h3><p>Files land in the client portal. The exact turnaround is not published yet.</p></article>
+      </div>
+      <div class="portal">
+        <span>Already a client? Open the portal for galleries, invoices, and downloads.</span>
+        <a href={site.portalUrl}>Client portal</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-light">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="display">Recent <span class="gold">work</span></h2>
+        <p>A sample of listing photos and aerials. Vertical clips will be added when they are ready.</p>
+      </div>
+      <div class="gallery">
+        {shots.slice(0, 6).map((shot) => (
+          <figure class="shot">
+            <Picture src={shot.src} formats={["avif", "webp"]} fallbackFormat="webp" widths={[480, 800]} alt={shot.alt} loading="lazy" />
+            <figcaption>{shot.caption}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <p><a class="inline" href="/portfolio/">See the portfolio</a></p>
+    </div>
+  </section>
+
+  <section class="sec" id="packages">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="display">Packages</h2>
+        <p class="dark-copy">Prices below are the amounts on the current site. They are not confirmed for this redesign.</p>
+      </div>
+      <div class="packages">
+        <article class="package">
+          <h3>Basic</h3>
+          <p class="price">{money(site.prices.basic)} <span class="badge">Placeholder</span></p>
+          <p>Photos from the ground and the sky.</p>
+          <ul><li>Listing photos</li><li>Drone photos</li></ul>
+          <a class="btn btn-gold" href="/book/">Book basic</a>
+        </article>
+        <article class="package popular">
+          <p class="badge">Most popular</p>
+          <h3>Complete</h3>
+          <p class="price">{money(site.prices.complete)} <span class="badge">Placeholder</span></p>
+          <p>Photo, drone, and a walkthrough video.</p>
+          <ul><li>Listing photos</li><li>Drone photos</li><li>Walkthrough video</li></ul>
+          <a class="btn btn-gold" href="/book/">Book complete</a>
+        </article>
+      </div>
+      <div class="band">
+        <span>An intro amount of {money(site.prices.introNoted)} was noted and is not a published package yet.</span>
+        <a href="/pricing/">Full pricing</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sec-light">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="display">Service <span class="gold">area</span></h2>
+        <p>Orlando is the home market. The surrounding list is a draft until it is confirmed.</p>
+      </div>
+      <div class="area-list">
+        {site.areas.cities.map((city) => <span>{city}</span>)}
+      </div>
+      {site.areas.confirmed ? null : <p class="placeholder">Placeholder: confirm which cities to publish. No map is shown until an address or service area is confirmed.</p>}
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="display">Clients</h2>
+      </div>
+      {site.testimonials.length === 0 ? (
+        <p class="placeholder">No testimonials yet. Add approved quotes, with names and brokerages, in the site config. None are invented here.</p>
+      ) : (
+        <div class="cards">
+          {site.testimonials.map((item) => (
+            <blockquote class="panel"><p>{item.quote}</p><footer>{item.name}, {item.brokerage}</footer></blockquote>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="sec sec-light">
+    <div class="wrap portal">
+      <div>
+        <h2 class="display">Amalfi <span class="gold">Media</span></h2>
+        {site.about.bio ? <p>{site.about.bio}</p> : <p class="placeholder">Headshot and bio are not published yet.</p>}
+        <p>
+          {site.claims.faaPart107 ? "FAA Part 107" : "FAA Part 107: not confirmed"}
+          {" · "}
+          {site.claims.insured ? "Insured" : "Insurance: not confirmed"}
+        </p>
+      </div>
+      <a class="btn btn-gold" href="/about/">About</a>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="sec-head"><h2 class="display">Questions</h2></div>
+      <div class="faq">
+        <details><summary>How fast are files delivered?</summary><p>A 24-hour turnaround is written on the current site and is not confirmed for this page.</p></details>
+        <details><summary>How should the home be prepared?</summary><p>Lights on, personal items put away, and access notes shared before the shoot.</p></details>
+        <details><summary>What if the weather changes?</summary><p>We will contact you and move the shoot.</p></details>
+        <details><summary>How do you pay?</summary><p>The listing is billed per package. Payment details are confirmed when the shoot is booked.</p></details>
+      </div>
+      <p><a class="inline" href="/faq/">All questions</a></p>
+    </div>
+  </section>
+
+  <section class="sec sec-light">
+    <div class="wrap sec-head">
+      <h2 class="display">Ready for the <span class="gold">next listing?</span></h2>
+      <a class="btn btn-gold" href="/book/">Book a shoot</a>
+    </div>
+  </section>
+</Base>
