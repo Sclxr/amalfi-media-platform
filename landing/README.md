@@ -28,7 +28,7 @@ cd /opt/amalfi && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v /opt/a
 
 ## What is still unpublished
 
-Open `src/site.config.ts`. The phone, package prices, greater Orlando service area, and client reviews are published. There is no intro rate, no city list, and no FAA or insurance claim on the site. The headshot, the bio, and social links are still empty, so those blocks are omitted. Do not upload a preview build. Use `pnpm build:prod` for a build that can be indexed.
+Open `src/site.config.ts`. The phone, package prices, greater Orlando service area, and client reviews are published. There is no intro rate, no city list, and no FAA or insurance claim on the site. Eathen's bio is published. The headshot and social links are still empty, so those blocks are omitted. Do not upload a preview build. Use `pnpm build:prod` for a build that can be indexed.
 
 The client portal link defaults to `https://staging.amalfimedia.xyz/portal`.
 

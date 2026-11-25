@@ -129,7 +129,7 @@ export const site = {
   },
   about: {
     headshot: null as string | null,
-    bio: null as string | null,
+    bio: "I'm Eathen, the photographer behind Amalfi Media. I shoot real estate photos, drone aerials, and walkthrough video for agents across the greater Orlando area. My goal is simple: make every listing look its best and make the process easy. You book online, I shoot the home, and your edited files land in your client portal, ready for the MLS and social.",
   },
   socials: [] as { label: string; href: string }[],
 } as const;
