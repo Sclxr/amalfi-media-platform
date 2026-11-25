@@ -1,13 +1,11 @@
 ---
 import { money, site } from "../site.config";
-import { isProduction } from "../mode";
-const note = site.prices.confirmed || isProduction ? "" : ", placeholder";
 const packages = [
-  { value: "Basic listing", label: `Basic listing (${money(site.prices.basic)}${note})` },
-  { value: "Complete listing", label: `Complete listing (${money(site.prices.complete)}${note})` },
-  { value: "Photography", label: `Photography (${money(site.prices.photo)}${note})` },
-  { value: "Drone", label: `Drone (${money(site.prices.drone)}${note})` },
-  { value: "Video", label: `Video (${money(site.prices.video)}${note})` },
+  { value: "Basic listing", label: `Basic listing (${money(site.prices.basic)})` },
+  { value: "Complete listing", label: `Complete listing (${money(site.prices.complete)})` },
+  { value: "Photography", label: `Photography (${money(site.prices.photo)})` },
+  { value: "Drone", label: `Drone (${money(site.prices.drone)})` },
+  { value: "Video", label: `Video (${money(site.prices.video)})` },
   { value: "Not sure", label: "Not sure yet" },
 ];
 ---

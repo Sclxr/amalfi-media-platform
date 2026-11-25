@@ -1,21 +1,19 @@
 ---
 import Base from "../layouts/Base.astro";
 import { site } from "../site.config";
-import { isProduction } from "../mode";
 ---
-<Base title="Real Estate Media FAQ | Amalfi Media" description="Questions about booking, delivery, weather, payment, and photo use for Amalfi Media." path="/faq/">
+<Base title="Real Estate Media FAQ | Amalfi Media" description="Questions about booking, weather, payment, and photo use for Amalfi Media." path="/faq/">
   <section class="page-hero wrap">
     <p class="eyebrow">FAQ</p>
     <h1 class="display">Before the <span class="gold">shoot</span></h1>
   </section>
   <section class="sec sec-light">
     <div class="wrap faq">
-      {site.claims.turnaround24h || !isProduction ? <details open><summary>How fast are the files delivered?</summary><p>{site.claims.turnaround24h ? "Files are delivered within 24 hours." : "The current site mentions 24 hours. That claim is not confirmed, so it is not promised here."}</p></details> : null}
+      <details open><summary>Where do you shoot?</summary><p>{site.areas.summary}.</p></details>
       <details><summary>How should the home be prepared?</summary><p>Turn lights on, clear counters, and send access notes before the appointment.</p></details>
       <details><summary>What if the weather changes?</summary><p>We will contact you and move the shoot to another day.</p></details>
-      <details><summary>How does payment work?</summary><p>Each listing is priced as a package or as a single service. The way you pay is confirmed when the shoot is booked.</p></details>
-      <details><summary>Who can use the photos?</summary><p>The photos and video are for marketing that listing. A longer license is not published on this page.</p></details>
-      <details><summary>Is there a travel fee?</summary><p>A travel fee is not published. Ask when the property is outside the usual Orlando area.</p></details>
+      <details><summary>How does payment work?</summary><p>Each listing is priced as a package or as a single service.</p></details>
+      <details><summary>Who can use the photos?</summary><p>The photos and video are for marketing that listing.</p></details>
     </div>
   </section>
 </Base>

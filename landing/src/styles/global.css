@@ -205,14 +205,13 @@ header.site {
 .package { background: #fff; border: 1px solid #e6e1d6; color: var(--paper-ink); }
 .package.popular { border: 2px solid var(--gold); }
 .alacarte { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
-.alacarte article, .area-list, .faq details, .placeholder {
+.alacarte article, .area-list, .faq details {
   background: #fff;
   color: var(--paper-ink);
   border: 1px solid #e6e1d6;
   border-radius: 16px;
   padding: 16px;
 }
-.placeholder { background: #f3e7c8; border-color: #e0cf9f; }
 .area-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .area-list span, .chip { border: 1px solid #ddd4c4; border-radius: 999px; padding: 8px 12px; }
 .faq { display: grid; gap: 10px; }

@@ -2,21 +2,20 @@
 import { Picture } from "astro:assets";
 import Base from "../../layouts/Base.astro";
 import { money, site } from "../../site.config";
-import { isProduction } from "../../mode";
 import photo from "../../assets/svc-photo.webp";
 ---
 <Base title="Orlando Real Estate Photography | Amalfi Media" description="Interior and exterior listing photography for Orlando homes." path="/services/photography/">
   <section class="page-hero wrap">
     <p class="eyebrow">Photography</p>
     <h1 class="display">Listing <span class="gold">photography</span></h1>
-    <p class="lead">Interior and exterior photos edited for the listing. The current site lists 20 to 35 edited images.</p>
+    <p class="lead">Interior and exterior photos edited for the listing.</p>
   </section>
   <section class="sec sec-light">
     <div class="wrap cards">
       <article class="card">
         <div class="media"><Picture src={photo} formats={["avif", "webp"]} fallbackFormat="webp" widths={[640, 1000]} alt="Bright kitchen with white cabinets and a large island" /></div>
         <div class="bd">
-          <h3>{money(site.prices.photo)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</h3>
+          <h3>{money(site.prices.photo)}</h3>
           <ul>
             <li>Interior and exterior photos</li>
             <li>Edited stills for the listing</li>

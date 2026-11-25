@@ -24,8 +24,9 @@ const jsonLd = {
   name: site.name,
   url: site.url,
   email: site.email,
+  telephone: site.phone.dial,
   image: og,
-  areaServed: { "@type": "City", name: "Orlando" },
+  areaServed: { "@type": "AdministrativeArea", name: "Greater Orlando" },
 };
 ---
 <!doctype html>

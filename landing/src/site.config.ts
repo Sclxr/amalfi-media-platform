@@ -17,35 +17,22 @@ export const site = {
     captcha: true,
     next: "https://amalfimedia.xyz/book/thanks/",
   },
-  /** Publish a real number by setting dial to E.164, for example "+14075550100". */
   phone: {
-    display: "(407) XXX-XXXX",
-    dial: null as string | null,
-    confirmed: false,
+    display: "(321) 246-6018",
+    dial: "+13212466018",
+    confirmed: true,
   },
-  /**
-   * Amounts copied from the current live site for reference. They are not confirmed.
-   * introNoted is an unresolved $120 figure and is not a published package.
-   */
   prices: {
-    confirmed: false,
+    confirmed: true,
     basic: 149,
     complete: 225,
     photo: 99,
     drone: 75,
     video: 125,
-    introNoted: 120,
-  },
-  claims: {
-    /** Set true only after deciding each flag below. False flags are omitted, not printed as "not confirmed". */
-    reviewed: false,
-    turnaround24h: false,
-    faaPart107: false,
-    insured: false,
   },
   areas: {
-    confirmed: false,
-    cities: ["Orlando", "Winter Park", "Windermere", "Lake Nona", "Dr. Phillips", "Kissimmee", "Oviedo"],
+    confirmed: true,
+    summary: "Serving the greater Orlando area",
   },
   /**
    * Reviews supplied by Eathen from his previous business. confirmed publishes
@@ -160,11 +147,8 @@ export function productionPlaceholders() {
   if (!site.prices.confirmed) {
     blockers.push("prices.confirmed is false (basic, complete, photo, drone, video)");
   }
-  if (!site.areas.confirmed) {
-    blockers.push("areas.confirmed is false (service-area cities)");
-  }
-  if (!site.claims.reviewed) {
-    blockers.push("claims.reviewed is false (24-hour turnaround, FAA Part 107, insured)");
+  if (!site.areas.confirmed || !site.areas.summary) {
+    blockers.push("areas.confirmed is false (service area)");
   }
 
   const omitted: string[] = [];
@@ -174,6 +158,5 @@ export function productionPlaceholders() {
   if (!site.about.headshot) omitted.push("about.headshot (block hidden)");
   if (!site.about.bio) omitted.push("about.bio (block hidden)");
   if (site.socials.length === 0) omitted.push("socials (line hidden)");
-  if (!site.prices.confirmed) omitted.push("intro $120 note (hidden until prices are confirmed)");
   return { blockers, omitted };
 }

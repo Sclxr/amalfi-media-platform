@@ -2,7 +2,6 @@
 import { Picture } from "astro:assets";
 import Base from "../layouts/Base.astro";
 import { money, site } from "../site.config";
-import { isProduction } from "../mode";
 import { shots } from "../data/gallery";
 import hero from "../assets/hero-2400.webp";
 import photo from "../assets/svc-photo.webp";
@@ -25,16 +24,13 @@ const services = [
       <ul class="ticks">
         <li><span class="dot"></span>Photo, drone, and video</li>
         <li><span class="dot"></span>Pay per listing</li>
-        {site.claims.turnaround24h || !isProduction ? <li><span class="dot"></span>{site.claims.turnaround24h ? "24-hour turnaround" : "Turnaround time to confirm"}</li> : null}
       </ul>
       <div class="ctas">
         <a class="btn btn-gold" href="/book/">Book a shoot</a>
         <a class="btn btn-ghost" href="/pricing/">See packages</a>
       </div>
       <div class="areas">
-        <strong>Serving</strong>
-        {(site.areas.confirmed || !isProduction) ? site.areas.cities.map((city) => <span>{city}</span>) : <span>Orlando</span>}
-        {site.areas.confirmed || isProduction ? null : <span class="badge">Cities to confirm</span>}
+        <span>{site.areas.summary}</span>
       </div>
     </div>
   </section>
@@ -57,7 +53,7 @@ const services = [
               <p>{item.copy}</p>
               <ul>{item.points.map((point) => <li>{point}</li>)}</ul>
               <div class="ft">
-                <span class="price">{money(item.price)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</span>
+                <span class="price">{money(item.price)}</span>
                 <a href={item.href}>Details</a>
               </div>
             </div>
@@ -77,7 +73,7 @@ const services = [
         <article class="step"><div class="n">01</div><h3>Book online</h3><p>Add the property address and choose a package.</p></article>
         <article class="step"><div class="n">02</div><h3>Pick a date</h3><p>Choose a day. We confirm by email.</p></article>
         <article class="step"><div class="n">03</div><h3>Shoot day</h3><p>We photograph the home and leave the seller room to live.</p></article>
-        <article class="step hl"><div class="n">04</div><h3>Delivery</h3><p>Files land in the client portal. The exact turnaround is not published yet.</p></article>
+        <article class="step hl"><div class="n">04</div><h3>Delivery</h3><p>Files land in the client portal.</p></article>
       </div>
       <div class="portal">
         <span>Already a client? Open the portal for galleries, invoices, and downloads.</span>
@@ -90,7 +86,7 @@ const services = [
     <div class="wrap">
       <div class="sec-head">
         <h2 class="display">Recent <span class="gold">work</span></h2>
-        <p>A sample of listing photos and aerials. Vertical clips will be added when they are ready.</p>
+        <p>A sample of listing photos and aerials.</p>
       </div>
       <div class="gallery">
         {shots.slice(0, 6).map((shot) => (
@@ -108,12 +104,11 @@ const services = [
     <div class="wrap">
       <div class="sec-head">
         <h2 class="display">Packages</h2>
-        {site.prices.confirmed || isProduction ? null : <p class="dark-copy">Prices below are the amounts on the current site. They are not confirmed for this redesign.</p>}
       </div>
       <div class="packages">
         <article class="package">
           <h3>Basic</h3>
-          <p class="price">{money(site.prices.basic)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</p>
+          <p class="price">{money(site.prices.basic)}</p>
           <p>Photos from the ground and the sky.</p>
           <ul><li>Listing photos</li><li>Drone photos</li></ul>
           <a class="btn btn-gold" href="/book/">Book basic</a>
@@ -121,18 +116,12 @@ const services = [
         <article class="package popular">
           <p class="badge">Most popular</p>
           <h3>Complete</h3>
-          <p class="price">{money(site.prices.complete)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</p>
+          <p class="price">{money(site.prices.complete)}</p>
           <p>Photo, drone, and a walkthrough video.</p>
           <ul><li>Listing photos</li><li>Drone photos</li><li>Walkthrough video</li></ul>
           <a class="btn btn-gold" href="/book/">Book complete</a>
         </article>
       </div>
-      {isProduction ? null : (
-        <div class="band">
-          <span>An intro amount of {money(site.prices.introNoted)} was noted and is not a published package yet.</span>
-          <a href="/pricing/">Full pricing</a>
-        </div>
-      )}
     </div>
   </section>
 
@@ -140,12 +129,7 @@ const services = [
     <div class="wrap">
       <div class="sec-head">
         <h2 class="display">Service <span class="gold">area</span></h2>
-        <p>{site.areas.confirmed || isProduction ? "Where the shoots are." : "Orlando is the home market. The surrounding list is a draft until it is confirmed."}</p>
-      </div>
-      <div class="area-list">
-        {site.areas.cities.map((city) => <span>{city}</span>)}
-      </div>
-      {site.areas.confirmed || isProduction ? null : <p class="placeholder">Placeholder: confirm which cities to publish. No map is shown until an address or service area is confirmed.</p>}
+        <p>{site.areas.summary}.</p>
     </div>
   </section>
 
@@ -179,29 +163,13 @@ const services = [
         </div>
       </div>
     </section>
-  ) : isProduction ? null : (
-    <section class="sec">
-      <div class="wrap">
-        <div class="sec-head">
-          <h2 class="display">Clients</h2>
-        </div>
-        <p class="placeholder">No testimonials yet. Add approved quotes, with names and roles, in the site config. None are invented here.</p>
-      </div>
-    </section>
-  )}
+  ) : null}
 
   <section class="sec sec-light">
     <div class="wrap portal">
       <div>
         <h2 class="display">Amalfi <span class="gold">Media</span></h2>
-        {site.about.bio ? <p>{site.about.bio}</p> : isProduction ? null : <p class="placeholder">Headshot and bio are not published yet.</p>}
-        {site.claims.faaPart107 || site.claims.insured || !isProduction ? (
-          <p>
-            {site.claims.faaPart107 ? "FAA Part 107" : isProduction ? null : "FAA Part 107: not confirmed"}
-            {site.claims.faaPart107 && site.claims.insured ? " · " : null}
-            {site.claims.insured ? "Insured" : isProduction ? null : " · Insurance: not confirmed"}
-          </p>
-        ) : null}
+        {site.about.bio ? <p>{site.about.bio}</p> : <p>{site.description}</p>}
       </div>
       <a class="btn btn-gold" href="/about/">About</a>
     </div>
@@ -211,12 +179,9 @@ const services = [
     <div class="wrap">
       <div class="sec-head"><h2 class="display">Questions</h2></div>
       <div class="faq">
-        {site.claims.turnaround24h || !isProduction ? (
-          <details><summary>How fast are files delivered?</summary><p>{site.claims.turnaround24h ? "Edited files are delivered within 24 hours." : "A 24-hour turnaround is written on the current site and is not confirmed for this page."}</p></details>
-        ) : null}
         <details><summary>How should the home be prepared?</summary><p>Lights on, personal items put away, and access notes shared before the shoot.</p></details>
         <details><summary>What if the weather changes?</summary><p>We will contact you and move the shoot.</p></details>
-        <details><summary>How do you pay?</summary><p>The listing is billed per package. Payment details are confirmed when the shoot is booked.</p></details>
+        <details><summary>How do you pay?</summary><p>The listing is billed per package.</p></details>
       </div>
       <p><a class="inline" href="/faq/">All questions</a></p>
     </div>
