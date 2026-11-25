@@ -2,27 +2,23 @@
 import Base from "../layouts/Base.astro";
 import { site } from "../site.config";
 ---
-<Base title="About Amalfi Media" description="Real estate photography, drone photos, and walkthrough video for the greater Orlando area." path="/about/">
+<Base title="About Amalfi Media" description="Eathen photographs real estate, drone aerials, and walkthrough video for agents across the greater Orlando area." path="/about/">
   <section class="page-hero wrap">
     <p class="eyebrow">About</p>
     <h1 class="display">Orlando listing <span class="gold">media</span></h1>
   </section>
   <section class="sec sec-light">
-    <div class="wrap cards">
-      {site.about.headshot || site.about.bio ? (
-        <article class="panel">
-          <h2>Portrait</h2>
-          {site.about.headshot ? <img src={site.about.headshot} alt="" /> : null}
-          {site.about.bio ? <p>{site.about.bio}</p> : null}
-        </article>
-      ) : null}
-      <article class="panel">
+    <div class="wrap about-layout">
+      <div class="about-copy">
+        {site.about.headshot ? <img class="about-photo" src={site.about.headshot} alt="" /> : null}
+        {site.about.bio ? <p class="about-bio">{site.about.bio}</p> : <p class="about-bio">{site.description}</p>}
+      </div>
+      <aside class="panel about-contact">
         <h2>Contact</h2>
-        <p>{site.description}</p>
         <p>{site.areas.summary}.</p>
         <p><a href={`mailto:${site.email}`}>{site.email}</a></p>
         <p><a href={`tel:${site.phone.dial}`}>{site.phone.display}</a></p>
-      </article>
+      </aside>
     </div>
   </section>
 </Base>

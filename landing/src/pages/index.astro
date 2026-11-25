@@ -3,11 +3,15 @@ import { Picture } from "astro:assets";
 import Base from "../layouts/Base.astro";
 import { money, site } from "../site.config";
 import { shots } from "../data/gallery";
+import ServiceAreaMap from "../components/ServiceAreaMap.astro";
 import hero from "../assets/hero-2400.webp";
 import photo from "../assets/svc-photo.webp";
 import drone from "../assets/svc-drone.webp";
 import video from "../assets/svc-video.webp";
 
+const aboutExcerpt = site.about.bio
+  ? site.about.bio.split(". ").slice(0, 2).join(". ") + "."
+  : site.description;
 const services = [
   { href: "/services/photography/", tag: "Photo", title: "Listing photography", copy: "Bright interiors and exteriors, edited for the listing.", image: photo, alt: "Bright kitchen with white cabinets and a large island", price: site.prices.photo, points: ["Interior and exterior photos", "Edited for the listing"] },
   { href: "/services/drone/", tag: "Drone", title: "Drone aerials", copy: "The lot, the water, and the neighborhood from above.", image: drone, alt: "Aerial view of homes beside water and trees", price: site.prices.drone, points: ["Aerial stills", "Lot and neighborhood context"] },
@@ -126,10 +130,12 @@ const services = [
   </section>
 
   <section class="sec sec-light">
-    <div class="wrap">
-      <div class="sec-head">
+    <div class="wrap area-layout">
+      <div>
         <h2 class="display">Service <span class="gold">area</span></h2>
         <p>{site.areas.summary}.</p>
+      </div>
+      <ServiceAreaMap />
     </div>
   </section>
 
@@ -165,11 +171,11 @@ const services = [
     </section>
   ) : null}
 
-  <section class="sec sec-light">
-    <div class="wrap portal">
+  <section class="sec sec-light" aria-labelledby="about-title">
+    <div class="wrap about-home">
       <div>
-        <h2 class="display">Amalfi <span class="gold">Media</span></h2>
-        {site.about.bio ? <p>{site.about.bio}</p> : <p>{site.description}</p>}
+        <h2 id="about-title" class="display">Amalfi <span class="gold">Media</span></h2>
+        <p>{aboutExcerpt}</p>
       </div>
       <a class="btn btn-gold" href="/about/">About</a>
     </div>
