@@ -74,7 +74,7 @@ test("an admin can copy an invite and a new account claims that gallery", async 
   const guestPage = await guest.newPage();
   await guestPage.goto(inviteUrl);
   await expect(guestPage.getByRole("heading", { name: "Gallery invite" })).toBeVisible();
-  await expect(guestPage.getByText(address)).toBeVisible();
+  await expect(guestPage.getByText(address, { exact: true })).toBeVisible();
   await guestPage.screenshot({ path: `${shots}/portal-invite-light.png`, fullPage: true });
   await setTheme(guestPage, "dark");
   await guestPage.screenshot({ path: `${shots}/portal-invite-dark.png`, fullPage: true });
