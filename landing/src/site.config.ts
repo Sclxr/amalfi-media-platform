@@ -9,6 +9,9 @@ export const site = {
   description:
     "Real estate photography, drone photos, and walkthrough video for Orlando listings.",
   analyticsId: "G-SM0WR8CEW8",
+  seo: {
+    googleSiteVerification: "RkGWnbZxC9w3-dIwWLB4A6HHcSN9P08bu9cPAR-fz1A",
+  },
   portalUrl: "https://staging.amalfimedia.xyz/portal",
   form: {
     action: "https://formsubmit.co/eathen@amalfimedia.xyz",

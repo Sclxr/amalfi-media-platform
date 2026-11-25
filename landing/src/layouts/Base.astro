@@ -40,6 +40,9 @@ const jsonLd = {
     {isProduction ? null : <meta name="robots" content="noindex, nofollow" />}
     <title>{title}</title>
     <meta name="description" content={description} />
+    {site.seo.googleSiteVerification ? (
+      <meta name="google-site-verification" content={site.seo.googleSiteVerification} />
+    ) : null}
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
@@ -53,15 +56,9 @@ const jsonLd = {
     <meta name="twitter:image" content={og} />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     {site.analyticsId ? (
-      <>
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${site.analyticsId}`}></script>
-        <script is:inline define:vars={{ id: site.analyticsId }}>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag("js", new Date());
-          gtag("config", id);
-        </script>
-      </>
+      <Fragment
+        set:html={`<script async src="https://www.googletagmanager.com/gtag/js?id=${site.analyticsId}"></script><script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${site.analyticsId}');</script>`}
+      />
     ) : null}
   </head>
   <body>
