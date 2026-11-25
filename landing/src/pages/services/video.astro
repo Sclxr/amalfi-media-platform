@@ -2,21 +2,20 @@
 import { Picture } from "astro:assets";
 import Base from "../../layouts/Base.astro";
 import { money, site } from "../../site.config";
-import { isProduction } from "../../mode";
 import video from "../../assets/svc-video.webp";
 ---
 <Base title="Orlando Real Estate Walkthrough Video | Amalfi Media" description="Walkthrough video for Orlando listings, including a vertical cut for social." path="/services/video/">
   <section class="page-hero wrap">
     <p class="eyebrow">Video</p>
     <h1 class="display">Walkthrough <span class="gold">video</span></h1>
-    <p class="lead">A short tour of the home. The current site describes a 1 to 2 minute walkthrough and a vertical cut.</p>
+    <p class="lead">A short tour of the home, cut for the listing and for social.</p>
   </section>
   <section class="sec sec-light">
     <div class="wrap cards">
       <article class="card">
         <div class="media"><Picture src={video} formats={["avif", "webp"]} fallbackFormat="webp" widths={[640, 1000]} alt="A camera on a stabilizer, ready for a walkthrough" /></div>
         <div class="bd">
-          <h3>{money(site.prices.video)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</h3>
+          <h3>{money(site.prices.video)}</h3>
           <ul>
             <li>Edited walkthrough</li>
             <li>A vertical cut for social posts</li>

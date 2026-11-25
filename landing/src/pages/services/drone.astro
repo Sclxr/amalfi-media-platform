@@ -2,22 +2,20 @@
 import { Picture } from "astro:assets";
 import Base from "../../layouts/Base.astro";
 import { money, site } from "../../site.config";
-import { isProduction } from "../../mode";
 import drone from "../../assets/svc-drone.webp";
 ---
 <Base title="Orlando Real Estate Drone Photos | Amalfi Media" description="Aerial photos of Orlando listings, lots, and neighborhoods." path="/services/drone/">
   <section class="page-hero wrap">
     <p class="eyebrow">Drone</p>
     <h1 class="display">Aerials for the <span class="gold">listing</span></h1>
-    <p class="lead">Photos from above for the lot and the neighborhood. The current site lists 10 to 15 edited aerials.</p>
-    {site.claims.faaPart107 ? <p class="badge">FAA Part 107</p> : isProduction ? null : <p class="badge">FAA Part 107 is not confirmed</p>}
+    <p class="lead">Photos from above for the lot and the neighborhood.</p>
   </section>
   <section class="sec sec-light">
     <div class="wrap cards">
       <article class="card">
         <div class="media"><Picture src={drone} formats={["avif", "webp"]} fallbackFormat="webp" widths={[640, 1000]} alt="Aerial view of homes beside water and trees" /></div>
         <div class="bd">
-          <h3>{money(site.prices.drone)} {site.prices.confirmed || isProduction ? null : <span class="badge">Placeholder</span>}</h3>
+          <h3>{money(site.prices.drone)}</h3>
           <ul>
             <li>Aerial property photos</li>
             <li>Neighborhood context when it helps the listing</li>

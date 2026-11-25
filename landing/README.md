@@ -10,32 +10,25 @@ pnpm install
 pnpm build
 ```
 
-`pnpm build` is the preview build. It keeps the placeholder notes so the draft can be reviewed, and every preview page includes `<meta name="robots" content="noindex, nofollow">`. A production build does not.
+`pnpm build` is the preview build. Every preview page includes `<meta name="robots" content="noindex, nofollow">`. A production build does not.
 
 The package manager is pinned to pnpm 9.15.0 in `package.json`. Corepack uses that pin. Do not let it download a newer pnpm: pnpm 12 ignores `pnpm.onlyBuiltDependencies` and refuses `@types/node` in this lockfile because of its minimum release age. `sharp` is a direct dependency so the image step can resolve it under pnpm. If the image step fails, `pnpm build` deletes `dist` and exits with an error instead of leaving HTML and server files behind.
 
-`pnpm build:prod` is the build that may be uploaded. It stops, and prints the list, while any of these are still unconfirmed in `src/site.config.ts`:
-
-- `phone.confirmed` and `phone.dial`
-- `prices.confirmed`
-- `areas.confirmed`
-- `claims.reviewed` (24-hour turnaround, FAA Part 107, and insured)
-
-A production build never prints “not confirmed”, “(placeholder)”, or “cities to confirm”. The supplied client reviews are published. The headshot, the bio, and social links are left out of that HTML when they are empty, instead of showing a placeholder. Those empty sections are listed by the check and do not, by themselves, stop the build.
+`pnpm build:prod` is the build that may be uploaded. It stops if the phone, the prices, or the service area in `src/site.config.ts` are marked unconfirmed. The supplied client reviews are published. The headshot, the bio, and social links are left out of the HTML when they are empty. Those empty sections are listed by the check and do not, by themselves, stop the build.
 
 The site is written to `landing/dist`. `pnpm preview` serves that folder locally.
 
 ## Preview on test.amalfimedia.xyz
 
-Run this on the VPS from a checkout of `develop` at `/opt/amalfi`, after this change is merged. It is the preview build (draft notes and `noindex`). It does not touch the live site. The Docker build has to succeed before anything is copied, and the web root is emptied first.
+Run this on the VPS from a checkout of `develop` at `/opt/amalfi`, after this change is merged. It is the preview build (`noindex`). It does not touch the live site. The Docker build has to succeed before anything is copied, and the web root is emptied first.
 
 ```bash
 cd /opt/amalfi && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v /opt/amalfi/landing:/app -w /app node:22-alpine sh -c 'corepack enable && rm -rf node_modules dist && pnpm install --frozen-lockfile && pnpm build' && sudo mkdir -p /var/www/test.amalfimedia.xyz && sudo find /var/www/test.amalfimedia.xyz -mindepth 1 -delete && sudo cp -a /opt/amalfi/landing/dist/. /var/www/test.amalfimedia.xyz/
 ```
 
-## What is still a placeholder
+## What is still unpublished
 
-Open `src/site.config.ts`. Prices, the phone number, service-area cities, the headshot and bio, social links, and the FAA / insured / 24-hour claims are marked unconfirmed. The preview pages render those as placeholders. The client reviews are confirmed. Do not upload a preview build. Use `pnpm build:prod` only after the flags above are set.
+Open `src/site.config.ts`. The phone, package prices, greater Orlando service area, and client reviews are published. There is no intro rate, no city list, and no FAA or insurance claim on the site. The headshot, the bio, and social links are still empty, so those blocks are omitted. Do not upload a preview build. Use `pnpm build:prod` for a build that can be indexed.
 
 The client portal link defaults to `https://staging.amalfimedia.xyz/portal`.
 
