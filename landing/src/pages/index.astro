@@ -149,21 +149,43 @@ const services = [
     </div>
   </section>
 
-  {site.testimonials.length === 0 && isProduction ? null : (
+  {site.testimonials.confirmed && site.testimonials.items.length > 0 ? (
+    <section class="sec reviews" aria-labelledby="clients-title">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2 id="clients-title" class="display">Clients</h2>
+        </div>
+      </div>
+      <div class="marquee" tabindex="0">
+        <div class="marquee-track">
+          <ul class="marquee-group">
+            {site.testimonials.items.map((item) => (
+              <li class="review">
+                <p class="stars" aria-hidden="true">★★★★★</p>
+                <blockquote><p>{item.quote}</p></blockquote>
+                <p class="review-by"><span class="review-name">{item.name}</span><span class="review-role">{item.role}</span></p>
+              </li>
+            ))}
+          </ul>
+          <ul class="marquee-group" aria-hidden="true">
+            {site.testimonials.items.map((item) => (
+              <li class="review">
+                <p class="stars" aria-hidden="true">★★★★★</p>
+                <blockquote><p>{item.quote}</p></blockquote>
+                <p class="review-by"><span class="review-name">{item.name}</span><span class="review-role">{item.role}</span></p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  ) : isProduction ? null : (
     <section class="sec">
       <div class="wrap">
         <div class="sec-head">
           <h2 class="display">Clients</h2>
         </div>
-        {site.testimonials.length === 0 ? (
-          <p class="placeholder">No testimonials yet. Add approved quotes, with names and brokerages, in the site config. None are invented here.</p>
-        ) : (
-          <div class="cards">
-            {site.testimonials.map((item) => (
-              <blockquote class="panel"><p>{item.quote}</p><footer>{item.name}, {item.brokerage}</footer></blockquote>
-            ))}
-          </div>
-        )}
+        <p class="placeholder">No testimonials yet. Add approved quotes, with names and roles, in the site config. None are invented here.</p>
       </div>
     </section>
   )}

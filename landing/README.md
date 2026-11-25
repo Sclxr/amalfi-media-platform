@@ -21,7 +21,7 @@ The package manager is pinned to pnpm 9.15.0 in `package.json`. Corepack uses th
 - `areas.confirmed`
 - `claims.reviewed` (24-hour turnaround, FAA Part 107, and insured)
 
-A production build never prints “not confirmed”, “(placeholder)”, or “cities to confirm”. Testimonials, the headshot, the bio, and social links are left out of that HTML when they are empty, instead of showing a placeholder. Those empty sections are listed by the check and do not, by themselves, stop the build.
+A production build never prints “not confirmed”, “(placeholder)”, or “cities to confirm”. The supplied client reviews are published. The headshot, the bio, and social links are left out of that HTML when they are empty, instead of showing a placeholder. Those empty sections are listed by the check and do not, by themselves, stop the build.
 
 The site is written to `landing/dist`. `pnpm preview` serves that folder locally.
 
@@ -35,7 +35,7 @@ cd /opt/amalfi && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v /opt/a
 
 ## What is still a placeholder
 
-Open `src/site.config.ts`. Prices, the phone number, service-area cities, testimonials, the headshot and bio, social links, and the FAA / insured / 24-hour claims are marked unconfirmed. The preview pages render those as placeholders. Do not upload a preview build. Use `pnpm build:prod` only after the flags above are set.
+Open `src/site.config.ts`. Prices, the phone number, service-area cities, the headshot and bio, social links, and the FAA / insured / 24-hour claims are marked unconfirmed. The preview pages render those as placeholders. The client reviews are confirmed. Do not upload a preview build. Use `pnpm build:prod` only after the flags above are set.
 
 The client portal link defaults to `https://staging.amalfimedia.xyz/portal`.
 

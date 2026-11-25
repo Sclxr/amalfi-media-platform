@@ -177,6 +177,10 @@ describe("bot API", () => {
   });
 
   it("returns 429 after the per-minute limit", async () => {
+    const intoMinute = Date.now() % 60_000;
+    if (intoMinute > 50_000) {
+      await new Promise((resolve) => setTimeout(resolve, 60_000 - intoMinute + 50));
+    }
     const token = await issue(["leads:read"]);
     let last = await call("GET", "/api/bot/leads", token);
     for (let i = 0; i < 59; i += 1) last = await call("GET", "/api/bot/leads", token);

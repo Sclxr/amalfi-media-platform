@@ -47,7 +47,99 @@ export const site = {
     confirmed: false,
     cities: ["Orlando", "Winter Park", "Windermere", "Lake Nona", "Dr. Phillips", "Kissimmee", "Oviedo"],
   },
-  testimonials: [] as { quote: string; name: string; brokerage: string }[],
+  /**
+   * Reviews supplied by Eathen from his previous business. confirmed publishes
+   * them on the preview site and in a production build.
+   */
+  testimonials: {
+    confirmed: true,
+    items: [
+      {
+        quote:
+          "The photos turned out incredible and really brought the property to life. Amalfi Media made the entire process easy, from scheduling to receiving the final images.",
+        name: "Sarah M.",
+        role: "Real Estate Agent",
+      },
+      {
+        quote:
+          "Professional, reliable, and extremely detail-oriented. The drone photography added an entirely new perspective to my listing. I look forward to working with them again.",
+        name: "Michael R.",
+        role: "Realtor",
+      },
+      {
+        quote:
+          "Finding a photographer who understands real estate marketing makes all the difference. The photos were bright, clean, and beautifully edited.",
+        name: "Jessica L.",
+        role: "Real Estate Agent",
+      },
+      {
+        quote:
+          "Great communication, quick turnaround, and exceptional quality. Amalfi Media is exactly what I look for in a real estate photography partner.",
+        name: "David C.",
+        role: "Realtor",
+      },
+      {
+        quote:
+          "I was impressed with the quality of both the interior and exterior photography. Every room was captured beautifully, and the entire experience was seamless.",
+        name: "Amanda T.",
+        role: "Listing Agent",
+      },
+      {
+        quote:
+          "High-quality photography at a very reasonable price. It's refreshing to work with a company that genuinely cares about making your listings stand out.",
+        name: "Daniel P.",
+        role: "Real Estate Agent",
+      },
+      {
+        quote:
+          "Absolutely loved how the photos came out! They made the home feel spacious, inviting, and ready for the market.",
+        name: "Nicole B.",
+        role: "Realtor",
+      },
+      {
+        quote:
+          "Amalfi Media exceeded my expectations. Their attention to detail and ability to capture the best features of a property really sets them apart.",
+        name: "Christopher W.",
+        role: "Real Estate Agent",
+      },
+      {
+        quote:
+          "Booking was incredibly easy, communication was excellent, and the photos looked amazing. Highly recommend!",
+        name: "Lauren S.",
+        role: "Realtor",
+      },
+      {
+        quote:
+          "The aerial photography was phenomenal. It really helped showcase the surrounding neighborhood and everything the property had to offer.",
+        name: "Matthew H.",
+        role: "Listing Agent",
+      },
+      {
+        quote:
+          "As a busy real estate agent, I appreciate working with someone who is dependable, professional, and delivers consistently beautiful results.",
+        name: "Ashley K.",
+        role: "Realtor",
+      },
+      {
+        quote:
+          "The quality of the photos speaks for itself. Amalfi Media captured the character of the home perfectly while keeping everything looking natural.",
+        name: "Brandon F.",
+        role: "Real Estate Agent",
+      },
+      {
+        quote:
+          "From the initial booking to downloading the finished photos, everything was straightforward. A great experience from start to finish.",
+        name: "Samantha D.",
+        role: "Realtor",
+      },
+      {
+        quote:
+          "Beautiful photography, competitive pricing, and outstanding customer service. I'll definitely be using Amalfi Media for future listings.",
+        name: "Robert J.",
+        role: "Real Estate Agent",
+      },
+    ],
+  },
   about: {
     headshot: null as string | null,
     bio: null as string | null,
@@ -76,7 +168,9 @@ export function productionPlaceholders() {
   }
 
   const omitted: string[] = [];
-  if (site.testimonials.length === 0) omitted.push("testimonials (section hidden)");
+  if (!site.testimonials.confirmed || site.testimonials.items.length === 0) {
+    omitted.push("testimonials (section hidden)");
+  }
   if (!site.about.headshot) omitted.push("about.headshot (block hidden)");
   if (!site.about.bio) omitted.push("about.bio (block hidden)");
   if (site.socials.length === 0) omitted.push("socials (line hidden)");
