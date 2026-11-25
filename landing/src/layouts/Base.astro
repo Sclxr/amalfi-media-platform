@@ -26,7 +26,10 @@ const jsonLd = {
   email: site.email,
   telephone: site.phone.dial,
   image: og,
-  areaServed: { "@type": "AdministrativeArea", name: "Greater Orlando" },
+  areaServed: [
+    { "@type": "AdministrativeArea", name: "Greater Orlando" },
+    ...site.areas.cities.map((name) => ({ "@type": "City", name })),
+  ],
 };
 ---
 <!doctype html>
