@@ -133,7 +133,11 @@ const services = [
     <div class="wrap area-layout">
       <div>
         <h2 class="display">Service <span class="gold">area</span></h2>
-        <p>{site.areas.summary}.</p>
+        <p class="area-kicker">Greater Orlando metro</p>
+        <ul class="area-cities">
+          {site.areas.cities.map((city) => <li>{city}</li>)}
+        </ul>
+        <p class="area-note">Plus the surrounding Orlando metro area.</p>
       </div>
       <ServiceAreaMap />
     </div>

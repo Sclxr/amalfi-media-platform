@@ -33,6 +33,18 @@ export const site = {
   areas: {
     confirmed: true,
     summary: "Serving the greater Orlando area",
+    cities: [
+      "Orlando",
+      "Winter Park",
+      "Winter Garden",
+      "Windermere",
+      "Dr. Phillips",
+      "Lake Nona",
+      "Oviedo",
+      "Sanford",
+      "Kissimmee",
+      "Davenport",
+    ],
   },
   /**
    * Reviews supplied by Eathen from his previous business. confirmed publishes
