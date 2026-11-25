@@ -50,6 +50,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm exec prisma migrate deploy
       - run: pnpm exec prisma db seed
+      - name: Build the landing site
+        working-directory: landing
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+        run: pnpm install --frozen-lockfile --ignore-workspace && pnpm build:prod
       - run: pnpm test
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
